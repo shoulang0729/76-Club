@@ -171,6 +171,20 @@
   .chip{display:inline-flex;align-items:center;gap:4px;border:1px solid var(--line);border-radius:99px;padding:3px 9px;font-size:12px;margin:3px 4px 0 0;background:#fff;cursor:pointer;font-weight:700}
   .chip.on{background:var(--acc);color:#fff;border-color:var(--acc)}
   @media(max-width:760px){ .ind-split{flex-direction:column} .ind-left,.ind-right{flex:1 1 auto;width:100%} }
+  /* ルーレット対抗 */
+  .rl-head{display:flex;align-items:baseline;gap:12px;margin-bottom:10px}
+  .rl-hole{font-size:36px;font-weight:900;line-height:1;color:var(--ink)}
+  .rl-hole small{font-size:14px;font-weight:800;color:var(--sub);margin-left:2px}
+  .rl-par{font-size:13px;color:var(--sub);font-weight:800}
+  .rl-panels{display:flex;flex-wrap:wrap;gap:10px}
+  .rl-panel{flex:1 1 140px;min-width:130px;border:2px solid var(--line);border-radius:12px;padding:12px 10px;text-align:center;background:#fff}
+  .rl-panel.win{background:#eafaf1;box-shadow:0 0 0 2px var(--acc) inset}
+  .rl-team{font-size:12px;font-weight:800;letter-spacing:.03em}
+  .rl-name{font-size:20px;font-weight:900;margin:6px 0 2px;min-height:26px;font-variant-numeric:tabular-nums}
+  .rl-score{font-size:12px;color:var(--sub);font-weight:800;min-height:16px}
+  .rl-btns{display:flex;gap:6px;margin-top:9px;justify-content:center;flex-wrap:wrap}
+  .rl-btns .btn{padding:6px 8px;font-size:11px}
+  .rl-ctrl{margin-top:14px}
 </style>
 </head>
 <body>
@@ -224,8 +238,11 @@ function migrate(s){
     else { const d=defaultPoints(); for(const k in d) if(g.points[k]===undefined) g.points[k]=d[k]; }
     if(g.prizePool===undefined) g.prizePool=0;
     if(!g.prizes) g.prizes={ niapinHoles:[], draconHoles:[], niapinWinner:{}, draconWinner:{} };
+    if(!g.roulette) g.roulette=newRoulette();
+    else { const r=newRoulette(); for(const k in r) if(g.roulette[k]===undefined) g.roulette[k]=r[k]; }
   });
 }
+function newRoulette(){ return { changeN:1, challengeM:1, reps:{}, pool:{}, remChange:{}, remChallenge:{}, cur:0 }; }
 function defaultPoints(){ return {
   net:[5,3,1], gross:[5,3,1], stableford:[5,3,1], olympic:[5,3,1], callaway:[5,3,1], nassauTotal:[5,3,1],
   teamGross:[3], teamNet:[3], holeByHole:[3], best2ball:[3], niapin:2, dracon:2 }; }
@@ -246,7 +263,7 @@ function newGame(){
     participants:[],
     scores:{},
     prizes:{ niapinHoles:[], draconHoles:[], niapinWinner:{}, draconWinner:{} },
-    points:defaultPoints(), prizePool:0,
+    points:defaultPoints(), prizePool:0, roulette:newRoulette(),
     formats:{ gross:true, net:true, teamGross:true, teamNet:true, holeByHole:true,
       stableford:true, nassau:true, olympic:true, callaway:false, best2ball:false }
   };
@@ -256,6 +273,8 @@ function newGame(){
 const views = { game:'view-game', players:'view-players', score:'view-score', result:'view-result' };
 let activeTab='game';
 let revealHoles=18;            // 個人戦で開封済みのホール数(0-18)。18=全開（既定）
+let rl={ spinning:false, spinTeams:[], timer:null, challengeFrom:null };  // ルーレットの実行時状態（非保存）
+function rlStopTimer(){ if(rl.timer){clearInterval(rl.timer);rl.timer=null;} rl.spinning=false; }
 // 発表用の表示/非表示スイッチ（true=表示）。totals=スコア表の合計欄（個人/チーム共通・チーム小計の色も含む）
 let show={ totals:true };
 function toggleShow(k){ show[k]=!show[k]; renderResult(); }
@@ -275,7 +294,7 @@ const TAB_LABEL={game:'ゲーム', players:'選手', score:'入力', result:'結
 function toggleMenu(force){ const m=document.getElementById('appMenu'), o=document.getElementById('menuOverlay');
   const open = (force!==undefined)? force : (m.style.display!=='block');
   m.style.display=open?'block':'none'; o.style.display=open?'block':'none'; }
-function go(tab){ activeTab=tab; toggleMenu(false); render(); }
+function go(tab){ rlStopTimer(); activeTab=tab; toggleMenu(false); render(); }
 function render(){
   Object.entries(views).forEach(([k,id])=> document.getElementById(id).style.display = k===activeTab?'':'none');
   const g=curGame();
@@ -437,6 +456,13 @@ function renderGame(){
     ${fchk('callaway','キャロウェイ方式')}${fchk('best2ball','ベスト2ボール')}
   </div></div>`;
 
+  html += `<div class="card"><h2>ルーレット対抗（抽選ホールバイホール）</h2>
+    <div class="muted">ホールごとに各チームの代表を抽選し、その代表のスコアで1ホールずつ勝負。結果タブ「ルーレット」で実行します。回数はチームごとに付与。</div>
+    <div class="row" style="margin-top:8px">
+      <div style="flex:1"><label class="fl">チェンジ回数（自分を変える・使い切り必須）</label><input type="number" min="0" max="18" value="${g.roulette.changeN}" onchange="setRoulette('changeN',this.value)"></div>
+      <div style="flex:1"><label class="fl">チャレンジ回数（相手を変える・任意）</label><input type="number" min="0" max="18" value="${g.roulette.challengeM}" onchange="setRoulette('challengeM',this.value)"></div>
+    </div></div>`;
+
   // Points / prize pool
   const P=g.points;
   const ptsInd=(k,label)=> F[k]?`<div class="ptsrow"><span>${label}</span><span class="ptsedit"><input value="${(P[k]||[]).join(',')}" onchange="setPoints('${k}',this.value)" placeholder="5,3,1"></span></div>`:'';
@@ -480,6 +506,7 @@ function clearHidden(){ curGame().hidden=Array(18).fill(false); save(); renderGa
 function setFmt(k,v){ curGame().formats[k]=v; save(); renderGame(); }
 function setPoints(k,v){ curGame().points[k]=v.split(',').map(x=>parseInt(x.trim())).filter(x=>!isNaN(x)); save(); }
 function setPointsNum(k,v){ curGame().points[k]=parseInt(v)||0; save(); }
+function setRoulette(k,v){ curGame().roulette[k]=Math.max(0,parseInt(v)||0); save(); }
 function createGame(){ const g=newGame(); state.games.push(g); state.currentGameId=g.id; save(); render(); toast('新規ゲーム作成'); }
 function selectGame(id){ state.currentGameId=id||null; save(); render(); }
 function deleteGame(){ if(!confirm('このゲームを削除しますか？'))return;
@@ -717,7 +744,7 @@ function nextKanji(g){
 
 /* ============================ RESULTS ============================ */
 let resultSub='ind';   // 'pts' | 'ind' | 'prize' | 'team'
-function setResultSub(s){ resultSub=s; renderResult(); }
+function setResultSub(s){ if(s!=='roulette')rlStopTimer(); resultSub=s; renderResult(); }
 // 開封済みホール(revealHoles)までのスコアだけ集計に使うビュー用ゲーム（18=全開）
 function viewGame(g){
   if(revealHoles>=18) return g;
@@ -741,12 +768,14 @@ function renderResult(){
       <button class="${resultSub==='prize'?'on':''}" onclick="setResultSub('prize')">ニアドラ</button>
       <button class="${resultSub==='ind'?'on':''}" onclick="setResultSub('ind')">個人戦</button>
       <button class="${resultSub==='team'?'on':''}" onclick="setResultSub('team')">チーム戦</button>
+      <button class="${resultSub==='roulette'?'on':''}" onclick="setResultSub('roulette')">ルーレット</button>
       <button class="${resultSub==='pts'?'on':''}" onclick="setResultSub('pts')">配分</button>
     </div></div>`;
   let body;
   if(resultSub==='pts') body=renderStanding(g, parts);
   else if(resultSub==='ind') body=renderIndividual(g, parts);
   else if(resultSub==='prize') body=renderPrizeTab(g);
+  else if(resultSub==='roulette') body=renderRouletteTab(g0);   // 実スコアで動作
   else body=renderTeamTab(g);
   el.innerHTML = sticky + body;
 }
@@ -880,6 +909,93 @@ function renderTeamTab(g){
     return `<div class="card"><h2>チーム戦</h2><div class="empty">「ゲーム」タブの「集計する競技」でチーム戦の項目をONにしてください。</div></div>`;
   const teams=g.teams.filter(t=>t.memberIds.length);
   return renderScorecard(g, g.participants, teams) + `<div class="rank-wrap">${renderTeams(g)}</div>`;
+}
+
+/* ============================ ルーレット対抗 ============================ */
+function rTeams(g){ return g.teams.filter(t=>t.memberIds.length); }
+function rColor(name){ return /レッド|赤/.test(name)?'#c0392b':/ブルー|青/.test(name)?'#2c6e9e':/グリーン|緑/.test(name)?'#0e9e57':/イエロー|黄/.test(name)?'#d4a017':'#3a4450'; }
+function rlDraw(g, teamId, excludePid){
+  const t=g.teams.find(x=>x.id===teamId); const members=t.memberIds.slice();
+  let cand=members.filter(m=>!(g.roulette.pool[teamId]||[]).includes(m));
+  if(excludePid) cand=cand.filter(m=>m!==excludePid);
+  if(cand.length===0){ g.roulette.pool[teamId]=[]; cand=members.filter(m=>m!==excludePid); if(!cand.length)cand=members.slice(); }
+  return cand[Math.floor(Math.random()*cand.length)];
+}
+function rlTick(){ const g=curGame(); if(!g)return;
+  rl.spinTeams.forEach(tid=>{ const t=g.teams.find(x=>x.id===tid); if(!t||!t.memberIds.length)return;
+    const el=document.getElementById('rl-name-'+tid);
+    if(el){ const pid=t.memberIds[Math.floor(Math.random()*t.memberIds.length)]; const p=state.players.find(x=>x.id===pid); el.textContent=p?p.name:''; } }); }
+function rlBeginSpin(teamIds){ if(rl.timer)clearInterval(rl.timer); rl.spinning=true; rl.spinTeams=teamIds.slice(); rl.challengeFrom=null; renderResult(); rl.timer=setInterval(rlTick,75); }
+function rlStop(){ rlStopTimer(); const g=curGame(); const R=g.roulette; const h=R.cur; R.reps[h]=R.reps[h]||{};
+  rl.spinTeams.forEach(tid=>{ const prev=R.reps[h][tid]; R.reps[h][tid]=rlDraw(g,tid, rl.spinTeams.length===1?prev:null); });
+  rl.spinTeams=[]; save(); renderResult(); }
+function rlStartInitial(){ const g=curGame(); rlBeginSpin(rTeams(g).map(t=>t.id)); }
+function rlChange(tid){ const g=curGame(); const R=g.roulette; if((R.remChange[tid]||0)<=0)return; R.remChange[tid]--; save(); rlBeginSpin([tid]); }
+function rlChallengeStart(fromTid){ const g=curGame(); const R=g.roulette; if((R.remChallenge[fromTid]||0)<=0)return;
+  const others=rTeams(g).filter(t=>t.id!==fromTid);
+  if(others.length===1){ rlChallengeDo(fromTid, others[0].id); } else { rl.challengeFrom=fromTid; renderResult(); } }
+function rlChallengeDo(fromTid, targetTid){ const g=curGame(); const R=g.roulette; if((R.remChallenge[fromTid]||0)<=0)return; R.remChallenge[fromTid]--; rl.challengeFrom=null; save(); rlBeginSpin([targetTid]); }
+function rlCancelChallenge(){ rl.challengeFrom=null; renderResult(); }
+function rlHoleDrawn(g){ const reps=g.roulette.reps[g.roulette.cur]||{}; return rTeams(g).every(t=>reps[t.id]); }
+function rlCanAdvance(g){ if(!rlHoleDrawn(g))return false; const left=18-(g.roulette.cur+1); return rTeams(g).every(t=>(g.roulette.remChange[t.id]||0)<=left); }
+function rlNextHole(){ const g=curGame(); const R=g.roulette; if(!rlCanAdvance(g)){toast('チェンジを使い切ってください');return;}
+  const reps=R.reps[R.cur]||{}; rTeams(g).forEach(t=>{ R.pool[t.id]=[...(R.pool[t.id]||[]), reps[t.id]]; });
+  R.cur=Math.min(18,R.cur+1); rl.challengeFrom=null; save(); renderResult(); }
+function rlReset(){ if(!confirm('ルーレットを最初からやり直しますか？'))return; const g=curGame(); const R=g.roulette;
+  R.reps={};R.pool={};R.remChange={};R.remChallenge={};R.cur=0; rTeams(g).forEach(t=>{R.remChange[t.id]=R.changeN;R.remChallenge[t.id]=R.challengeM;});
+  rl.challengeFrom=null; rlStopTimer(); rl.spinTeams=[]; save(); renderResult(); }
+function rlStandings(g){ const teams=rTeams(g); const won=teams.map(()=>0); let pending=0;
+  for(let h=0; h<g.roulette.cur; h++){ const reps=g.roulette.reps[h]; if(!reps)continue;
+    const sc=teams.map(t=>{const pid=reps[t.id];const v=pid!=null?(g.scores[pid]||[])[h]:null;return (v!=null&&v!=='')?Number(v):null;});
+    if(sc.some(s=>s==null)){pending++;continue;}
+    const mn=Math.min(...sc); const w=sc.map((s,i)=>s===mn?i:-1).filter(i=>i>=0); w.forEach(i=>won[i]+=1/w.length); }
+  return {teams,won,pending}; }
+
+function renderRouletteTab(g){
+  const teams=rTeams(g);
+  if(teams.length<2) return `<div class="card"><h2>ルーレット対抗</h2><div class="empty">2チーム以上が必要です。「ゲーム」タブでチームを作成してください。</div></div>`;
+  const R=g.roulette;
+  teams.forEach(t=>{ if(R.remChange[t.id]===undefined)R.remChange[t.id]=R.changeN; if(R.remChallenge[t.id]===undefined)R.remChallenge[t.id]=R.challengeM; });
+  const {won,pending}=rlStandings(g); const maxw=Math.max(...won,0);
+  let html=`<div class="card payoutcard"><h2>ルーレット対抗 <span class="tag">${Math.min(R.cur,18)}/18H</span></h2>
+    <table class="lb"><tr><th class="c-pos">順</th><th>チーム</th><th class="c-val">取得H</th></tr>
+    ${teams.map(t=>({t,v:won[teams.indexOf(t)]})).sort((a,b)=>b.v-a.v).map((r,i)=>`<tr class="rank"><td class="c-pos">${posBadge(i+1,i===0&&r.v>0)}</td><td class="nmc" style="text-align:left"><span style="color:${rColor(r.t.name)};font-weight:800">${esc(r.t.name)}</span></td><td class="c-val"><b>${Math.round(r.v*10)/10}</b></td></tr>`).join('')}</table>
+    ${pending?`<div class="muted" style="margin-top:4px">スコア未入力で保留中：${pending}ホール（入力で反映）</div>`:''}
+    <div class="row" style="margin-top:8px"><button class="btn gray sm" onclick="rlReset()">リセット</button></div></div>`;
+
+  if(R.cur>=18){ return html+`<div class="card"><div class="empty"><b>全18ホール終了</b><br>上のスタンディングが最終結果です。</div></div>`; }
+
+  const h=R.cur; const reps=R.reps[h]||{}; const drawn=rlHoleDrawn(g);
+  const holeScores=()=>teams.map(t=>{const pid=reps[t.id];const v=pid!=null?(g.scores[pid]||[])[h]:null;return (v!=null&&v!=='')?Number(v):null;});
+  let holeInfo='';
+  if(drawn){ const sc=holeScores();
+    if(sc.some(s=>s==null)) holeInfo='<span class="muted">代表のスコア未入力（入力で勝敗確定）</span>';
+    else{ const mn=Math.min(...sc); const wi=sc.map((s,i)=>s===mn?i:-1).filter(i=>i>=0);
+      holeInfo = wi.length===teams.length?'引き分け（各0.5H）':('勝ち：<b>'+wi.map(i=>esc(teams[i].name)).join('・')+'</b>'); } }
+  const winSet=(()=>{ if(!drawn)return new Set(); const sc=holeScores(); if(sc.some(s=>s==null))return new Set(); const mn=Math.min(...sc); return new Set(sc.map((s,i)=>s===mn?i:-1).filter(i=>i>=0)); })();
+  const panels=teams.map((t,ti)=>{ const pid=reps[t.id]; const p=pid?state.players.find(x=>x.id===pid):null;
+    const sv=pid?((g.scores[pid]||[])[h]??'—'):''; const col=rColor(t.name); const win=winSet.has(ti);
+    return `<div class="rl-panel${win?' win':''}" style="border-color:${col}">
+      <div class="rl-team" style="color:${col}">${esc(t.name)}</div>
+      <div class="rl-name" id="rl-name-${t.id}">${rl.spinning&&rl.spinTeams.includes(t.id)?'…':(p?esc(p.name):'―')}</div>
+      <div class="rl-score">${pid?('このH '+sv):''}</div>
+      ${drawn&&!rl.spinning&&!rl.challengeFrom?`<div class="rl-btns">
+        <button class="btn sec sm" ${(R.remChange[t.id]||0)<=0?'disabled':''} onclick="rlChange('${t.id}')">チェンジ ${R.remChange[t.id]||0}</button>
+        <button class="btn gray sm" ${(R.remChallenge[t.id]||0)<=0?'disabled':''} onclick="rlChallengeStart('${t.id}')">チャレンジ ${R.remChallenge[t.id]||0}</button>
+      </div>`:''}
+      ${rl.challengeFrom&&rl.challengeFrom!==t.id?`<button class="btn sm" style="margin-top:6px" onclick="rlChallengeDo('${rl.challengeFrom}','${t.id}')">このチームを回す</button>`:''}
+    </div>`; }).join('');
+  html+=`<div class="card">
+    <div class="rl-head"><div class="rl-hole">${h+1}<small>H</small></div><div class="rl-par">Par ${g.par[h]}</div></div>
+    ${rl.challengeFrom?`<div class="muted" style="margin:2px 0 8px">チャレンジ：回したい相手チームの「このチームを回す」を選択 <button class="btn gray sm" onclick="rlCancelChallenge()">取消</button></div>`:''}
+    <div class="rl-panels">${panels}</div>
+    <div class="rl-ctrl">
+      ${(!rl.spinning&&!drawn)?`<button class="btn wide" onclick="rlStartInitial()">START（回す）</button>`:''}
+      ${rl.spinning?`<button class="btn danger wide" onclick="rlStop()">STOP（止める）</button>`:''}
+      ${(!rl.spinning&&drawn)?`<div class="row" style="align-items:center"><div style="flex:1;font-weight:700">${holeInfo}</div><button class="btn" ${rlCanAdvance(g)?'':'disabled'} onclick="rlNextHole()">確定して次のホール</button></div>${!rlCanAdvance(g)?'<div class="muted" style="margin-top:6px">チェンジが残っています。残りホールで使い切る必要があるため、このホールでチェンジを使ってください。</div>':''}`:''}
+    </div>
+  </div>`;
+  return html;
 }
 
 

@@ -361,3 +361,10 @@ Phase 1 プロトタイプに以下を実装済み。§3/§4 の内容はこの�
 - **フォント階層を5段に統一**（`--f-hero/val/name/title/body/small`）。**選手名 16px**（`.nmc`）。数字は `tabular-nums`。
 - 列崩れ対策：順位/対抗テーブルは `table-layout:fixed` ＋ 列クラス `.c-eye/.c-pos/.c-val`（名前列だけ可変・省略記号）。
 - ブランドは `76-CLUB` / `COMPE`。次回幹事は順位行の青「幹事」バッジのみ（注記は既に廃止）。
+
+### 10.24 v2.16（2026-07-12）— ルーレット対抗タブ（抽選ホールバイホール＋チェンジ/チャレンジ）
+- 結果に**「ルーレット」サブタブ**追加（順：ニアドラ/個人戦/チーム戦/ルーレット/配分）。実スコア(g0)で動作。
+- **ゲーム**：`game.roulette={changeN,challengeM,reps,pool,remChange,remChallenge,cur}`（`newRoulette()`／migrate補完）。ゲーム設定に回数入力（`setRoulette`）。
+- **進行**：ホールごとに `START`→高速で各チームのメンバー名を回転（`setInterval rlTick`・DOM直更新 `#rl-name-<teamId>`）→`STOP`で各チーム代表を確定（`rlDraw` は均等プール＝一巡まで重複なし、再抽選時は現代表を除外）。代表のそのホールのスコアを比較、最少=勝ち、同点=各0.5H（`rlStandings`）。`確定して次のホール`で18Hまで。
+- **チェンジ**（自チーム再抽選・`rlChange`）＝`remChange` 消費・**使い切り必須**＝`rlCanAdvance` が「各チームの残チェンジ≤残ホール数」を満たすまで次へ進めない（18Hで自動的に0要求）。**チャレンジ**（相手再抽選・`rlChallengeStart`/`rlChallengeDo`）＝任意・3チーム以上は相手を選択。回数は**チームごと**付与。
+- タブ離脱で `rlStopTimer()`（`go`/`setResultSub`）。抽選結果は保存、勝敗はスコア入力後に動的反映（未入力は保留表示）。
