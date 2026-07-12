@@ -5,6 +5,7 @@
 - 公開: GitHub Pages（`https://shoulang0729.github.io/76-Club/`）
 - 実装担当: VS Code（Claude Code）
 - 視覚/機能リファレンス: [`assets/2026-07-12-phase1-reference.html`](assets/2026-07-12-phase1-reference.html)（＝リポジトリ直下 `index.html` と同一の Phase 1 実働プロトタイプ）
+- **改訂**: 2026-07-12 v2 — 選手ごとハンデ区分・幹事対象外・表彰式リビール・ルール解説・賞金ポイント配分・次回幹事を追加（詳細は末尾「§10 v2追補」。§3/§4 の正本もこれに合わせて更新済）。
 
 ---
 
@@ -222,3 +223,44 @@ rooms/{roomCode}                      // 1コンペ=1ルーム
 3. Authentication → Sign-in method → **Anonymous** を有効化。
 4. プロジェクト設定 → マイアプリ → ウェブアプリ追加 → `firebaseConfig`（apiKey 等）をコピー → 実装者に渡す（`src/firebase-config.js` に設定）。
 5. Firestore Rules は実装PRの `firestore.rules` を貼り付けて公開。
+
+---
+
+## 10. v2 追補（2026-07-12・実装済み・正本）
+
+Phase 1 プロトタイプに以下を実装済み。§3/§4 の内容はこの追補で上書き/拡張される。
+
+### 10.1 選手モデルの拡張（§4 上書き）
+`player` に2フィールド追加：
+- `everyType`: `"none" | "every1" | "every2"`（既定 `none`）。エブリハンデ区分。**女性でも `none` にできる**（性別と独立）。
+- `kanjiExempt`: `boolean`（既定 `false`）。次回幹事の対象外。
+- `gender`（`"M"|"F"`）は残す＝ニアピン/ドラコン2打目注記の表示にのみ使用（計算には使わない）。
+- **移行**: 旧データに無ければ `load()` の `migrate()` で既定値を補完。
+
+### 10.2 エブリハンデ（§3.2 上書き）
+- ゲーム側は `womenEvery.enabled`（適用ON/OFFのみ）。**旧 `type` は廃止**（金額は選手ごと）。
+- `womenEvery(pid) = enabled ? (everyType==='every1'?18 : everyType==='every2'?36 : 0) : 0`。
+- グロス個人戦 `effGross` とネット `net` の両方に反映（従来どおり）。
+
+### 10.3 賞金ポイント配分（新規）
+- `game.points`: 各競技の順位別配点（配列）。既定 `net/gross/stableford/olympic/callaway/nassauTotal=[5,3,1]`、`teamGross/teamNet/holeByHole/best2ball=[3]`、`niapin/dracon=2`（1回あたり数値）。**幹事がアプリ内で自由編集**（カンマ区切り入力）。
+- `game.prizePool`: 賞金総額（円・整数）。
+- **集計** `computePoints(g)`: 有効な各競技で `ranked()`（同スコア同順位）を作り、`points[競技][rank-1]` を加点。個人賞は勝者に `points.niapin/dracon` を回数分。チーム戦は勝ちチームの**各メンバー**に順位別点を加点。
+- **配分** `computePayout(g)`: `payout[pid] = round(prizePool × pts[pid] / Σpts)`。ポイントは上限なし＝稼いだ比率で固定総額を山分け。結果タブに「選手／獲得pt／配分額¥」を表示。
+
+### 10.4 表彰式リビール（新規・演出）
+- 結果タブ上部トグル `revealMode`（表彰式モード）。ON時、各リーダーボードは伏せ札で、**下位から1人ずつ**「🥁 次を発表」でめくる（最後に優勝）。`revealState[gameId:boardKey]` に「下から何人開けたか」を保持（localStorage非保存の一時状態）。「一気に全部」ボタンあり。`leaderboard()` にこの分岐を内蔵。
+
+### 10.5 ルール解説（新規）
+- 結果タブに `<details>`「📖 各ゲームのルール解説」。ステーブルフォード/オリンピック/キャロウェイ/握り・ナッソー/ネット/グロスの配点・勝敗の見方を平易に記載（CSP安全なネイティブ`<details>`）。
+
+### 10.6 次回幹事（新規）
+- `nextKanji(g)`: ネット個人戦順位（`gross>0` の参加者）から、**幹事対象外(`kanjiExempt`)を除外**した並びで **2位=`eligible[1]`／ブービー(下から2番目)=`eligible[length-2]`** を算出。対象外は飛ばして繰り下げ。結果タブに2名をカード表示。
+
+### 10.7 Phase 2（Firebase）への引き継ぎ注意
+- Firestore `players/{id}` に `everyType`・`kanjiExempt` を追加。`rooms/{code}` に `points`・`prizePool` を追加。
+- ポイント/配分/次回幹事/リビールは**全クライアント同一ロジックで再計算**（サーバー不要）。リビールの `revealState` は端末ローカルの演出状態（同期しない）で良い。幹事だけが賞金額・配点を編集可（セキュリティルール `meta.hostUid`）。
+
+### 10.8 触ってはいけない範囲（追加）
+- `everyType` の値 `none/every1/every2`、`kanjiExempt`、`points` の各キー名は load-bearing。
+- 次回幹事＝「2位＋ブービー、対象外は繰り下げ」はユーザー確定仕様（勝手に変えない）。

@@ -4,12 +4,12 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<title>コンペ集計 🏌️</title>
+<title>76-Club コンペ集計 🏌️</title>
 <style>
   :root{
     --green:#186a3b; --green2:#239b56; --lime:#d5f5e3; --bg:#f4f6f7;
     --ink:#1b2631; --sub:#5d6d7e; --line:#d5dbdb; --gold:#d4ac0d; --red:#c0392b;
-    --card:#fff; --blue:#2471a3;
+    --card:#fff; --blue:#2471a3; --purple:#7d3c98;
   }
   *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
   html,body{margin:0;padding:0}
@@ -27,7 +27,7 @@
   .tabbar button .ic{font-size:20px;line-height:1}
   .tabbar button.active{color:var(--green);font-weight:700}
   .card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:14px;margin-bottom:12px}
-  .card h2{margin:0 0 10px;font-size:15px;color:var(--green);display:flex;align-items:center;gap:6px}
+  .card h2{margin:0 0 10px;font-size:15px;color:var(--green);display:flex;align-items:center;gap:6px;flex-wrap:wrap}
   .card h3{margin:14px 0 6px;font-size:13px;color:var(--sub)}
   label.fl{display:block;font-size:12px;color:var(--sub);margin:8px 0 3px;font-weight:600}
   input,select,textarea{font-family:inherit;font-size:15px;border:1px solid var(--line);border-radius:8px;
@@ -38,12 +38,16 @@
   button.btn.sec{background:#fff;color:var(--green);border:1.5px solid var(--green)}
   button.btn.gray{background:#eaeded;color:var(--ink)}
   button.btn.danger{background:var(--red)}
+  button.btn.gold{background:var(--gold)}
   button.btn.sm{padding:5px 9px;font-size:12px;border-radius:6px}
+  button.btn.wide{width:100%;padding:12px}
   .row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
   .row.between{justify-content:space-between}
   .pill{display:inline-block;background:var(--lime);color:var(--green);border-radius:99px;padding:2px 9px;
     font-size:11px;font-weight:700}
   .pill.f{background:#fdebd0;color:#b9770e}
+  .pill.e1{background:#d6eaf8;color:#2471a3}
+  .pill.e2{background:#e8daef;color:#7d3c98}
   .muted{color:var(--sub);font-size:12px}
   .tag{font-size:10px;padding:1px 5px;border-radius:4px;background:#eaeded;color:var(--sub);margin-left:4px}
   table{border-collapse:collapse;width:100%;font-size:13px}
@@ -61,11 +65,10 @@
   .lb th:first-child,.lb td:first-child{width:34px}
   .empty{text-align:center;color:var(--sub);padding:30px 10px}
   .chip{display:inline-flex;align-items:center;gap:4px;border:1px solid var(--line);border-radius:99px;
-    padding:3px 8px;font-size:12px;margin:3px 4px 0 0;background:#fff}
+    padding:3px 8px;font-size:12px;margin:3px 4px 0 0;background:#fff;cursor:pointer}
   .chip.on{background:var(--green);color:#fff;border-color:var(--green)}
   .holebtn{width:34px;height:34px;border-radius:8px;border:1px solid var(--line);background:#fff;margin:2px;
     font-size:13px;cursor:pointer;font-weight:600}
-  .holebtn.on{background:var(--gold);color:#fff;border-color:var(--gold)}
   .holebtn.np{background:var(--blue);color:#fff;border-color:var(--blue)}
   .holebtn.dc{background:var(--red);color:#fff;border-color:var(--red)}
   .seg{display:flex;border:1px solid var(--green);border-radius:8px;overflow:hidden;margin:4px 0}
@@ -78,18 +81,29 @@
   details>summary::-webkit-details-marker{display:none}
   details>summary::before{content:"▸ ";}
   details[open]>summary::before{content:"▾ ";}
-  details .in{padding:0 12px 12px}
+  details .in{padding:0 12px 12px;font-size:13px;color:var(--ink)}
   .toast{position:fixed;bottom:80px;left:50%;transform:translateX(-50%);background:var(--ink);color:#fff;
     padding:9px 16px;border-radius:99px;font-size:13px;z-index:50;opacity:0;transition:.3s;pointer-events:none}
   .toast.show{opacity:.95}
   .prizewin{background:linear-gradient(135deg,#fef9e7,#fcf3cf);border:1px solid var(--gold)}
+  .kanjicard{background:linear-gradient(135deg,#eaf2f8,#d6eaf8);border:1px solid var(--blue)}
+  .payoutcard{background:linear-gradient(135deg,#eafaf1,#d5f5e3);border:1px solid var(--green2)}
   hr{border:0;border-top:1px solid var(--line);margin:12px 0}
   .medal{font-size:15px}
+  .masked{color:var(--sub);font-style:italic;letter-spacing:2px}
+  .reveal-controls{display:flex;gap:8px;margin:8px 0 4px;flex-wrap:wrap}
+  .infobtn{border:1px solid var(--blue);color:var(--blue);background:#fff;border-radius:99px;
+    width:20px;height:20px;font-size:12px;font-weight:700;cursor:pointer;padding:0;line-height:1}
+  .rule{background:#f4f8fb;border:1px dashed var(--blue);border-radius:8px;padding:8px 10px;font-size:12px;color:#1b4a6b;margin:6px 0}
+  .ptsedit input{width:74px;text-align:center;display:inline-block;padding:5px}
+  .ptsrow{display:flex;align-items:center;justify-content:space-between;gap:8px;margin:5px 0}
+  .ptsrow span{font-size:13px}
+  .big{font-size:20px;font-weight:800}
 </style>
 </head>
 <body>
 <header>
-  <h1>🏌️ コンペ集計</h1>
+  <h1>⛳ 76-Club <span style="font-weight:400;opacity:.85">コンペ集計</span></h1>
   <div class="gamename" id="hdrGame">— ゲーム未選択 —</div>
 </header>
 <main>
@@ -112,9 +126,30 @@
 const LS_KEY = "golfCompe_v1";
 let state = load();
 function load(){
-  try{ const s = JSON.parse(localStorage.getItem(LS_KEY)); if(s&&s.players) return s; }catch(e){}
-  return { players:[], games:[], currentGameId:null };
+  let s=null;
+  try{ s = JSON.parse(localStorage.getItem(LS_KEY)); }catch(e){}
+  if(!s||!s.players) s = { players:[], games:[], currentGameId:null };
+  migrate(s);
+  return s;
 }
+function migrate(s){
+  (s.players||[]).forEach(p=>{
+    if(p.everyType===undefined) p.everyType='none';   // none | every1 | every2
+    if(p.kanjiExempt===undefined) p.kanjiExempt=false;
+    if(p.gender===undefined) p.gender='M';
+  });
+  (s.games||[]).forEach(g=>{
+    if(!g.womenEvery) g.womenEvery={enabled:false};
+    if(g.womenEvery.enabled===undefined) g.womenEvery.enabled=false;
+    if(!g.points) g.points=defaultPoints();
+    else { const d=defaultPoints(); for(const k in d) if(g.points[k]===undefined) g.points[k]=d[k]; }
+    if(g.prizePool===undefined) g.prizePool=0;
+    if(!g.prizes) g.prizes={ niapinHoles:[], draconHoles:[], niapinWinner:{}, draconWinner:{} };
+  });
+}
+function defaultPoints(){ return {
+  net:[5,3,1], gross:[5,3,1], stableford:[5,3,1], olympic:[5,3,1], callaway:[5,3,1], nassauTotal:[5,3,1],
+  teamGross:[3], teamNet:[3], holeByHole:[3], best2ball:[3], niapin:2, dracon:2 }; }
 function save(){ localStorage.setItem(LS_KEY, JSON.stringify(state)); }
 function uid(){ return Math.random().toString(36).slice(2,9); }
 function toast(m){ const t=document.getElementById('toast'); t.textContent=m; t.classList.add('show');
@@ -127,11 +162,12 @@ function newGame(){
     par:[4,4,3,4,5,4,4,3,4, 4,4,3,4,5,4,4,3,4],
     hidden:Array(18).fill(false),
     periaCoef:0.8, periaCap:null,
-    womenEvery:{enabled:false, type:2},   // type: 1 (=−18) or 2 (=−36)
+    womenEvery:{enabled:false},
     teams:[],
     participants:[],
     scores:{},
     prizes:{ niapinHoles:[], draconHoles:[], niapinWinner:{}, draconWinner:{} },
+    points:defaultPoints(), prizePool:0,
     formats:{ gross:true, net:true, teamGross:true, teamNet:true, holeByHole:true,
       stableford:true, nassau:true, olympic:true, callaway:false, best2ball:false }
   };
@@ -140,6 +176,8 @@ function newGame(){
 /* ============================ TAB NAV ============================ */
 const views = { game:'view-game', players:'view-players', score:'view-score', result:'view-result' };
 let activeTab='game';
+let revealMode=false;          // 表彰式モード
+let revealState={};            // key -> how many revealed from bottom
 document.querySelectorAll('.tabbar button').forEach(b=>{
   b.onclick=()=>{ activeTab=b.dataset.tab;
     document.querySelectorAll('.tabbar button').forEach(x=>x.classList.toggle('active',x===b));
@@ -155,6 +193,7 @@ function render(){
   if(activeTab==='result') renderResult();
 }
 function esc(s){ return (s||'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
+const EVERY_LABEL={none:'なし', every1:'E1(−18)', every2:'E2(−36)'};
 
 /* ============================ PLAYERS ============================ */
 function renderPlayers(){
@@ -163,20 +202,30 @@ function renderPlayers(){
     <div class="card">
       <h2>👥 選手マスター</h2>
       <div class="row">
-        <input id="pName" placeholder="名前" style="flex:2">
+        <input id="pName" placeholder="名前" style="flex:2;min-width:120px">
         <select id="pGender" style="flex:1"><option value="M">男性</option><option value="F">女性</option></select>
-        <button class="btn" onclick="addPlayer()">追加</button>
       </div>
-      <div class="muted" style="margin-top:6px">女性は自動でエブリハンデ・ドラコン/ニアピン2打目ルールの対象になります。</div>
+      <div class="row" style="margin-top:6px">
+        <div style="flex:2;min-width:120px"><label class="fl">エブリハンデ区分</label>
+          <select id="pEvery"><option value="none">なし（男性と同扱い）</option><option value="every1">エブリワン（−18）</option><option value="every2">エブリツー（−36）</option></select></div>
+        <label style="flex:1;display:flex;align-items:center;gap:6px;font-size:13px;margin-top:18px"><input type="checkbox" id="pKanji"> 幹事対象外</label>
+      </div>
+      <button class="btn wide" style="margin-top:10px" onclick="addPlayer()">＋ 選手を追加</button>
+      <div class="muted" style="margin-top:6px">性別はニアピン/ドラコンの2打目ルール注記に使用。ハンデはエブリ区分で判定（女性でも「なし」に設定可）。幹事対象外＝次回幹事に選ばれない人。</div>
     </div>
     <div class="card">
       <h2>登録済み（${state.players.length}名）</h2>
-      ${state.players.length? `<div class="scroll"><table><tr><th>名前</th><th>性別</th><th></th></tr>
+      ${state.players.length? `<div class="scroll"><table><tr><th>名前</th><th>性別</th><th>ハンデ区分</th><th>幹事<br>対象外</th><th></th></tr>
         ${state.players.map(p=>`<tr>
           <td style="text-align:left">${esc(p.name)}</td>
           <td>${p.gender==='F'?'<span class="pill f">女</span>':'<span class="pill">男</span>'}</td>
+          <td><select style="padding:4px;font-size:12px" onchange="setPlayerEvery('${p.id}',this.value)">
+            <option value="none" ${p.everyType==='none'?'selected':''}>なし</option>
+            <option value="every1" ${p.everyType==='every1'?'selected':''}>E1(−18)</option>
+            <option value="every2" ${p.everyType==='every2'?'selected':''}>E2(−36)</option></select></td>
+          <td><input type="checkbox" ${p.kanjiExempt?'checked':''} onchange="setPlayerKanji('${p.id}',this.checked)"></td>
           <td><button class="btn sm gray" onclick="editPlayer('${p.id}')">✎</button>
-              <button class="btn sm danger" onclick="delPlayer('${p.id}')">削除</button></td>
+              <button class="btn sm danger" onclick="delPlayer('${p.id}')">×</button></td>
         </tr>`).join('')}</table></div>` : `<div class="empty">まだ選手がいません</div>`}
     </div>
     <div class="card">
@@ -190,13 +239,16 @@ function renderPlayers(){
 }
 function addPlayer(){
   const n=document.getElementById('pName').value.trim(); if(!n) return toast('名前を入力');
-  state.players.push({id:uid(),name:n,gender:document.getElementById('pGender').value});
-  save(); document.getElementById('pName').value=''; renderPlayers(); toast('追加しました');
+  state.players.push({id:uid(),name:n,gender:document.getElementById('pGender').value,
+    everyType:document.getElementById('pEvery').value, kanjiExempt:document.getElementById('pKanji').checked});
+  save(); renderPlayers(); toast('追加しました');
 }
 function editPlayer(id){ const p=state.players.find(x=>x.id===id);
   const n=prompt('名前',p.name); if(n===null)return; p.name=n.trim()||p.name;
   const g=confirm('性別は「女性」ですか？（OK=女性 / キャンセル=男性）'); p.gender=g?'F':'M';
   save(); renderPlayers(); }
+function setPlayerEvery(id,v){ state.players.find(p=>p.id===id).everyType=v; save(); }
+function setPlayerKanji(id,v){ state.players.find(p=>p.id===id).kanjiExempt=v; save(); }
 function delPlayer(id){ if(!confirm('削除しますか？'))return;
   state.players=state.players.filter(p=>p.id!==id);
   state.games.forEach(g=>{ g.participants=g.participants.filter(x=>x!==id); delete g.scores[id];
@@ -228,7 +280,6 @@ function renderGame(){
     </div>
   </div>`;
 
-  // Par + hidden holes
   html += `<div class="card"><h2>⛳ コース設定（パー / 隠しホール）</h2>
     <div class="muted">黄色い枠がダブルペリアの隠しホール。<b>12ホール</b>選んでください（現在 <b id="hidCount">${g.hidden.filter(Boolean).length}</b>）。</div>
     <div class="row" style="margin:8px 0"><button class="btn sec sm" onclick="randomHidden()">🎲 隠し12ランダム</button>
@@ -238,7 +289,6 @@ function renderGame(){
       <tr><td class="name">隠し</td>${g.par.map((_,i)=>`<td class="${g.hidden[i]?'hidden-h':''}"><input type="checkbox" ${g.hidden[i]?'checked':''} onchange="toggleHidden(${i})"></td>`).join('')}<td class="sum">-</td></tr>
     </table></div></div>`;
 
-  // Peria
   html += `<div class="card"><h2>📐 ダブルペリア設定</h2>
     <div class="muted">HDCP =（隠し12H合計 × 1.5 − 規定打数）× 係数（上限で頭打ち）</div>
     <div class="row">
@@ -246,22 +296,15 @@ function renderGame(){
       <div style="flex:1"><label class="fl">HDCP上限（空欄=なし）</label><input type="number" step="1" value="${g.periaCap??''}" placeholder="例:36" onchange="setCap(this.value)"></div>
     </div></div>`;
 
-  // Women every
-  html += `<div class="card"><h2>🌸 女性エブリハンデ</h2>
-    <label style="display:flex;gap:8px;align-items:center;font-size:14px"><input type="checkbox" ${g.womenEvery.enabled?'checked':''} onchange="setWE('enabled',this.checked)"> このゲームで適用する</label>
-    <div class="seg" style="margin-top:8px">
-      <button class="${g.womenEvery.type===1?'on':''}" onclick="setWE('type',1)">エブリワン（−18）</button>
-      <button class="${g.womenEvery.type===2?'on':''}" onclick="setWE('type',2)">エブリツー（−36）</button>
-    </div>
-    <div class="muted">女性の合計スコアから差し引き、グロス個人戦・ネット個人戦の両方に反映します。</div></div>`;
+  html += `<div class="card"><h2>🌸 エブリハンデ</h2>
+    <label style="display:flex;gap:8px;align-items:center;font-size:14px"><input type="checkbox" ${g.womenEvery.enabled?'checked':''} onchange="setWE(this.checked)"> このゲームでエブリハンデを適用する</label>
+    <div class="muted" style="margin-top:6px">適用ON時、各選手の<b>エブリ区分</b>（選手タブで設定）に応じてE1=−18/E2=−36を差し引きます。グロス個人戦・ネット個人戦の両方に反映。</div></div>`;
 
-  // Participants
   html += `<div class="card"><h2>🙋 参加者</h2>
-    ${state.players.length? state.players.map(p=>`<span class="chip ${g.participants.includes(p.id)?'on':''}" onclick="toggleParticipant('${p.id}')">${p.gender==='F'?'🌸':''}${esc(p.name)}</span>`).join('')
+    ${state.players.length? state.players.map(p=>`<span class="chip ${g.participants.includes(p.id)?'on':''}" onclick="toggleParticipant('${p.id}')">${p.gender==='F'?'🌸':''}${esc(p.name)}${p.everyType!=='none'?' '+EVERY_LABEL[p.everyType]:''}</span>`).join('')
       : '<div class="muted">先に「選手」タブで登録してください</div>'}
   </div>`;
 
-  // Teams
   html += `<div class="card"><h2>🚩 チーム対抗</h2>
     <div class="row"><button class="btn sec sm" onclick="addTeam()">＋チーム追加</button>
       <button class="btn gray sm" onclick="autoTeams(2)">自動2組</button>
@@ -274,7 +317,6 @@ function renderGame(){
     </div>`).join('') || '<div class="muted">チーム未設定</div>'}
   </div>`;
 
-  // Prizes holes
   html += `<div class="card"><h2>🎯 ニアピン / ドラコン ホール</h2>
     <div class="muted">対象ホールを選択（青=ニアピン / 赤=ドラコン、タップで切替）。勝者は結果タブで登録。</div>
     <div style="margin-top:6px">${g.par.map((_,i)=>{
@@ -282,7 +324,6 @@ function renderGame(){
       return `<button class="holebtn ${np?'np':''} ${dc?'dc':''}" onclick="cyclePrize(${i})">${i+1}</button>`}).join('')}</div>
     <div class="muted" style="margin-top:6px">💡 女性はドラコン/ニアピンとも<b>2打目</b>を計測対象にできます（ローカルルールの注記）。</div></div>`;
 
-  // Formats
   const F=g.formats;
   const fchk=(k,label)=>`<label><input type="checkbox" ${F[k]?'checked':''} onchange="setFmt('${k}',this.checked)"> ${label}</label>`;
   html += `<div class="card"><h2>🎮 集計する競技</h2><div class="fmtgrid">
@@ -293,17 +334,40 @@ function renderGame(){
     ${fchk('callaway','キャロウェイ方式')}${fchk('best2ball','ベスト2ボール')}
   </div></div>`;
 
+  // Points / prize pool
+  const P=g.points;
+  const ptsInd=(k,label)=> F[k]?`<div class="ptsrow"><span>${label}</span><span class="ptsedit"><input value="${(P[k]||[]).join(',')}" onchange="setPoints('${k}',this.value)" placeholder="5,3,1"></span></div>`:'';
+  const ptsTeam=(k,label)=> F[k]?`<div class="ptsrow"><span>${label}（勝ちチーム各員）</span><span class="ptsedit"><input value="${(P[k]||[]).join(',')}" onchange="setPoints('${k}',this.value)" placeholder="3"></span></div>`:'';
+  const npdc=g.prizes.niapinHoles.length||g.prizes.draconHoles.length;
+  html += `<div class="card prizewin"><h2>🪙 賞金ポイント配点</h2>
+    <div class="muted">各ゲームの順位に配るポイントをカンマ区切りで（例 <b>5,3,1</b>＝1位5・2位3・3位1点）。空欄=そのゲームは配点なし。</div>
+    <h3>個人戦</h3>
+    ${ptsInd('net','ネット個人戦')}${ptsInd('gross','グロス個人戦')}${ptsInd('stableford','ステーブルフォード')}
+    ${ptsInd('olympic','オリンピック')}${ptsInd('callaway','キャロウェイ')}${ptsInd('nassauTotal','握り(トータル)')}
+    <h3>チーム戦</h3>
+    ${ptsTeam('teamGross','グロス対抗')}${ptsTeam('teamNet','ネット対抗')}${ptsTeam('holeByHole','ホールバイホール')}${ptsTeam('best2ball','ベスト2ボール')}
+    <h3>個人賞</h3>
+    <div class="ptsrow"><span>ニアピン（1回あたり）</span><span class="ptsedit"><input type="number" value="${P.niapin}" onchange="setPointsNum('niapin',this.value)"></span></div>
+    <div class="ptsrow"><span>ドラコン（1回あたり）</span><span class="ptsedit"><input type="number" value="${P.dracon}" onchange="setPointsNum('dracon',this.value)"></span></div>
+    <hr>
+    <label class="fl">賞金の総額（母数・円）</label>
+    <input type="number" value="${g.prizePool||0}" placeholder="例: 20000" onchange="setG('prizePool',parseInt(this.value)||0)">
+    <div class="muted" style="margin-top:6px">この総額を、各選手の獲得ポイント比で山分けして「誰にいくら」を結果タブに表示します。</div>
+  </div>`;
+
   el.innerHTML=html;
 }
 function setG(k,v){ const g=curGame(); g[k]=v; save(); if(k==='name'||k==='date'||k==='course')render(); }
 function setCap(v){ const g=curGame(); g.periaCap = v===''?null:parseFloat(v); save(); }
-function setWE(k,v){ const g=curGame(); g.womenEvery[k]=v; save(); renderGame(); }
+function setWE(v){ curGame().womenEvery.enabled=v; save(); }
 function setPar(i,v){ curGame().par[i]=parseInt(v)||0; save(); renderGame(); }
 function toggleHidden(i){ const g=curGame(); g.hidden[i]=!g.hidden[i]; save(); document.getElementById('hidCount').textContent=g.hidden.filter(Boolean).length; }
 function randomHidden(){ const g=curGame(); const idx=[...Array(18).keys()].sort(()=>Math.random()-0.5).slice(0,12);
   g.hidden=Array(18).fill(false); idx.forEach(i=>g.hidden[i]=true); save(); renderGame(); }
 function clearHidden(){ curGame().hidden=Array(18).fill(false); save(); renderGame(); }
-function setFmt(k,v){ curGame().formats[k]=v; save(); }
+function setFmt(k,v){ curGame().formats[k]=v; save(); renderGame(); }
+function setPoints(k,v){ curGame().points[k]=v.split(',').map(x=>parseInt(x.trim())).filter(x=>!isNaN(x)); save(); }
+function setPointsNum(k,v){ curGame().points[k]=parseInt(v)||0; save(); }
 function createGame(){ const g=newGame(); state.games.push(g); state.currentGameId=g.id; save(); render(); toast('新規ゲーム作成'); }
 function selectGame(id){ state.currentGameId=id||null; save(); render(); }
 function deleteGame(){ if(!confirm('このゲームを削除しますか？'))return;
@@ -326,7 +390,7 @@ function toggleTeamMember(tid,pid){ const g=curGame();
 function cyclePrize(i){ const p=curGame().prizes;
   const np=p.niapinHoles.includes(i), dc=p.draconHoles.includes(i);
   p.niapinHoles=p.niapinHoles.filter(x=>x!==i); p.draconHoles=p.draconHoles.filter(x=>x!==i);
-  if(!np&&!dc)p.niapinHoles.push(i); else if(np)p.draconHoles.push(i); // none->NP->DC->none
+  if(!np&&!dc)p.niapinHoles.push(i); else if(np)p.draconHoles.push(i);
   save(); renderGame(); }
 
 /* ============================ SCORE ENTRY ============================ */
@@ -335,9 +399,7 @@ function renderScore(){
   if(!g){ el.innerHTML='<div class="empty">先にゲームを作成してください</div>'; return; }
   if(!g.participants.length){ el.innerHTML='<div class="empty">「ゲーム」タブで参加者を選んでください</div>'; return; }
   let html=`<div class="card"><h2>✍️ スコア入力</h2>
-    <div class="muted">数字を直接入力。横スクロールで18Hまで。黄=隠しホール。空欄=未入力。</div>
-    <div class="row" style="margin-top:6px"><span class="pill">OUT=1-9</span><span class="pill">IN=10-18</span>
-      <span class="muted">写真から入れたい時はチャットに送ってください（転記します）</span></div>
+    <div class="muted">数字を直接入力。横スクロールで18Hまで。黄=隠しホール。空欄=未入力。写真から入れたい時はチャットに送ってください（転記します）。</div>
   </div>`;
   html+=`<div class="card"><div class="scroll"><table class="scoregrid">
     <tr><th class="name">選手</th>${g.par.map((_,i)=>`<th class="${g.hidden[i]?'hidden-h':''}">${i+1}</th>`).join('')}<th class="sum">OUT</th><th class="sum">IN</th><th class="sum">計</th></tr>
@@ -366,35 +428,105 @@ function periaHdcp(g,pid){
   return Math.round(hd*10)/10;
 }
 function womenEvery(g,pid){ const p=state.players.find(x=>x.id===pid);
-  if(!g.womenEvery.enabled || !p || p.gender!=='F') return 0;
-  return g.womenEvery.type===1?18:36;
+  if(!g.womenEvery.enabled || !p) return 0;
+  return p.everyType==='every1'?18 : p.everyType==='every2'?36 : 0;
 }
-function effGross(g,pid){ return gross(g,pid) - womenEvery(g,pid); }   // グロス個人戦（女性エブリ反映）
+function gross_(g,pid){ return gross(g,pid); }
+function effGross(g,pid){ return gross(g,pid) - womenEvery(g,pid); }
 function netScore(g,pid){ return Math.round((effGross(g,pid) - periaHdcp(g,pid))*10)/10; }
-
-// Stableford (gross based): albatross+5,eagle4,birdie3,par2,bogey1,else0
 function stablefordPts(g,pid){ const sc=g.scores[pid]||[]; let t=0;
   sc.forEach((v,i)=>{ if(v==null||v==='')return; const d=Number(v)-g.par[i];
     t += d<=-3?5 : d===-2?4 : d===-1?3 : d===0?2 : d===1?1 : 0; }); return t; }
-// Olympic (陣取り): alba+ 10, eagle6, birdie4, par1, else0
 function olympicPts(g,pid){ const sc=g.scores[pid]||[]; let t=0;
   sc.forEach((v,i)=>{ if(v==null||v==='')return; const d=Number(v)-g.par[i];
     t += d<=-3?10 : d===-2?6 : d===-1?4 : d===0?1 : 0; }); return t; }
-// Callaway system handicap (excludes holes 17,18 from deduction)
 function callawayHdcp(g,pid){
   const sc=g.scores[pid]||[]; const gr=gross(g,pid); if(!complete(g,pid))return null;
-  // deduction units by gross
   const tbl=[[71,0],[75,0.5],[80,1],[85,1.5],[90,2],[95,2.5],[100,3],[105,3.5],[110,4],[115,4.5],[120,5],[125,5.5],[130,6],[9999,6.5]];
   let units=0; for(const [max,u] of tbl){ if(gr<=max){units=u;break;} }
-  const adj=[[71,-2],[75,-1],[80,0],[85,1],[90,2],[95,-2],[100,-1],[105,0],[110,1],[9999,2]]; // rough Callaway adjustment
+  const adj=[[71,-2],[75,-1],[80,0],[85,1],[90,2],[95,-2],[100,-1],[105,0],[110,1],[9999,2]];
   let a=0; for(const [max,x] of adj){ if(gr<=max){a=x;break;} }
-  const holes=sc.slice(0,16).map(v=>v?Number(v):0).sort((x,y)=>y-x); // worst first, exclude 17,18
+  const holes=sc.slice(0,16).map(v=>v?Number(v):0).sort((x,y)=>y-x);
   const whole=Math.floor(units); let ded=0;
   for(let i=0;i<whole;i++)ded+=holes[i]||0;
   if(units-whole>=0.5)ded+=(holes[whole]||0)/2;
   let hd=ded+a; if(hd<0)hd=0; return Math.round(hd*10)/10;
 }
 function callawayNet(g,pid){ const h=callawayHdcp(g,pid); return h==null?null:gross(g,pid)-h; }
+function net9(g,pid,s,e){ const raw=sum(g.scores[pid]||[],s,e); return Math.round((raw-womenEvery(g,pid)/2-periaHdcp(g,pid)/2)*10)/10; }
+function nassauTotalNet(g,pid){ return Math.round((net9(g,pid,0,9)+net9(g,pid,9,18))*10)/10; }
+
+/* ---- ranking helpers ---- */
+function ranked(pids, valFn, dir){
+  const rows=pids.map(pid=>({pid,v:valFn(pid)})).filter(r=>r.v!=null);
+  rows.sort((a,b)=> dir==='asc'? a.v-b.v : b.v-a.v);
+  let rank=0,prev=null;
+  return rows.map((r,i)=>{ if(prev===null||r.v!==prev){rank=i+1;prev=r.v;} return {pid:r.pid,v:r.v,rank}; });
+}
+function teamRanked(g, valFn, dir){
+  const teams=g.teams.filter(t=>t.memberIds.length);
+  const rows=teams.map(t=>({t,v:valFn(t)})).filter(r=>r.v!=null);
+  rows.sort((a,b)=> dir==='asc'? a.v-b.v : b.v-a.v);
+  let rank=0,prev=null;
+  return rows.map((r,i)=>{ if(prev===null||r.v!==prev){rank=i+1;prev=r.v;} return {t:r.t,v:r.v,rank}; });
+}
+function holesWon(g){
+  const teams=g.teams.filter(t=>t.memberIds.length); const won=teams.map(()=>0);
+  for(let h=0;h<18;h++){
+    const tot=teams.map(t=>{ let s=0,cnt=0; t.memberIds.forEach(pid=>{const v=(g.scores[pid]||[])[h]; if(v){s+=Number(v);cnt++;}}); return cnt?s:null; });
+    const valid=tot.filter(v=>v!=null); if(!valid.length)continue;
+    const min=Math.min(...valid); const winners=tot.map((v,i)=>v===min?i:-1).filter(i=>i>=0);
+    winners.forEach(i=>won[i]+=1/winners.length);
+  }
+  return {teams,won};
+}
+function best2(g,t){ const ns=t.memberIds.map(pid=>netScore(g,pid)).sort((a,b)=>a-b); return Math.round((ns[0]+(ns[1]||ns[0]))*10)/10; }
+
+/* ---- points & payout ---- */
+function computePoints(g){
+  const parts=g.participants.filter(pid=>state.players.find(x=>x.id===pid));
+  const pts={}; parts.forEach(pid=>pts[pid]=0);
+  const F=g.formats, P=g.points;
+  const awardInd=(cond,order,arr)=>{ if(!cond||!arr||!arr.length)return; order.forEach(o=>{ pts[o.pid]=(pts[o.pid]||0)+(arr[o.rank-1]||0); }); };
+  awardInd(F.net, ranked(parts,pid=>netScore(g,pid),'asc'), P.net);
+  awardInd(F.gross, ranked(parts,pid=>effGross(g,pid),'asc'), P.gross);
+  awardInd(F.stableford, ranked(parts,pid=>stablefordPts(g,pid),'desc'), P.stableford);
+  awardInd(F.olympic, ranked(parts,pid=>olympicPts(g,pid),'desc'), P.olympic);
+  awardInd(F.callaway, ranked(parts,pid=>callawayNet(g,pid),'asc'), P.callaway);
+  awardInd(F.nassau, ranked(parts,pid=>nassauTotalNet(g,pid),'asc'), P.nassauTotal);
+  // prizes
+  Object.values(g.prizes.niapinWinner||{}).forEach(pid=>{ if(pid&&pts[pid]!=null)pts[pid]+=(P.niapin||0); });
+  Object.values(g.prizes.draconWinner||{}).forEach(pid=>{ if(pid&&pts[pid]!=null)pts[pid]+=(P.dracon||0); });
+  // teams
+  const awardTeam=(cond,tr,arr)=>{ if(!cond||!arr||!arr.length)return; tr.forEach(r=>{ const p=arr[r.rank-1]||0; r.t.memberIds.forEach(pid=>{ if(pts[pid]!=null)pts[pid]+=p; }); }); };
+  if(g.teams.length){
+    awardTeam(F.teamGross, teamRanked(g,t=>t.memberIds.reduce((a,pid)=>a+effGross(g,pid),0),'asc'), P.teamGross);
+    awardTeam(F.teamNet, teamRanked(g,t=>Math.round(t.memberIds.reduce((a,pid)=>a+netScore(g,pid),0)*10)/10,'asc'), P.teamNet);
+    awardTeam(F.best2ball, teamRanked(g,t=>best2(g,t),'asc'), P.best2ball);
+    if(F.holeByHole){ const {teams,won}=holesWon(g);
+      const rows=teams.map((t,i)=>({t,v:won[i]})); rows.sort((a,b)=>b.v-a.v);
+      let rank=0,prev=null; rows.forEach((r,i)=>{ if(prev===null||r.v!==prev){rank=i+1;prev=r.v;} const p=(P.holeByHole||[])[rank-1]||0; r.t.memberIds.forEach(pid=>{ if(pts[pid]!=null)pts[pid]+=p; }); });
+    }
+  }
+  return pts;
+}
+function computePayout(g){
+  const pts=computePoints(g); const parts=Object.keys(pts);
+  const total=parts.reduce((a,pid)=>a+pts[pid],0);
+  const pool=g.prizePool||0;
+  const out={}; parts.forEach(pid=>{ out[pid]= (total>0&&pool>0)? Math.round(pool*pts[pid]/total) : 0; });
+  return {pts,payout:out,total,pool};
+}
+/* next kanji: 2位 と ブービー(下から2番目)、幹事対象外は飛ばす */
+function nextKanji(g){
+  const parts=g.participants.filter(pid=>{const p=state.players.find(x=>x.id===pid); return p && gross(g,pid)>0;});
+  const order=ranked(parts,pid=>netScore(g,pid),'asc').map(r=>r.pid);
+  const eligible=order.filter(pid=>{const p=state.players.find(x=>x.id===pid); return p && !p.kanjiExempt;});
+  if(eligible.length<2) return null;
+  const nikai=eligible[1];
+  const booby=eligible[eligible.length-2];
+  return {nikai, booby, sameCount:eligible.length};
+}
 
 /* ============================ RESULTS ============================ */
 function renderResult(){
@@ -405,7 +537,25 @@ function renderResult(){
   const F=g.formats;
   let html='';
 
-  // ---- 総合サマリー table
+  // reveal toggle
+  html+=`<div class="card"><div class="row between">
+      <label style="display:flex;gap:8px;align-items:center;font-size:14px;font-weight:700"><input type="checkbox" ${revealMode?'checked':''} onchange="toggleReveal(this.checked)"> 🎭 表彰式モード（ためて発表）</label>
+      ${revealMode?`<button class="btn gray sm" onclick="resetReveal()">全部伏せ直す</button>`:''}
+    </div>
+    ${revealMode?'<div class="muted" style="margin-top:6px">各ゲームを「🥁 次を発表」で<b>下位から1人ずつ</b>めくれます。最後に優勝が出ます。</div>':''}
+  </div>`;
+
+  // rules
+  html+=`<details><summary>📖 各ゲームのルール解説</summary><div class="in">
+    <div class="rule"><b>ネット個人戦</b>：ダブルペリアのハンデを引いた実力調整後スコア。総合優勝はこれで決めるのが定番。少ないほど上位。</div>
+    <div class="rule"><b>グロス個人戦</b>：ハンデを引く前の“素”の打数（女性エブリハンデのみ反映）。一番上手い人を決める。</div>
+    <div class="rule"><b>ステーブルフォード</b>：各ホールを点数化（Wボギー以上=0/ボギー=1/パー=2/バーディ=3/イーグル=4/アルバ=5）。合計点が高い人が勝ち。大叩きが0で止まるので大崩れしにくく初心者も楽しめる。</div>
+    <div class="rule"><b>オリンピック</b>：好スコアに点（陣取り。パー=1/バーディ=4/イーグル=6/アルバ=10）。攻めが報われる方式。高いほど上位。</div>
+    <div class="rule"><b>キャロウェイ方式</b>：その日のグロスだけでハンデを自動算出（事前ハンデ不要・少人数向け）。スコアが悪いほど“悪かったホール”を多く差し引く（17・18番は対象外）。ネット＝グロス−控除。少ないほど上位。18H入力完了者のみ。</div>
+    <div class="rule"><b>握り／ナッソー</b>：前半9H・後半9H・18Hトータルの<b>3つで別々に勝負</b>。各セクションでネットの少ない人が勝ち。1ラウンドで3回楽しめる。</div>
+  </div></details>`;
+
+  // score summary
   html+=`<div class="card"><h2>📊 スコア一覧</h2><div class="scroll"><table class="lb">
     <tr><th>選手</th><th>Gross</th>${g.womenEvery.enabled?'<th>エブリ</th>':''}<th>Peria<br>HDCP</th><th>Net</th></tr>
     ${parts.map(pid=>{ const p=state.players.find(x=>x.id===pid);
@@ -414,52 +564,73 @@ function renderResult(){
         <td>${periaHdcp(g,pid)}</td><td><b>${netScore(g,pid)}</b></td></tr>`; }).join('')}
   </table></div><div class="muted" style="margin-top:6px">未入力(18H未満)の人は暫定値です。</div></div>`;
 
-  // ---- Individual: Net
-  if(F.net) html+=leaderboard('🥇 ネット個人戦', parts, pid=>netScore(g,pid), 'asc', v=>v);
-  // ---- Individual: Gross
-  if(F.gross) html+=leaderboard(g.womenEvery.enabled?'🏅 グロス個人戦（女性エブリ反映）':'🏅 グロス個人戦', parts, pid=>effGross(g,pid), 'asc', v=>v);
-  // ---- Stableford
-  if(F.stableford) html+=leaderboard('🎯 ステーブルフォード（高いほど良い）', parts, pid=>stablefordPts(g,pid), 'desc', v=>v+'pt');
-  // ---- Olympic
-  if(F.olympic) html+=leaderboard('🏆 オリンピック（陣取り・高いほど良い）', parts, pid=>olympicPts(g,pid), 'desc', v=>v+'pt',
-    'バーディ4 / イーグル6 / アルバ+10 / パー1点');
-  // ---- Callaway
+  if(F.net) html+=leaderboard('🥇 ネット個人戦', parts, pid=>netScore(g,pid), 'asc', v=>v, '', 'net');
+  if(F.gross) html+=leaderboard(g.womenEvery.enabled?'🏅 グロス個人戦（女性エブリ反映）':'🏅 グロス個人戦', parts, pid=>effGross(g,pid), 'asc', v=>v, '', 'gross');
+  if(F.stableford) html+=leaderboard('🎯 ステーブルフォード（高いほど良い）', parts, pid=>stablefordPts(g,pid), 'desc', v=>v+'pt', '', 'stb');
+  if(F.olympic) html+=leaderboard('🏆 オリンピック（陣取り・高いほど良い）', parts, pid=>olympicPts(g,pid), 'desc', v=>v+'pt', 'バーディ4/イーグル6/アルバ+10/パー1', 'oly');
   if(F.callaway){ const done=parts.filter(pid=>complete(g,pid));
-    html+= done.length? leaderboard('📐 キャロウェイ方式ネット', done, pid=>callawayNet(g,pid),'asc',v=>v,'18H入力完了者のみ')
+    html+= done.length? leaderboard('📐 キャロウェイ方式ネット', done, pid=>callawayNet(g,pid),'asc',v=>v,'18H入力完了者のみ','cal')
       : `<div class="card"><h2>📐 キャロウェイ方式</h2><div class="muted">18H入力が完了した人がいません</div></div>`; }
 
-  // ---- Nassau
   if(F.nassau){
-    const net9=(pid,s,e)=>{ const raw=sum(g.scores[pid]||[],s,e); const we=womenEvery(g,pid)/2; const ph=periaHdcp(g,pid)/2;
-      return Math.round((raw-we-ph)*10)/10; };
     html+=`<div class="card"><h2>🤝 握り / ナッソー（ネット・各9H）</h2><div class="scroll"><table class="lb">
       <tr><th>選手</th><th>前半OUT</th><th>後半IN</th><th>トータル</th></tr>
       ${parts.map(pid=>{const p=state.players.find(x=>x.id===pid);
-        return `<tr class="rank"><td style="text-align:left">${esc(p.name)}</td><td>${net9(pid,0,9)}</td><td>${net9(pid,9,18)}</td><td><b>${Math.round((net9(pid,0,9)+net9(pid,9,18))*10)/10}</b></td></tr>`}).join('')}
+        return `<tr class="rank"><td style="text-align:left">${esc(p.name)}</td><td>${net9(g,pid,0,9)}</td><td>${net9(g,pid,9,18)}</td><td><b>${nassauTotalNet(g,pid)}</b></td></tr>`}).join('')}
     </table></div><div class="muted">各セクションで数字が小さい人が勝ち。前半・後半・トータルの3勝負。</div></div>`;
   }
 
-  // ---- Prizes: Niapin / Dracon
   html+=renderPrizes(g);
+  if((F.teamGross||F.teamNet||F.holeByHole||F.best2ball) && g.teams.length) html+=renderTeams(g);
 
-  // ---- Team competitions
-  if((F.teamGross||F.teamNet||F.holeByHole||F.best2ball) && g.teams.length){
-    html+=renderTeams(g);
+  // next kanji
+  const nk=nextKanji(g);
+  if(nk){ const nm=id=>{const p=state.players.find(x=>x.id===id);return p?esc(p.name):'';};
+    html+=`<div class="card kanjicard"><h2>🎌 次回幹事（2位＋ブービー）</h2>
+      <div class="row" style="gap:20px"><div><div class="muted">2位</div><div class="big">${nm(nk.nikai)}</div></div>
+      <div><div class="muted">ブービー（下から2番目）</div><div class="big">${nm(nk.booby)}</div></div></div>
+      <div class="muted" style="margin-top:6px">ネット個人戦順位で決定。幹事対象外の選手は飛ばして繰り下げています。</div></div>`;
   }
+
+  // payout
+  const {pts,payout,total,pool}=computePayout(g);
+  const prows=parts.map(pid=>({pid,pt:pts[pid]||0,yen:payout[pid]||0})).sort((a,b)=>b.pt-a.pt);
+  html+=`<div class="card payoutcard"><h2>🪙 賞金ポイント配分</h2>
+    <div class="muted">獲得ポイント合計 ${total}pt${pool?` / 賞金総額 ¥${pool.toLocaleString()} を比例配分`:'（賞金総額は「ゲーム」タブで入力）'}</div>
+    <table class="lb" style="margin-top:6px"><tr><th>選手</th><th>ポイント</th>${pool?'<th>配分額</th>':''}</tr>
+    ${prows.map(r=>{const p=state.players.find(x=>x.id===r.pid);
+      return `<tr class="rank"><td style="text-align:left">${esc(p.name)}</td><td><b>${r.pt}</b>pt</td>${pool?`<td><b>¥${r.yen.toLocaleString()}</b></td>`:''}</tr>`}).join('')}
+    </table></div>`;
 
   el.innerHTML=html;
 }
+function toggleReveal(v){ revealMode=v; if(!v)revealState={}; renderResult(); }
+function resetReveal(){ revealState={}; renderResult(); }
+function revealNext(key){ const total=window['_rt_'+key]||0; revealState[key]=Math.min((revealState[key]||0)+1,total); renderResult(); }
+function revealAll(key){ revealState[key]=window['_rt_'+key]||0; renderResult(); }
 
-function leaderboard(title, pids, valFn, dir, fmt, note){
-  const rows=pids.map(pid=>({pid,v:valFn(pid)})).filter(r=>r.v!=null);
-  rows.sort((a,b)=> dir==='asc'? a.v-b.v : b.v-a.v);
-  let rank=0,prev=null,shown=0;
-  return `<div class="card"><h2>${title}</h2>${note?`<div class="muted" style="margin-bottom:6px">${note}</div>`:''}
-    <table class="lb"><tr><th>順</th><th>選手</th><th>${dir==='asc'?'スコア':'得点'}</th></tr>
-    ${rows.map((r,i)=>{ if(prev===null||r.v!==prev){rank=i+1;prev=r.v;} const p=state.players.find(x=>x.id===r.pid);
-      const medal=rank===1?'🥇':rank===2?'🥈':rank===3?'🥉':rank;
-      return `<tr class="rank ${rank===1?'rank1':''}"><td class="medal">${medal}</td><td style="text-align:left">${p.gender==='F'?'🌸':''}${esc(p.name)}</td><td><b>${fmt(r.v)}</b></td></tr>`; }).join('')}
-    </table></div>`;
+function leaderboard(title, pids, valFn, dir, fmt, note, key){
+  const rows=ranked(pids,valFn,dir); const total=rows.length;
+  const rkey=curGame().id+':'+key; window['_rt_'+rkey]=total;
+  const medalOf=r=> r.rank===1?'🥇':r.rank===2?'🥈':r.rank===3?'🥉':r.rank;
+  const nameOf=pid=>{const p=state.players.find(x=>x.id===pid);return (p&&p.gender==='F'?'🌸':'')+esc(p&&p.name);};
+  let body;
+  if(revealMode){
+    const shown=revealState[rkey]||0; const boundary=total-shown; // ranks 1..boundary hidden
+    body=`<table class="lb"><tr><th>順</th><th>選手</th><th>${dir==='asc'?'スコア':'得点'}</th></tr>
+      ${rows.map(r=> r.rank<=boundary
+        ? `<tr class="rank"><td>${r.rank}</td><td class="masked" style="text-align:left">？？？</td><td class="masked">？</td></tr>`
+        : `<tr class="rank ${r.rank===1?'rank1':''}"><td class="medal">${medalOf(r)}</td><td style="text-align:left">${nameOf(r.pid)}</td><td><b>${fmt(r.v)}</b></td></tr>`
+      ).join('')}</table>
+      <div class="reveal-controls">
+        ${boundary>0?`<button class="btn gold sm" onclick="revealNext('${rkey}')">🥁 次を発表（残り${boundary}）</button>`:'<span class="pill">🎉 全員発表済み</span>'}
+        ${boundary>0?`<button class="btn gray sm" onclick="revealAll('${rkey}')">一気に全部</button>`:''}
+      </div>`;
+  } else {
+    body=`<table class="lb"><tr><th>順</th><th>選手</th><th>${dir==='asc'?'スコア':'得点'}</th></tr>
+      ${rows.map(r=>`<tr class="rank ${r.rank===1?'rank1':''}"><td class="medal">${medalOf(r)}</td><td style="text-align:left">${nameOf(r.pid)}</td><td><b>${fmt(r.v)}</b></td></tr>`).join('')}</table>`;
+  }
+  return `<div class="card"><h2>${title}</h2>${note?`<div class="muted" style="margin-bottom:6px">${note}</div>`:''}${body}</div>`;
 }
 
 function renderPrizes(g){
@@ -470,46 +641,38 @@ function renderPrizes(g){
   let html=`<div class="card prizewin"><h2>🎯 個人賞（ニアピン / ドラコン）</h2>
     <div class="muted">勝者を選択して記録。女性は2打目計測OKのローカルルール対象。</div>`;
   if(P.niapinHoles.length){ html+=`<h3>📍 ニアピン</h3>`;
-    P.niapinHoles.sort((a,b)=>a-b).forEach(h=>{ html+=`<div class="row between" style="margin:4px 0">
-      <span class="pill" style="background:#d6eaf8;color:#2471a3">${h+1}H</span>
+    P.niapinHoles.slice().sort((a,b)=>a-b).forEach(h=>{ html+=`<div class="row between" style="margin:4px 0">
+      <span class="pill e1">${h+1}H</span>
       <select style="flex:1;max-width:60%" onchange="setPrize('niapinWinner',${h},this.value)">${opts(P.niapinWinner[h])}</select></div>`; }); }
   if(P.draconHoles.length){ html+=`<h3>💪 ドラコン</h3>`;
-    P.draconHoles.sort((a,b)=>a-b).forEach(h=>{ html+=`<div class="row between" style="margin:4px 0">
+    P.draconHoles.slice().sort((a,b)=>a-b).forEach(h=>{ html+=`<div class="row between" style="margin:4px 0">
       <span class="pill f" style="background:#fadbd8;color:#c0392b">${h+1}H</span>
       <select style="flex:1;max-width:60%" onchange="setPrize('draconWinner',${h},this.value)">${opts(P.draconWinner[h])}</select></div>`; }); }
   html+=`</div>`; return html;
 }
-function setPrize(k,h,v){ curGame().prizes[k][h]=v; save(); }
+function setPrize(k,h,v){ curGame().prizes[k][h]=v; save(); renderResult(); }
 
 function renderTeams(g){
   const F=g.formats; const teams=g.teams.filter(t=>t.memberIds.length);
   let html=`<div class="card"><h2>🚩 チーム対抗戦</h2>`;
   const teamGross=t=>t.memberIds.reduce((a,pid)=>a+effGross(g,pid),0);
   const teamNet=t=>Math.round(t.memberIds.reduce((a,pid)=>a+netScore(g,pid),0)*10)/10;
-
   const tbl=(title,valFn,note)=>{ const rows=teams.map(t=>({t,v:valFn(t)})).sort((a,b)=>a.v-b.v);
     return `<h3>${title}</h3>${note?`<div class="muted">${note}</div>`:''}<table class="lb"><tr><th>順</th><th>チーム</th><th>合計</th></tr>
       ${rows.map((r,i)=>`<tr class="rank ${i===0?'rank1':''}"><td>${i===0?'🥇':i+1}</td><td style="text-align:left">${esc(r.t.name)} <span class="tag">${r.t.memberIds.length}名</span></td><td><b>${Math.round(r.v*10)/10}</b></td></tr>`).join('')}</table>`; };
-
   if(F.teamGross) html+=tbl('グロス対抗（合計が少ない方が勝ち）',teamGross);
   if(F.teamNet) html+=tbl('ネット対抗（合計が少ない方が勝ち）',teamNet);
-
-  if(F.best2ball) html+=tbl('ベスト2ボール（ネット上位2名の合計）', t=>{
-    const ns=t.memberIds.map(pid=>netScore(g,pid)).sort((a,b)=>a-b); return Math.round((ns[0]+(ns[1]||ns[0]))*10)/10; },
-    'チーム内ネット上位2名の合計で勝負');
-
-  // Hole by hole
+  if(F.best2ball) html+=tbl('ベスト2ボール（ネット上位2名の合計）', t=>best2(g,t),'チーム内ネット上位2名の合計で勝負');
   if(F.holeByHole && teams.length>=2){
-    const won=teams.map(()=>0); const holeRes=[];
-    for(let h=0;h<18;h++){
+    const {won}=holesWon(g); const max=Math.max(...won);
+    const holeRes=[]; for(let h=0;h<18;h++){
       const tot=teams.map(t=>{ let s=0,cnt=0; t.memberIds.forEach(pid=>{const v=(g.scores[pid]||[])[h]; if(v){s+=Number(v);cnt++;}}); return cnt?s:null; });
       const valid=tot.filter(v=>v!=null); if(!valid.length){holeRes.push(null);continue;}
-      const min=Math.min(...valid); const winners=tot.map((v,i)=>v===min?i:-1).filter(i=>i>=0);
-      winners.forEach(i=>won[i]+=1/winners.length); holeRes.push({tot,winners,min});
+      const min=Math.min(...valid); holeRes.push({tot,winners:tot.map((v,i)=>v===min?i:-1).filter(i=>i>=0)});
     }
     html+=`<h3>⚔️ ホールバイホール対抗</h3>
       <table class="lb"><tr><th>チーム</th><th>取ったホール数</th></tr>
-      ${teams.map((t,i)=>`<tr class="rank ${won[i]===Math.max(...won)?'rank1':''}"><td style="text-align:left">${esc(t.name)}</td><td><b>${Math.round(won[i]*10)/10}</b></td></tr>`).join('')}</table>
+      ${teams.map((t,i)=>`<tr class="rank ${won[i]===max?'rank1':''}"><td style="text-align:left">${esc(t.name)}</td><td><b>${Math.round(won[i]*10)/10}</b></td></tr>`).join('')}</table>
       <details style="margin-top:8px"><summary>ホール別の勝敗を見る</summary><div class="in"><div class="scroll"><table class="scoregrid">
         <tr><th class="name">H</th>${g.par.map((_,i)=>`<th>${i+1}</th>`).join('')}</tr>
         ${teams.map((t,ti)=>`<tr><td class="name">${esc(t.name)}</td>${holeRes.map(r=>{ if(!r)return'<td>-</td>';
@@ -522,13 +685,12 @@ function renderTeams(g){
 /* ============================ BACKUP ============================ */
 function exportData(){ const blob=new Blob([JSON.stringify(state,null,2)],{type:'application/json'});
   const a=document.createElement('a'); a.href=URL.createObjectURL(blob);
-  a.download='golf-compe-backup.json'; a.click(); toast('書き出しました'); }
+  a.download='76club-backup.json'; a.click(); toast('書き出しました'); }
 function importData(inp){ const f=inp.files[0]; if(!f)return; const r=new FileReader();
-  r.onload=()=>{ try{ const s=JSON.parse(r.result); if(!s.players)throw 0; state=s; save(); render(); toast('読み込み完了'); }
+  r.onload=()=>{ try{ const s=JSON.parse(r.result); if(!s.players)throw 0; migrate(s); state=s; save(); render(); toast('読み込み完了'); }
     catch(e){ toast('ファイルが不正です'); } }; r.readAsText(f); }
 
 /* ============================ INIT ============================ */
-if(!state.games.length){ /* first run hint via game view */ }
 render();
 </script>
 </body>
