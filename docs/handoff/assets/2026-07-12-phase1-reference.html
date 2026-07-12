@@ -156,6 +156,7 @@
   .tgl{display:inline-flex;align-items:center;gap:5px;border:1px solid var(--line);border-radius:99px;padding:4px 10px;font-size:12px;cursor:pointer;background:#fff;font-weight:700}
   .tgl.on{background:var(--green);color:#fff;border-color:var(--green)}
   .tgl.off{background:#fbecec;color:#b03a2e;border-color:#e6b0aa}
+  .cardtools{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin-bottom:7px}
   @media(min-width:560px){ .sc2{font-size:13px} .sc2 col.cnm{width:70px} .sc2 col.cs{width:36px} }
   /* 順位カードを左→右に並べる（狭い画面は折返し）。カードは広め、グロス/ネットは大きく目立たせる */
   .rank-wrap{display:flex;flex-wrap:wrap;gap:10px;align-items:flex-start;margin-bottom:12px}
@@ -257,9 +258,15 @@ function newGame(){
 const views = { game:'view-game', players:'view-players', score:'view-score', result:'view-result' };
 let activeTab='game';
 let revealHoles=18;            // 個人戦で開封済みのホール数(0-18)。18=全開（既定）
-// 発表用の表示/非表示スイッチ（true=表示）
-let show={ totals:true, names:true, kanji:true, teamNames:true, teamTotals:true };
+// 発表用の表示/非表示スイッチ（true=表示）。totals=スコア表の合計欄、kanji=次回幹事の名前、teamNames/teamTotals=チーム戦
+let show={ totals:true, kanji:true, teamNames:true, teamTotals:true };
 function toggleShow(k){ show[k]=!show[k]; renderResult(); }
+// グロス/ネットの名前・スコアの表示制御（表ごと＋順位ごと）。mode=全体、except=個別上書き(XOR)
+let nsMode={ gross:'show', net:'show' };
+let nsExcept={ gross:new Set(), net:new Set() };
+function nsMasked(table,pid){ return (nsMode[table]==='hide') !== nsExcept[table].has(pid); }
+function toggleNSAll(table){ nsMode[table]= nsMode[table]==='show'?'hide':'show'; nsExcept[table].clear(); renderResult(); }
+function toggleNSRow(table,pid){ const s=nsExcept[table]; if(s.has(pid))s.delete(pid); else s.add(pid); renderResult(); }
 const TAB_LABEL={game:'ゲーム', players:'選手', score:'入力', result:'結果'};
 function toggleMenu(force){ const m=document.getElementById('appMenu'), o=document.getElementById('menuOverlay');
   const open = (force!==undefined)? force : (m.style.display!=='block');
@@ -755,26 +762,23 @@ function renderIndividual(g, parts){
   const banner = allComplete(g)
     ? `<div class="card" style="background:#eafaf1;border-color:var(--green2)"><b>🏁 順位確定</b> — 全${parts.length}名の18Hが出そろいました。以下が最終順位です。</div>`
     : `<div class="card" style="background:#fef9e7;border-color:var(--gold)"><b>⏳ 暫定順位</b> — ${done}/${parts.length}名が18H入力済み${revealHoles<18?`・${revealHoles}/18H開封中`:''}。スコア表を1ホールずつ開けると各順位が入れ替わります。</div>`;
-  // 表示切替バー
-  const tgl=(k,label)=>`<span class="tgl ${show[k]?'on':'off'}" onclick="toggleShow('${k}')">${show[k]?'👁':'🚫'} ${label}</span>`;
-  const togbar=`<div class="togbar"><span class="lbl">表示切替</span>
-    ${tgl('totals','合計値(OUT/IN/計/HD/Net)')}${tgl('names','グロス/ネットの名前・スコア')}${tgl('kanji','次回幹事')}</div>`;
-  // 次回幹事（ネットで決定）→ ネット順位に合体（🎌ハイライト＋脚注）。show.kanji で表示切替
-  const nk=nextKanji(g); const hl={}; let kanjiNote='';
-  if(nk && show.kanji){ hl[nk.nikai]='🎌2位'; hl[nk.booby]='🎌ブービー';
-    kanjiNote=`🎌 次回幹事：<b>${esc(state.players.find(x=>x.id===nk.nikai)?.name||'')}</b>（2位）・<b>${esc(state.players.find(x=>x.id===nk.booby)?.name||'')}</b>（ブービー）`; }
+  // 次回幹事（ネットで決定）。🎌バッジは常時表示、タイトル横の名前は show.kanji で ※ マスク
+  const nk=nextKanji(g); const hl={};
+  if(nk){ hl[nk.nikai]='🎌2位'; hl[nk.booby]='🎌ブービー'; }
+  const knm=id=>show.kanji? esc(state.players.find(x=>x.id===id)?.name||'') : '※';
+  const kanjiNote = nk ? `🎌 次回幹事：<b>${knm(nk.nikai)}</b>（2位）・<b>${knm(nk.booby)}</b>（ブービー）` : '';
 
   // 順位カード（左→右の順）：グロス→ネット→ステーブル→オリンピック→キャロウェイ→握り
   let cards='';
-  if(F.gross) cards+=leaderboard(g.womenEvery.enabled?'🏅 グロス（エブリ反映）':'🏅 グロス', parts, pid=>effGross(g,pid), 'asc', v=>v, '', 'gross', null, true, true);
-  if(F.net) cards+=leaderboard('🥇 ネット', parts, pid=>netScore(g,pid), 'asc', v=>v, kanjiNote, 'net', hl, true, true);
+  if(F.gross) cards+=rankCardNS(g.womenEvery.enabled?'🏅 グロス（エブリ反映）':'🏅 グロス', parts, pid=>effGross(g,pid), 'asc', v=>v, 'gross', null, '');
+  if(F.net) cards+=rankCardNS('🥇 ネット', parts, pid=>netScore(g,pid), 'asc', v=>v, 'net', hl, kanjiNote);
   if(F.stableford) cards+=leaderboard('🎯 ステーブルフォード', parts, pid=>stablefordPts(g,pid), 'desc', v=>v+'pt', '', 'stb');
   if(F.olympic) cards+=leaderboard('🏆 オリンピック', parts, pid=>olympicPts(g,pid), 'desc', v=>v+'pt', '', 'oly');
   if(F.callaway) cards+=leaderboard('📐 キャロウェイ', parts, pid=>callawayNet(g,pid),'asc',v=>v,'', 'cal');
   if(F.nassau) cards+=leaderboard('🤝 握り(トータル)', parts, pid=>nassauTotalNet(g,pid),'asc',v=>v,'', 'nas');
 
   const scorecard = renderScorecard(g,parts,null);
-  return banner + togbar + scorecard + `<div class="rank-wrap">${cards}</div>
+  return banner + scorecard + `<div class="rank-wrap">${cards}</div>
     <details style="margin-top:10px"><summary>📖 各ゲームのルール解説</summary><div class="in">
       <div class="rule"><b>ネット</b>：ダブルペリアのハンデ後スコア。総合優勝はこれで決めるのが定番。少ないほど上位。</div>
       <div class="rule"><b>グロス</b>：ハンデ前の素の打数（女性エブリのみ反映）。少ないほど上位。</div>
@@ -823,7 +827,8 @@ function renderScorecard(g, parts, teams){
     body=parts.map(pid=>pRow(pid)).join('');
     note='黄＝隠しホール。';
   }
-  return `<div class="card"><h2>🎬 スコア表${teams?'（チーム別）':''} <span class="tag" style="background:#d4ac0d;color:#fff">${n>=18?'全ホール':n+'/18H'}</span></h2>
+  return `<div class="card"><h2 class="lbh"><span>🎬 スコア表${teams?'（チーム別）':''} <span class="tag" style="background:#d4ac0d;color:#fff">${n>=18?'全ホール':n+'/18H'}</span></span>
+      <span class="tgl ${show.totals?'on':'off'}" onclick="toggleShow('totals')">${show.totals?'👁':'🚫'} 合計値</span></h2>
     <div class="reveal-bar">
       <button class="btn gray sm" onclick="resetHoles()" ${n<=0?'disabled':''}>リセット</button>
       <button class="btn gray sm" onclick="closeHole()" ${n<=0?'disabled':''}>◀</button>
@@ -833,6 +838,24 @@ function renderScorecard(g, parts, teams){
     <table class="sc2" style="margin-top:8px">${SC_COLGROUP}${head}${parRow}${body}</table>
     <div class="muted" style="margin-top:6px">${note} OUT/IN=前後半小計・計=グロス・HD=ハンデ・Net=ネット。${n<18?'▶で1ホールずつ開くと下の順位が更新されます。':''}</div>
   </div>`;
+}
+
+// グロス/ネット専用の順位カード（名前・スコアを表ごと＋順位ごとに表示制御。net は次回幹事トグル内蔵）
+function rankCardNS(title, pids, valFn, dir, fmt, table, hlMap, kanjiNote){
+  const rows=ranked(pids,valFn,dir);
+  const medalOf=r=> r.rank===1?'🥇':r.rank===2?'🥈':r.rank===3?'🥉':r.rank;
+  const nameOf=pid=>{const p=state.players.find(x=>x.id===pid);return esc(p&&p.name);};
+  const nsOn = nsMode[table]==='show';
+  const tools=`<div class="cardtools">
+    <span class="tgl ${nsOn?'on':'off'}" onclick="toggleNSAll('${table}')">${nsOn?'👁':'🚫'} 名前・スコア</span>
+    ${table==='net'?`<span class="tgl ${show.kanji?'on':'off'}" onclick="toggleShow('kanji')">${show.kanji?'👁':'🚫'} 次幹事名</span>`:''}
+    <span class="muted" style="font-size:10px">行タップで個別</span></div>`;
+  const body=`<table class="lb big"><tr><th>順</th><th>選手</th><th>${dir==='asc'?'スコア':'得点'}</th></tr>
+    ${rows.map(r=>{ const hb=hlMap&&hlMap[r.pid]; const m=nsMasked(table,r.pid);
+      const nm = m ? '<span class="mask">※※※</span>' : nameOf(r.pid);
+      const sv = m ? '<span class="mask">？</span>' : `<b>${fmt(r.v)}</b>`;
+      return `<tr class="rank ${r.rank===1?'rank1':''} ${hb?'hlrow':''}" style="cursor:pointer" onclick="toggleNSRow('${table}','${r.pid}')"><td class="medal">${medalOf(r)}</td><td style="text-align:left">${nm}${hb?`<span class="kanjibadge">${hb}</span>`:''}</td><td>${sv}</td></tr>`; }).join('')}</table>`;
+  return `<div class="card tight wide"><h2 class="lbh"><span>${title}</span>${kanjiNote?`<span class="lbnote">${kanjiNote}</span>`:''}</h2>${tools}${body}</div>`;
 }
 
 // 🎯 ニアピン/ドラコン タブ
@@ -853,9 +876,8 @@ function renderTeamTab(g){
     return `<div class="card"><h2>🚩 チーム戦</h2><div class="empty">「ゲーム」タブの「集計する競技」でチーム戦の項目をONにしてください。</div></div>`;
   const teams=g.teams.filter(t=>t.memberIds.length);
   const tgl=(k,label)=>`<span class="tgl ${show[k]?'on':'off'}" onclick="toggleShow('${k}')">${show[k]?'👁':'🚫'} ${label}</span>`;
-  const togbar=`<div class="togbar"><span class="lbl">表示切替</span>
-    ${tgl('totals','合計値(OUT/IN/計/HD/Net)')}${tgl('teamNames','チーム名')}${tgl('teamTotals','対抗の合計値')}</div>`;
-  return togbar + renderScorecard(g, g.participants, teams) + `<div class="rank-wrap">${renderTeams(g)}</div>`;
+  const teamTools=`<div class="togbar"><span class="lbl">対抗表の表示</span>${tgl('teamNames','チーム名')}${tgl('teamTotals','合計値')}</div>`;
+  return renderScorecard(g, g.participants, teams) + teamTools + `<div class="rank-wrap">${renderTeams(g)}</div>`;
 }
 
 
