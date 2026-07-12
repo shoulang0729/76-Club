@@ -166,8 +166,12 @@
   .rank-wrap{display:flex;flex-wrap:wrap;gap:10px;align-items:flex-start;margin-bottom:12px}
   .rank-wrap>.card{flex:1 1 200px;min-width:180px;max-width:300px;margin-bottom:0}
   .rank-wrap>.card.wide{flex:1 1 320px;min-width:270px;max-width:480px}
-  .rank-wrap .lb{font-size:13px}
-  .rank-wrap .lb th,.rank-wrap .lb td{padding:4px 6px}
+  .rank-wrap .lb{font-size:13px;table-layout:fixed;width:100%}
+  .rank-wrap .lb th,.rank-wrap .lb td{padding:4px 6px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .rank-wrap .lb th:nth-child(1),.rank-wrap .lb td:nth-child(1){width:32px;padding:2px}
+  .rank-wrap .lb th:nth-child(2),.rank-wrap .lb td:nth-child(2){width:30px}
+  .rank-wrap .lb th:nth-child(4),.rank-wrap .lb td:nth-child(4){width:58px}
+  .rank-wrap .lb.big th:nth-child(4),.rank-wrap .lb.big td:nth-child(4){width:64px}
   .rank-wrap .lb.big{font-size:16px}
   .rank-wrap .lb.big th{font-size:12px}
   .rank-wrap .lb.big td{padding:7px 8px}
@@ -774,7 +778,7 @@ function renderIndividual(g, parts){
     : `<div class="card" style="background:#fef9e7;border-color:var(--gold)"><b>⏳ 暫定順位</b> — ${done}/${parts.length}名が18H入力済み${revealHoles<18?`・${revealHoles}/18H開封中`:''}。スコア表を1ホールずつ開けると各順位が入れ替わります。</div>`;
   // 次回幹事（ネットで決定）：🎌バッジをネット順位の2位/ブービー行に表示（タイトル横の注記は廃止）
   const nk=nextKanji(g); const hl={};
-  if(nk){ hl[nk.nikai]='🎌2位'; hl[nk.booby]='🎌ブービー'; }
+  if(nk){ hl[nk.nikai]='幹事'; hl[nk.booby]='幹事'; }
 
   // 順位カード（左→右の順）：グロス→ネット→ステーブル→オリンピック→キャロウェイ→握り
   let cards='';
@@ -821,7 +825,7 @@ function renderScorecard(g, parts, teams){
     const winAt=[]; for(let i=0;i<18;i++){const tot=teams.map(t=>tAt(t,i));const val=tot.filter(v=>v!=null);winAt.push(val.length?tot.map((v,ti)=>v===Math.min(...val)?ti:-1).filter(x=>x>=0):[]);}
     const won=teams.map((_,ti)=>{let w=0;winAt.forEach(ws=>{if(ws.includes(ti))w+=1/ws.length;});return w;});
     teams.forEach((t,ti)=>{ const col=colorOf(t.name);
-      body+=`<tr><td class="nm" colspan="24" style="background:${col};color:#fff;font-weight:800;text-align:left">🚩 ${esc(t.name)} — ${Math.round(won[ti]*10)/10}H取得</td></tr>`;
+      body+=`<tr><td class="nm" colspan="24" style="background:${col};color:#fff;font-weight:800;text-align:left">🚩 ${esc(t.name)}</td></tr>`;
       t.memberIds.forEach(pid=>{ if(state.players.find(x=>x.id===pid)) body+=pRow(pid); });
       const tCell=(i)=>{ if(!show.totals) return '<td><span class="mask">·</span></td>';   // 合計値OFFなら値も色も隠す
         const s=t.memberIds.reduce((a,pid)=>a+((g.scores[pid]||[])[i]?Number((g.scores[pid])[i]):0),0); return `<td class="${winAt[i].includes(ti)?'winc':''}">${s||''}</td>`;};
@@ -856,8 +860,7 @@ function rankCardNS(title, pids, valFn, dir, fmt, table, hlMap){
   const nameOf=pid=>{const p=state.players.find(x=>x.id===pid);return esc(p&&p.name);};
   const nsOn = nsMode[table]==='show';
   const tools=`<div class="cardtools">
-    <span class="tgl ${nsOn?'on':'off'}" onclick="toggleNSAll('${table}')">${nsOn?'👁 全表示':'🚫 全非表示'}</span>
-    <span class="muted" style="font-size:10px">👁ボタンで1人ずつ</span></div>`;
+    <span class="tgl ${nsOn?'on':'off'}" onclick="toggleNSAll('${table}')">${nsOn?'👁 全表示':'🚫 全非表示'}</span></div>`;
   const body=`<table class="lb big"><tr><th></th><th>順</th><th>選手</th><th>${dir==='asc'?'スコア':'得点'}</th></tr>
     ${rows.map(r=>{ const hb=hlMap&&hlMap[r.pid]; const m=nsMasked(table,r.pid);
       const nm = m ? '<span class="mask">※※※</span>' : nameOf(r.pid);
@@ -927,7 +930,7 @@ function renderTeams(g){
   const teamNet=t=>Math.round(t.memberIds.reduce((a,pid)=>a+netScore(g,pid),0)*10)/10;
   const card=(key,title,valFn,dir,note)=>{ const rows=teams.map(t=>({t,v:valFn(t)})).sort((a,b)=> dir==='desc'? b.v-a.v : a.v-b.v);
     const on = tgMode[key]==='show';
-    const tools=`<div class="cardtools"><span class="tgl ${on?'on':'off'}" onclick="toggleTgAll('${key}')">${on?'👁 全表示':'🚫 全非表示'}</span><span class="muted" style="font-size:10px">👁ボタンで1チームずつ</span></div>`;
+    const tools=`<div class="cardtools"><span class="tgl ${on?'on':'off'}" onclick="toggleTgAll('${key}')">${on?'👁 全表示':'🚫 全非表示'}</span></div>`;
     return `<div class="card tight"><h2>${title}</h2>${note?`<div class="muted" style="margin-bottom:4px">${note}</div>`:''}${tools}<table class="lb"><tr><th></th><th>順</th><th>チーム</th><th>${dir==='desc'?'H':'計'}</th></tr>
       ${rows.map((r,i)=>{ const m=tgMasked(key,r.t.id);
         const nm = m ? '<span class="mask">？？？</span>' : esc(r.t.name);
