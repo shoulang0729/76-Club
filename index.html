@@ -216,6 +216,7 @@ function migrate(s){
     if(p.everyType===undefined) p.everyType='none';   // none | every1 | every2
     if(p.kanjiExempt===undefined) p.kanjiExempt=false;
     if(p.gender===undefined) p.gender='M';
+    if(p.birth===undefined) p.birth=null;             // 生年月日(YYYY-MM-DD)。同ネットのタイブレークに使用
     if(p.niapin2nd===undefined) p.niapin2nd=false;    // ニアピン2打目対象
     if(p.dracon2nd===undefined) p.dracon2nd=false;    // ドラコン2打目対象
   });
@@ -288,7 +289,11 @@ function renderPlayers(){
       <h2>👥 選手マスター</h2>
       <div class="row">
         <input id="pName" placeholder="名前" style="flex:2;min-width:140px">
-        <div style="flex:1;min-width:140px"><select id="pEvery"><option value="none">ハンデなし</option><option value="every1">エブリワン（−18）</option><option value="every2">エブリツー（−36）</option></select></div>
+        <div style="flex:1;min-width:90px"><select id="pGender"><option value="M">男性</option><option value="F">女性</option></select></div>
+      </div>
+      <div class="row" style="margin-top:8px">
+        <div style="flex:1;min-width:150px"><label class="fl">ハンデ区分</label><select id="pEvery"><option value="none">ハンデなし</option><option value="every1">エブリワン（−18）</option><option value="every2">エブリツー（−36）</option></select></div>
+        <div style="flex:1;min-width:150px"><label class="fl">生年月日</label><input type="date" id="pBirth"></div>
       </div>
       <div class="row" style="margin-top:8px">
         <label style="display:flex;align-items:center;gap:6px;font-size:13px"><input type="checkbox" id="pKanji"> 幹事対象外</label>
@@ -296,13 +301,15 @@ function renderPlayers(){
         <label style="display:flex;align-items:center;gap:6px;font-size:13px"><input type="checkbox" id="pDc2"> 💪ドラ2打目</label>
       </div>
       <button class="btn wide" style="margin-top:10px" onclick="addPlayer()">＋ 選手を追加</button>
-      <div class="muted" style="margin-top:6px">ハンデ区分＝エブリなし/ワン/ツー。2打目対象＝ニアピン/ドラコンを2打目で計測してよい人。幹事対象外＝次回幹事に選ばれない人。</div>
+      <div class="muted" style="margin-top:6px">性別・生年月日は<b>同ネット時のタイブレーク</b>に使用（女性→年長の順で上位）。2打目対象＝ニアピン/ドラコンを2打目で計測してよい人。</div>
     </div>
     <div class="card">
       <h2>登録済み（${state.players.length}名）</h2>
-      ${state.players.length? `<div class="scroll"><table><tr><th>名前</th><th>ハンデ<br>区分</th><th>幹事<br>対象外</th><th>ニア<br>2打</th><th>ドラ<br>2打</th><th></th></tr>
+      ${state.players.length? `<div class="scroll"><table><tr><th>名前</th><th>性別</th><th>生年月日</th><th>ハンデ<br>区分</th><th>幹事<br>対象外</th><th>ニア<br>2打</th><th>ドラ<br>2打</th><th></th></tr>
         ${state.players.map(p=>`<tr>
           <td style="text-align:left;white-space:nowrap">${esc(p.name)}</td>
+          <td><select style="padding:4px;font-size:12px" onchange="setPlayerField('${p.id}','gender',this.value)"><option value="M" ${p.gender!=='F'?'selected':''}>男</option><option value="F" ${p.gender==='F'?'selected':''}>女</option></select></td>
+          <td><input type="date" style="padding:3px;font-size:11px" value="${p.birth||''}" onchange="setPlayerField('${p.id}','birth',this.value||null)"></td>
           <td><select style="padding:4px;font-size:12px" onchange="setPlayerEvery('${p.id}',this.value)">
             <option value="none" ${p.everyType==='none'?'selected':''}>なし</option>
             <option value="every1" ${p.everyType==='every1'?'selected':''}>E1(−18)</option>
@@ -325,11 +332,13 @@ function renderPlayers(){
 }
 function addPlayer(){
   const n=document.getElementById('pName').value.trim(); if(!n) return toast('名前を入力');
-  state.players.push({id:uid(),name:n,gender:'M',
+  state.players.push({id:uid(),name:n,gender:document.getElementById('pGender').value,
+    birth:document.getElementById('pBirth').value||null,
     everyType:document.getElementById('pEvery').value, kanjiExempt:document.getElementById('pKanji').checked,
     niapin2nd:document.getElementById('pNp2').checked, dracon2nd:document.getElementById('pDc2').checked});
   save(); renderPlayers(); toast('追加しました');
 }
+function setPlayerField(id,field,val){ state.players.find(p=>p.id===id)[field]=val; save(); }
 function editPlayer(id){ const p=state.players.find(x=>x.id===id);
   const n=prompt('名前',p.name); if(n===null)return; p.name=n.trim()||p.name;
   save(); renderPlayers(); }
@@ -537,15 +546,15 @@ function statusBadge(g){ return allComplete(g)
 function seedTestData(){
   if(!confirm('テスト用のサンプル（12名・コース・スコア）を新しいゲームとして作成します。よろしいですか？'))return;
   const samples=[
-    ['田中 太郎','M','none',false],['佐藤 花子','F','every2',false],['鈴木 一郎','M','none',false],
-    ['高橋 美咲','F','every1',false],['渡辺 健','M','none',false],['伊藤 由美','F','none',false],
-    ['山本 大輔','M','none',true],['中村 彩','F','every2',false],['小林 誠','M','none',false],
-    ['加藤 香織','F','every1',false],['吉田 隆','M','none',false],['松本 恵','F','none',false]];
-  const ids=samples.map(([name,gender,everyType,kanjiExempt])=>{
+    ['田中 太郎','M','none',false,'1975-04-12'],['佐藤 花子','F','every2',false,'1982-09-03'],['鈴木 一郎','M','none',false,'1968-01-25'],
+    ['高橋 美咲','F','every1',false,'1990-11-18'],['渡辺 健','M','none',false,'1979-06-30'],['伊藤 由美','F','none',false,'1985-03-14'],
+    ['山本 大輔','M','none',true,'1972-12-05'],['中村 彩','F','every2',false,'1988-07-22'],['小林 誠','M','none',false,'1965-02-09'],
+    ['加藤 香織','F','every1',false,'1993-05-17'],['吉田 隆','M','none',false,'1981-08-28'],['松本 恵','F','none',false,'1977-10-11']];
+  const ids=samples.map(([name,gender,everyType,kanjiExempt,birth])=>{
     const n2=gender==='F', d2=gender==='F';   // 女性はニアピン/ドラコン2打目対象（デモ）
     let p=state.players.find(x=>x.name===name);
-    if(!p){ p={id:uid(),name,gender,everyType,kanjiExempt,niapin2nd:n2,dracon2nd:d2}; state.players.push(p); }
-    else { p.gender=gender; p.everyType=everyType; p.kanjiExempt=kanjiExempt; p.niapin2nd=n2; p.dracon2nd=d2; }
+    if(!p){ p={id:uid(),name,gender,birth,everyType,kanjiExempt,niapin2nd:n2,dracon2nd:d2}; state.players.push(p); }
+    else { p.gender=gender; p.birth=birth; p.everyType=everyType; p.kanjiExempt=kanjiExempt; p.niapin2nd=n2; p.dracon2nd=d2; }
     return p.id;
   });
   const g=newGame();
@@ -616,11 +625,21 @@ function net9(g,pid,s,e){ const raw=sum(g.scores[pid]||[],s,e); return Math.roun
 function nassauTotalNet(g,pid){ return Math.round((net9(g,pid,0,9)+net9(g,pid,9,18))*10)/10; }
 
 /* ---- ranking helpers ---- */
+/* 同スコアのタイブレーク：①性別（女性を上位）②生年月日（年長＝生年月日が早い方を上位）。
+   判別不能（性別同じ＆生年月日どちらか未入力/同一）なら 0＝同順位のまま。 */
+function tieBreak(pidA, pidB){
+  const a=state.players.find(x=>x.id===pidA), b=state.players.find(x=>x.id===pidB);
+  const ga=(a&&a.gender==='F')?0:1, gb=(b&&b.gender==='F')?0:1;
+  if(ga!==gb) return ga-gb;                       // 女性(0)が先
+  const ba=a&&a.birth, bb=b&&b.birth;
+  if(ba&&bb){ if(ba<bb)return -1; if(ba>bb)return 1; }   // 生年月日が早い＝年長が先
+  return 0;
+}
 function ranked(pids, valFn, dir){
   const rows=pids.map(pid=>({pid,v:valFn(pid)})).filter(r=>r.v!=null);
-  rows.sort((a,b)=> dir==='asc'? a.v-b.v : b.v-a.v);
-  let rank=0,prev=null;
-  return rows.map((r,i)=>{ if(prev===null||r.v!==prev){rank=i+1;prev=r.v;} return {pid:r.pid,v:r.v,rank}; });
+  rows.sort((a,b)=>{ const d = dir==='asc'? a.v-b.v : b.v-a.v; return d!==0? d : tieBreak(a.pid,b.pid); });
+  let rank=1;
+  return rows.map((r,i)=>{ if(i>0){ const p=rows[i-1]; const eq=(r.v===p.v)&&(tieBreak(p.pid,r.pid)===0); rank = eq? rank : i+1; } return {pid:r.pid,v:r.v,rank}; });
 }
 function teamRanked(g, valFn, dir){
   const teams=g.teams.filter(t=>t.memberIds.length);
