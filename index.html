@@ -269,10 +269,12 @@ function renderGame(){
         ${state.games.map(g=>`<option value="${g.id}" ${g.id===state.currentGameId?'selected':''}>${esc(g.name)} (${g.date})</option>`).join('')}
       </select>
       <button class="btn" onclick="createGame()">＋新規</button>
-    </div></div>`;
+    </div>
+    <div class="row" style="margin-top:8px"><button class="btn gold sm" onclick="seedTestData()">🧪 テストデータ一式を作成（12名・コース・スコア）</button></div>
+    <div class="muted" style="margin-top:4px">動作確認用。サンプル選手・コース・隠しH・3チーム・ランダムスコアを一括投入します。</div></div>`;
 
   const g=curGame();
-  if(!g){ el.innerHTML=html+`<div class="empty">ゲームを新規作成するか選択してください</div>`; return; }
+  if(!g){ el.innerHTML=html+`<div class="empty">ゲームを新規作成するか、上の「🧪 テストデータ」で試せます</div>`; return; }
 
   html += `<div class="card"><h2>基本設定</h2>
     <label class="fl">コンペ名</label><input value="${esc(g.name)}" onchange="setG('name',this.value)">
@@ -403,7 +405,9 @@ function renderScore(){
   if(!g){ el.innerHTML='<div class="empty">先にゲームを作成してください</div>'; return; }
   if(!g.participants.length){ el.innerHTML='<div class="empty">「ゲーム」タブで参加者を選んでください</div>'; return; }
   let html=`<div class="card"><h2>✍️ スコア入力</h2>
-    <div class="muted">数字を直接入力。横スクロールで18Hまで。黄=隠しホール。空欄=未入力。写真から入れたい時はチャットに送ってください（転記します）。</div>
+    <div class="muted">各マスに打数を入力（入力しても画面は動きません＝続けて次のマスへ）。横スクロールで18Hまで。黄=隠しホール。空欄=未入力。写真から入れたい時はチャットに送ってください（転記します）。</div>
+    <div class="row" style="margin-top:8px"><button class="btn sec sm" onclick="fillRandomScores()">🎲 テスト用にランダムで埋める</button>
+      <button class="btn gray sm" onclick="clearScores()">スコアをクリア</button></div>
   </div>`;
   html+=`<div class="card"><div class="scroll"><table class="scoregrid">
     <tr><th class="name">選手</th>${g.par.map((_,i)=>`<th class="${g.hidden[i]?'hidden-h':''}">${i+1}</th>`).join('')}<th class="sum">OUT</th><th class="sum">IN</th><th class="sum">計</th></tr>
@@ -411,15 +415,69 @@ function renderScore(){
     ${g.participants.map(pid=>{ const p=state.players.find(x=>x.id===pid); if(!p)return'';
       const sc=g.scores[pid]||Array(18).fill(null);
       return `<tr><td class="name">${p.gender==='F'?'🌸':''}${esc(p.name)}</td>
-        ${sc.map((v,i)=>`<td class="${g.hidden[i]?'hidden-h':''}"><input type="number" inputmode="numeric" min="1" max="15" value="${v??''}" onchange="setScore('${pid}',${i},this.value)"></td>`).join('')}
-        <td class="sum">${sum(sc,0,9)||''}</td><td class="sum">${sum(sc,9,18)||''}</td><td class="sum">${sum(sc,0,18)||''}</td></tr>`;
+        ${sc.map((v,i)=>`<td class="${g.hidden[i]?'hidden-h':''}"><input id="sc-${pid}-${i}" type="number" inputmode="numeric" pattern="[0-9]*" min="1" max="15" value="${v??''}" onchange="setScore('${pid}',${i},this)"></td>`).join('')}
+        <td class="sum" id="out-${pid}">${sum(sc,0,9)||''}</td><td class="sum" id="in-${pid}">${sum(sc,9,18)||''}</td><td class="sum" id="tot-${pid}">${sum(sc,0,18)||''}</td></tr>`;
     }).join('')}
   </table></div></div>`;
   el.innerHTML=html;
 }
 function sum(a,s,e){ let t=0,any=false; for(let i=s;i<e;i++){ if(a[i]!=null&&a[i]!==''){t+=Number(a[i]);any=true;} } return any?t:0; }
-function setScore(pid,i,v){ const g=curGame(); g.scores[pid]=g.scores[pid]||Array(18).fill(null);
-  g.scores[pid][i] = v===''?null:(parseInt(v)||null); save(); renderScore(); }
+// フォーカスを失わないよう、再描画せず合計セルだけ更新
+function setScore(pid,i,el){ const g=curGame(); g.scores[pid]=g.scores[pid]||Array(18).fill(null);
+  const v=el.value; g.scores[pid][i] = v===''?null:(parseInt(v)||null); save(); updateRowSums(g,pid); }
+function updateRowSums(g,pid){ const sc=g.scores[pid]||[];
+  const o=document.getElementById('out-'+pid), n=document.getElementById('in-'+pid), t=document.getElementById('tot-'+pid);
+  if(o)o.textContent=sum(sc,0,9)||''; if(n)n.textContent=sum(sc,9,18)||''; if(t)t.textContent=sum(sc,0,18)||''; }
+function fillRandomScores(){ const g=curGame(); if(!g)return;
+  g.participants.forEach(pid=>{ g.scores[pid]=g.par.map(par=>{ const r=Math.random();
+    const d = r<0.05?-1 : r<0.45?0 : r<0.75?1 : r<0.92?2 : 3;  // バーディ寄り〜大叩き
+    return Math.max(2, par+d); }); });
+  save(); renderScore(); toast('ランダムスコアを入れました'); }
+function clearScores(){ const g=curGame(); if(!g)return; if(!confirm('全員のスコアをクリアしますか？'))return;
+  g.participants.forEach(pid=>{ g.scores[pid]=Array(18).fill(null); }); save(); renderScore(); }
+
+/* ---- 確定/暫定判定 ---- */
+function allComplete(g){ const parts=g.participants.filter(pid=>state.players.find(x=>x.id===pid));
+  return parts.length>0 && parts.every(pid=>complete(g,pid)); }
+function statusBadge(g){ return allComplete(g)
+  ? '<span class="tag" style="background:#186a3b;color:#fff">🏁 確定</span>'
+  : '<span class="tag" style="background:#d4ac0d;color:#fff">⏳ 暫定</span>'; }
+
+/* ============================ TEST DATA ============================ */
+function seedTestData(){
+  if(!confirm('テスト用のサンプル（12名・コース・スコア）を新しいゲームとして作成します。よろしいですか？'))return;
+  const samples=[
+    ['田中 太郎','M','none',false],['佐藤 花子','F','every2',false],['鈴木 一郎','M','none',false],
+    ['高橋 美咲','F','every1',false],['渡辺 健','M','none',false],['伊藤 由美','F','none',false],
+    ['山本 大輔','M','none',true],['中村 彩','F','every2',false],['小林 誠','M','none',false],
+    ['加藤 香織','F','every1',false],['吉田 隆','M','none',false],['松本 恵','F','none',false]];
+  const ids=samples.map(([name,gender,everyType,kanjiExempt])=>{
+    let p=state.players.find(x=>x.name===name);
+    if(!p){ p={id:uid(),name,gender,everyType,kanjiExempt}; state.players.push(p); }
+    else { p.gender=gender; p.everyType=everyType; p.kanjiExempt=kanjiExempt; }
+    return p.id;
+  });
+  const g=newGame();
+  g.name='🧪 テストコンペ'; g.course='テスト国際CC';
+  g.par=[4,4,3,5,4,4,3,4,5, 4,4,3,4,5,4,4,3,5];  // 72
+  // 隠し12ホールをランダム
+  const idx=[...Array(18).keys()].sort(()=>Math.random()-0.5).slice(0,12);
+  g.hidden=Array(18).fill(false); idx.forEach(i=>g.hidden[i]=true);
+  g.womenEvery.enabled=true;
+  g.prizePool=24000;
+  g.participants=ids.slice();
+  ids.forEach(pid=>{ g.scores[pid]=g.par.map(par=>{ const r=Math.random();
+    const d=r<0.05?-1:r<0.45?0:r<0.75?1:r<0.92?2:3; return Math.max(2,par+d); }); });
+  // 3チームに自動割当
+  const tnames=['レッド','ブルー','グリーン'];
+  g.teams=tnames.map(n=>({id:uid(),name:'チーム'+n,memberIds:[]}));
+  ids.forEach((pid,i)=>g.teams[i%3].memberIds.push(pid));
+  // ニアピン(par3)・ドラコン(par5)を対象に、勝者もランダム
+  g.par.forEach((par,i)=>{ if(par===3)g.prizes.niapinHoles.push(i); if(par===5)g.prizes.draconHoles.push(i); });
+  g.prizes.niapinHoles.forEach(h=>{ g.prizes.niapinWinner[h]=ids[Math.floor(Math.random()*ids.length)]; });
+  g.prizes.draconHoles.forEach(h=>{ g.prizes.draconWinner[h]=ids[Math.floor(Math.random()*ids.length)]; });
+  state.games.push(g); state.currentGameId=g.id; save(); render(); toast('テストデータを作成しました');
+}
 
 /* ============================ CALCULATIONS ============================ */
 function parTotal(g){ return g.par.reduce((a,b)=>a+b,0); }
@@ -555,7 +613,7 @@ function renderResult(){
 function renderStanding(g, parts){
   const {pts,payout,total,pool}=computePayout(g);
   const prows=parts.map(pid=>({pid,pt:pts[pid]||0,yen:payout[pid]||0})).sort((a,b)=>b.pt-a.pt);
-  return `<div class="card payoutcard"><h2>🪙 賞金ポイント配分 <span class="tag" style="background:#186a3b;color:#fff">リアルタイム</span></h2>
+  return `<div class="card payoutcard"><h2>🪙 賞金ポイント配分 ${statusBadge(g)}</h2>
     <div class="muted">獲得ポイント合計 ${total}pt${pool?` / 賞金総額 ¥${pool.toLocaleString()} をポイント比で配分`:'（賞金総額は「ゲーム」タブで入力すると配分額が出ます）'}。スコアや個人賞を入れるたびに自動更新。</div>
     <table class="lb" style="margin-top:6px"><tr><th>順</th><th>選手</th><th>ポイント</th>${pool?'<th>配分額</th>':''}</tr>
     ${prows.map((r,i)=>{const p=state.players.find(x=>x.id===r.pid);
@@ -566,6 +624,11 @@ function renderStanding(g, parts){
 // 個人戦タブ
 function renderIndividual(g, parts){
   const F=g.formats; let html='';
+  // 暫定/確定バナー
+  const done=parts.filter(pid=>complete(g,pid)).length;
+  html+= allComplete(g)
+    ? `<div class="card" style="background:#eafaf1;border-color:var(--green2)"><b>🏁 順位確定</b> — 全${parts.length}名の18Hが入力されました。以下の順位が最終結果です。</div>`
+    : `<div class="card" style="background:#fef9e7;border-color:var(--gold)"><b>⏳ 暫定順位</b> — 現在 ${done}/${parts.length}名が18H入力済み。<b>全員入力し終えると順位が確定</b>します。</div>`;
   // reveal toggle
   html+=`<div class="card"><div class="row between">
       <label style="display:flex;gap:8px;align-items:center;font-size:14px;font-weight:700"><input type="checkbox" ${revealMode?'checked':''} onchange="toggleReveal(this.checked)"> 🎭 表彰式モード（ためて発表）</label>
