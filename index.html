@@ -67,8 +67,9 @@
   th,td{border:1px solid var(--line);padding:5px 6px;text-align:center}
   th{background:#f6f8fa;color:var(--sub);font-weight:800;font-size:11px;letter-spacing:.03em}
   .scroll{overflow-x:auto;-webkit-overflow-scrolling:touch}
-  /* leaderboard tables */
+  /* leaderboard tables（3表共通の基礎デザイン＝濃色ヘッダ＋ゼブラ） */
   .lb th,.lb td{white-space:nowrap;vertical-align:middle}
+  .lb th{background:var(--dark);color:#fff;font-weight:700;font-size:11px;letter-spacing:.02em}
   .lb tr:nth-child(2n+1) td{background:#f8fafb}
   .lb .rank td{font-weight:600}
   .pos{display:inline-flex;align-items:center;justify-content:center;width:24px;height:24px;border-radius:50%;
@@ -157,9 +158,10 @@
   .sc2 th{background:var(--dark);color:#fff;font-size:11px;font-weight:700}
   .sc2 td.nm,.sc2 th.nm{text-align:left;font-weight:700;font-size:11.5px;white-space:nowrap;padding-left:5px;text-overflow:ellipsis}
   .sc2 th.nm{background:var(--dark);color:#fff}
-  .sc2 .sub{background:#eaf6f0;font-weight:800}
-  .sc2 .tot{background:#f2f5f7;font-weight:800}
-  .sc2 .netc{background:#dff2e8;font-weight:900;color:#06522f}
+  .sc2 td.sub{background:#eaf6f0;font-weight:800}
+  .sc2 td.tot{background:#f2f5f7;font-weight:800}
+  .sc2 td.netc{background:#dff2e8;font-weight:900;color:#06522f}
+  .sc2 th.sub,.sc2 th.tot,.sc2 th.netc{background:var(--dark);color:#fff}   /* ヘッダは一律濃色＋白文字（薄背景で消えない） */
   .sc2 .hh{background:#fff7e6}
   .sc2 th.hh{background:var(--dark);color:#ffd24d}   /* 隠しホールのヘッダ番号：濃背景＋金色で常に読める */
   .sc2 .parr td{color:#4a5560;font-size:10px;font-weight:700}
