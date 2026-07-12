@@ -99,6 +99,10 @@
   .ptsrow{display:flex;align-items:center;justify-content:space-between;gap:8px;margin:5px 0}
   .ptsrow span{font-size:13px}
   .big{font-size:20px;font-weight:800}
+  .subtab{display:flex;gap:8px;margin-bottom:12px}
+  .subtab button{flex:1;border:1.5px solid var(--green);background:#fff;color:var(--green);padding:11px;
+    border-radius:10px;font-size:15px;font-weight:700;cursor:pointer}
+  .subtab button.on{background:var(--green);color:#fff}
 </style>
 </head>
 <body>
@@ -529,14 +533,39 @@ function nextKanji(g){
 }
 
 /* ============================ RESULTS ============================ */
+let resultSub='ind';   // 'ind' | 'team'
+function setResultSub(s){ resultSub=s; renderResult(); }
 function renderResult(){
   const el=document.getElementById('view-result'); const g=curGame();
   if(!g){ el.innerHTML='<div class="empty">ゲーム未選択</div>'; return; }
   const parts=g.participants.filter(pid=>state.players.find(x=>x.id===pid));
   if(!parts.length){ el.innerHTML='<div class="empty">参加者がいません</div>'; return; }
-  const F=g.formats;
-  let html='';
+  // 常時表示：賞金ポイント配分（リアルタイム）
+  let html=renderStanding(g, parts);
+  // サブタブ
+  html+=`<div class="subtab">
+    <button class="${resultSub==='ind'?'on':''}" onclick="setResultSub('ind')">👤 個人戦</button>
+    <button class="${resultSub==='team'?'on':''}" onclick="setResultSub('team')">🚩 チーム戦</button>
+  </div>`;
+  html += resultSub==='ind' ? renderIndividual(g, parts) : renderTeamTab(g);
+  el.innerHTML=html;
+}
 
+// 常時表示スタンディング（個人戦・チーム戦どちらのタブでも見える）
+function renderStanding(g, parts){
+  const {pts,payout,total,pool}=computePayout(g);
+  const prows=parts.map(pid=>({pid,pt:pts[pid]||0,yen:payout[pid]||0})).sort((a,b)=>b.pt-a.pt);
+  return `<div class="card payoutcard"><h2>🪙 賞金ポイント配分 <span class="tag" style="background:#186a3b;color:#fff">リアルタイム</span></h2>
+    <div class="muted">獲得ポイント合計 ${total}pt${pool?` / 賞金総額 ¥${pool.toLocaleString()} をポイント比で配分`:'（賞金総額は「ゲーム」タブで入力すると配分額が出ます）'}。スコアや個人賞を入れるたびに自動更新。</div>
+    <table class="lb" style="margin-top:6px"><tr><th>順</th><th>選手</th><th>ポイント</th>${pool?'<th>配分額</th>':''}</tr>
+    ${prows.map((r,i)=>{const p=state.players.find(x=>x.id===r.pid);
+      return `<tr class="rank ${i===0&&r.pt>0?'rank1':''}"><td>${r.pt>0?(i+1):'-'}</td><td style="text-align:left">${esc(p.name)}</td><td><b>${r.pt}</b>pt</td>${pool?`<td><b>¥${r.yen.toLocaleString()}</b></td>`:''}</tr>`}).join('')}
+    </table></div>`;
+}
+
+// 個人戦タブ
+function renderIndividual(g, parts){
+  const F=g.formats; let html='';
   // reveal toggle
   html+=`<div class="card"><div class="row between">
       <label style="display:flex;gap:8px;align-items:center;font-size:14px;font-weight:700"><input type="checkbox" ${revealMode?'checked':''} onchange="toggleReveal(this.checked)"> 🎭 表彰式モード（ためて発表）</label>
@@ -544,7 +573,6 @@ function renderResult(){
     </div>
     ${revealMode?'<div class="muted" style="margin-top:6px">各ゲームを「🥁 次を発表」で<b>下位から1人ずつ</b>めくれます。最後に優勝が出ます。</div>':''}
   </div>`;
-
   // rules
   html+=`<details><summary>📖 各ゲームのルール解説</summary><div class="in">
     <div class="rule"><b>ネット個人戦</b>：ダブルペリアのハンデを引いた実力調整後スコア。総合優勝はこれで決めるのが定番。少ないほど上位。</div>
@@ -554,7 +582,6 @@ function renderResult(){
     <div class="rule"><b>キャロウェイ方式</b>：その日のグロスだけでハンデを自動算出（事前ハンデ不要・少人数向け）。スコアが悪いほど“悪かったホール”を多く差し引く（17・18番は対象外）。ネット＝グロス−控除。少ないほど上位。18H入力完了者のみ。</div>
     <div class="rule"><b>握り／ナッソー</b>：前半9H・後半9H・18Hトータルの<b>3つで別々に勝負</b>。各セクションでネットの少ない人が勝ち。1ラウンドで3回楽しめる。</div>
   </div></details>`;
-
   // score summary
   html+=`<div class="card"><h2>📊 スコア一覧</h2><div class="scroll"><table class="lb">
     <tr><th>選手</th><th>Gross</th>${g.womenEvery.enabled?'<th>エブリ</th>':''}<th>Peria<br>HDCP</th><th>Net</th></tr>
@@ -571,7 +598,6 @@ function renderResult(){
   if(F.callaway){ const done=parts.filter(pid=>complete(g,pid));
     html+= done.length? leaderboard('📐 キャロウェイ方式ネット', done, pid=>callawayNet(g,pid),'asc',v=>v,'18H入力完了者のみ','cal')
       : `<div class="card"><h2>📐 キャロウェイ方式</h2><div class="muted">18H入力が完了した人がいません</div></div>`; }
-
   if(F.nassau){
     html+=`<div class="card"><h2>🤝 握り / ナッソー（ネット・各9H）</h2><div class="scroll"><table class="lb">
       <tr><th>選手</th><th>前半OUT</th><th>後半IN</th><th>トータル</th></tr>
@@ -579,30 +605,29 @@ function renderResult(){
         return `<tr class="rank"><td style="text-align:left">${esc(p.name)}</td><td>${net9(g,pid,0,9)}</td><td>${net9(g,pid,9,18)}</td><td><b>${nassauTotalNet(g,pid)}</b></td></tr>`}).join('')}
     </table></div><div class="muted">各セクションで数字が小さい人が勝ち。前半・後半・トータルの3勝負。</div></div>`;
   }
-
   html+=renderPrizes(g);
-  if((F.teamGross||F.teamNet||F.holeByHole||F.best2ball) && g.teams.length) html+=renderTeams(g);
-
-  // next kanji
+  // next kanji（個人戦タブ内）
   const nk=nextKanji(g);
   if(nk){ const nm=id=>{const p=state.players.find(x=>x.id===id);return p?esc(p.name):'';};
     html+=`<div class="card kanjicard"><h2>🎌 次回幹事（2位＋ブービー）</h2>
       <div class="row" style="gap:20px"><div><div class="muted">2位</div><div class="big">${nm(nk.nikai)}</div></div>
       <div><div class="muted">ブービー（下から2番目）</div><div class="big">${nm(nk.booby)}</div></div></div>
       <div class="muted" style="margin-top:6px">ネット個人戦順位で決定。幹事対象外の選手は飛ばして繰り下げています。</div></div>`;
+  } else {
+    html+=`<div class="card kanjicard"><h2>🎌 次回幹事（2位＋ブービー）</h2><div class="muted">スコア入力が進み、幹事対象の参加者が2名以上になると表示されます。</div></div>`;
   }
+  return html;
+}
 
-  // payout
-  const {pts,payout,total,pool}=computePayout(g);
-  const prows=parts.map(pid=>({pid,pt:pts[pid]||0,yen:payout[pid]||0})).sort((a,b)=>b.pt-a.pt);
-  html+=`<div class="card payoutcard"><h2>🪙 賞金ポイント配分</h2>
-    <div class="muted">獲得ポイント合計 ${total}pt${pool?` / 賞金総額 ¥${pool.toLocaleString()} を比例配分`:'（賞金総額は「ゲーム」タブで入力）'}</div>
-    <table class="lb" style="margin-top:6px"><tr><th>選手</th><th>ポイント</th>${pool?'<th>配分額</th>':''}</tr>
-    ${prows.map(r=>{const p=state.players.find(x=>x.id===r.pid);
-      return `<tr class="rank"><td style="text-align:left">${esc(p.name)}</td><td><b>${r.pt}</b>pt</td>${pool?`<td><b>¥${r.yen.toLocaleString()}</b></td>`:''}</tr>`}).join('')}
-    </table></div>`;
-
-  el.innerHTML=html;
+// チーム戦タブ
+function renderTeamTab(g){
+  const F=g.formats;
+  const anyTeamFmt = F.teamGross||F.teamNet||F.holeByHole||F.best2ball;
+  if(!g.teams.filter(t=>t.memberIds.length).length)
+    return `<div class="card"><h2>🚩 チーム戦</h2><div class="empty">「ゲーム」タブでチームを作成し、メンバーを割り当ててください。</div></div>`;
+  if(!anyTeamFmt)
+    return `<div class="card"><h2>🚩 チーム戦</h2><div class="empty">「ゲーム」タブの「集計する競技」でチーム戦の項目をONにしてください。</div></div>`;
+  return renderTeams(g);
 }
 function toggleReveal(v){ revealMode=v; if(!v)revealState={}; renderResult(); }
 function resetReveal(){ revealState={}; renderResult(); }
