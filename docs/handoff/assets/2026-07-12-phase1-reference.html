@@ -437,7 +437,7 @@ function renderGame(){
     <div class="ptsrow"><span>ニアピン（1回あたり）</span><span class="ptsedit"><input type="number" value="${P.niapin}" onchange="setPointsNum('niapin',this.value)"></span></div>
     <div class="ptsrow"><span>ドラコン（1回あたり）</span><span class="ptsedit"><input type="number" value="${P.dracon}" onchange="setPointsNum('dracon',this.value)"></span></div>
     <hr>
-    <label class="fl">賞金の総額（母数・円）</label>
+    <label class="fl">賞金の総額（母数）</label>
     <input type="number" value="${g.prizePool||0}" placeholder="例: 20000" onchange="setG('prizePool',parseInt(this.value)||0)">
     <div class="muted" style="margin-top:6px">この総額を、各選手の獲得ポイント比で山分けして「誰にいくら」を結果タブに表示します。</div>
   </div>`;
