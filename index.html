@@ -762,7 +762,7 @@ function renderPrizeTab(g){
   return renderPrizes(g);
 }
 
-// 🚩 チーム戦タブ
+// 🚩 チーム戦タブ（左：チーム別スコア表(ホール開封) / 右：チーム戦の結果）
 function renderTeamTab(g){
   const F=g.formats;
   const anyTeamFmt = F.teamGross||F.teamNet||F.holeByHole||F.best2ball;
@@ -770,7 +770,43 @@ function renderTeamTab(g){
     return `<div class="card"><h2>🚩 チーム戦</h2><div class="empty">「ゲーム」タブでチームを作成し、メンバーを割り当ててください。</div></div>`;
   if(!anyTeamFmt)
     return `<div class="card"><h2>🚩 チーム戦</h2><div class="empty">「ゲーム」タブの「集計する競技」でチーム戦の項目をONにしてください。</div></div>`;
-  return renderTeams(g);
+  const left=holeRevealGridByTeam(g);
+  const right=renderTeams(g);
+  return `<div class="ind-split"><div class="ind-left">${left}</div><div class="ind-right">${right}</div></div>`;
+}
+
+// 左パネル：チーム名で区切ったスコア表（開封済みホールだけ列表示）
+function holeRevealGridByTeam(g){
+  const n=revealHoles; const cols=Array.from({length:n},(_,i)=>i);
+  const teams=g.teams.filter(t=>t.memberIds.length);
+  const colspan=n+2;
+  const val=(pid,i)=>{const v=(g.scores[pid]||[])[i];return v?Number(v):0;};
+  const runTot=pid=>{let t=0;for(let i=0;i<n;i++)t+=val(pid,i);return t;};
+  const parTot=()=>{let t=0;for(let i=0;i<n;i++)t+=g.par[i];return t;};
+  const colorOf=name=> /レッド|赤/.test(name)?'#c0392b' : /ブルー|青/.test(name)?'#2471a3' : /グリーン|緑/.test(name)?'#186a3b' : /イエロー|黄/.test(name)?'#b9770e' : '#5d6d7e';
+  let rows='';
+  teams.forEach(t=>{
+    const col=colorOf(t.name);
+    rows+=`<tr><td class="name" colspan="${colspan}" style="background:${col};color:#fff;font-weight:800;text-align:left">🚩 ${esc(t.name)}</td></tr>`;
+    t.memberIds.forEach(pid=>{ const p=state.players.find(x=>x.id===pid); if(!p)return; const sc=g.scores[pid]||[];
+      rows+=`<tr><td class="name">${p.gender==='F'?'🌸':''}${esc(p.name)}</td>${cols.map(i=>`<td class="${g.hidden[i]?'hidden-h':''}">${sc[i]??''}</td>`).join('')}<td class="sum">${runTot(pid)||''}</td></tr>`; });
+    const tsub=t.memberIds.reduce((a,pid)=>a+runTot(pid),0);
+    rows+=`<tr><td class="name" style="font-size:11px;color:${col};font-weight:700">${esc(t.name)} 計</td>${cols.map(i=>{const s=t.memberIds.reduce((a,pid)=>a+val(pid,i),0);return `<td class="sum" style="font-size:11px">${s||''}</td>`}).join('')}<td class="sum" style="color:${col}">${tsub||''}</td></tr>`;
+  });
+  return `<div class="card"><h2>🎬 スコア表（チーム別・ホール開封）<span class="tag" style="background:#d4ac0d;color:#fff">${n}/18H</span></h2>
+    <div class="reveal-bar">
+      <button class="btn gold sm" onclick="openNextHole()" ${n>=18?'disabled':''}>▶ 次のホール</button>
+      <button class="btn gray sm" onclick="closeHole()" ${n<=0?'disabled':''}>◀</button>
+      <button class="btn gray sm" onclick="openAllHoles()">全部</button>
+      <button class="btn gray sm" onclick="resetHoles()">最初から</button>
+    </div>
+    <div class="scroll" style="margin-top:8px"><table class="scoregrid">
+      <tr><th class="name">選手</th>${cols.map(i=>`<th class="${g.hidden[i]?'hidden-h':''}">${i+1}</th>`).join('')}<th class="sum">計</th></tr>
+      <tr><td class="name" style="font-size:11px;color:var(--sub)">Par</td>${cols.map(i=>`<td class="${g.hidden[i]?'hidden-h':''}" style="font-size:11px;color:var(--sub)">${g.par[i]}</td>`).join('')}<td class="sum">${parTot()||''}</td></tr>
+      ${rows}
+    </table></div>
+    ${n===0?'<div class="muted" style="margin-top:6px">▶「次のホール」で1ホールずつ開くと、右のチーム戦結果が入れ替わります。</div>':''}
+  </div>`;
 }
 
 // リーダーボード（1行=1選手。ホール開封で値が埋まり順位が入れ替わる。hlMap=強調する選手）
