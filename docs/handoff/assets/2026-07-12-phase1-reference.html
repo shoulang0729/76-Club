@@ -152,15 +152,15 @@
   .sc2{table-layout:fixed;width:100%;font-size:12px;border-collapse:collapse}
   .sc2 col.cnm{width:54px}
   .sc2 col.cs{width:30px}
-  .sc2 th,.sc2 td{padding:3px 0;border:1px solid var(--line);text-align:center;overflow:hidden;line-height:1.15}
+  .sc2 th,.sc2 td{padding:3px 0;border:1px solid var(--line);text-align:center;overflow:hidden;line-height:1.15;color:var(--ink);font-weight:600}
   .sc2 th{background:var(--dark);color:#fff;font-size:10.5px;font-weight:700}
   .sc2 td.nm,.sc2 th.nm{text-align:left;font-weight:700;font-size:11px;white-space:nowrap;padding-left:4px}
-  .sc2 th.nm{background:var(--dark)}
+  .sc2 th.nm{background:var(--dark);color:#fff}
   .sc2 .sub{background:#eaf6f0;font-weight:800}
   .sc2 .tot{background:#f2f5f7;font-weight:800}
   .sc2 .netc{background:#eaf6f0;font-weight:900;color:var(--accd)}
   .sc2 .hh{background:#fff7e6}
-  .sc2 .parr td{color:var(--sub);font-size:10px}
+  .sc2 .parr td{color:#4a5560;font-size:10px;font-weight:700}
   .sc2 .tsum td{font-size:11px;background:#fbfcfc}
   .sc2 .winc{background:#d5f5e3 !important;font-weight:900;color:var(--accd)}
   @media(min-width:560px){ .sc2{font-size:13px} .sc2 col.cnm{width:70px} .sc2 col.cs{width:36px} }
@@ -203,6 +203,28 @@
     .rl-hole{font-size:66px} .rl-name{font-size:40px;min-height:50px} .rl-scorebig{font-size:64px;min-height:66px}
     .rl-panel{flex:1 1 200px;padding:20px 14px} .rl-main{font-size:24px;padding:20px} .rl-chip{font-size:18px}
     .sc2.rlsc{font-size:15px}
+  }
+  /* 9:16 大画面投影：結果タブ全体を大きく見やすく */
+  @media(min-width:820px){
+    main{max-width:1040px}
+    #view-result{font-size:15px}
+    #view-result .card{padding:16px}
+    #view-result .card h2{font-size:19px}
+    #view-result .subtab4 button{font-size:15px;padding:12px 4px}
+    #view-result .lb{font-size:15px}
+    #view-result .lb.big{font-size:19px}
+    #view-result .lb.big b{font-size:26px}
+    #view-result .lb .pos{width:28px;height:28px;font-size:14px}
+    #view-result .lb.big .pos{width:32px;height:32px;font-size:16px}
+    #view-result .nmc{font-size:18px}
+    #view-result .sc2{font-size:15px}
+    #view-result .rank-wrap>.card{flex:1 1 280px;max-width:400px}
+    #view-result .rank-wrap>.card.wide{flex:1 1 400px;max-width:560px}
+    #view-result .payoutcard .lb{font-size:16px}
+    #view-result .togbar,#view-result .cardtools{font-size:14px}
+    #view-result .tgl{font-size:13px;padding:6px 12px}
+    #view-result .eyebtn{padding:4px 8px}
+    #view-result .ei{width:18px;height:18px}
   }
 </style>
 </head>
@@ -652,6 +674,10 @@ function womenEvery(g,pid){ const p=state.players.find(x=>x.id===pid);
 }
 function gross_(g,pid){ return gross(g,pid); }
 function effGross(g,pid){ return gross(g,pid) - womenEvery(g,pid); }
+// エブリ支給（各ホール−1/−2）。表示用のホール別スコアは「エブリ適用後」に統一（入力タブのみ生スコア）
+function evPer(g,pid){ if(!g.womenEvery.enabled)return 0; const p=state.players.find(x=>x.id===pid); return p?(p.everyType==='every1'?1:p.everyType==='every2'?2:0):0; }
+function adjArr(g,pid){ const sc=g.scores[pid]||[]; const ev=evPer(g,pid); return sc.map(v=>(v!=null&&v!=='')?Number(v)-ev:v); }
+function adjHole(g,pid,i){ const v=(g.scores[pid]||[])[i]; return (v==null||v==='')?null:Number(v)-evPer(g,pid); }
 function netScore(g,pid){ return Math.round((effGross(g,pid) - periaHdcp(g,pid))*10)/10; }
 function stablefordPts(g,pid){ const sc=g.scores[pid]||[]; let t=0;
   sc.forEach((v,i)=>{ if(v==null||v==='')return; const d=Number(v)-g.par[i];
@@ -704,7 +730,7 @@ function teamRanked(g, valFn, dir){
 function holesWon(g){
   const teams=g.teams.filter(t=>t.memberIds.length); const won=teams.map(()=>0);
   for(let h=0;h<18;h++){
-    const tot=teams.map(t=>{ let s=0,cnt=0; t.memberIds.forEach(pid=>{const v=(g.scores[pid]||[])[h]; if(v){s+=Number(v);cnt++;}}); return cnt?s:null; });
+    const tot=teams.map(t=>{ let s=0,cnt=0; t.memberIds.forEach(pid=>{const v=adjHole(g,pid,h); if(v!=null){s+=v;cnt++;}}); return cnt?s:null; });
     const valid=tot.filter(v=>v!=null); if(!valid.length)continue;
     const min=Math.min(...valid); const winners=tot.map((v,i)=>v===min?i:-1).filter(i=>i>=0);
     winners.forEach(i=>won[i]+=1/winners.length);
@@ -863,24 +889,24 @@ function renderScorecard(g, parts, teams){
   const parOut=sum(g.par,0,9), parIn=sum(g.par,9,18);
   const head=`<tr><th class="nm">選手</th>${F9.map(i=>`<th class="${hh(i)}">${i+1}</th>`).join('')}<th class="sub">OUT</th>${B9.map(i=>`<th class="${hh(i)}">${i+1}</th>`).join('')}<th class="sub">IN</th><th class="tot">計</th><th class="tot">HD</th><th class="netc">Net</th></tr>`;
   const parRow=`<tr class="parr"><td class="nm">Par</td>${F9.map(i=>`<td class="${hh(i)}">${g.par[i]}</td>`).join('')}<td class="sub">${MT(parOut)}</td>${B9.map(i=>`<td class="${hh(i)}">${g.par[i]}</td>`).join('')}<td class="sub">${MT(parIn)}</td><td class="tot">${MT(parOut+parIn)}</td><td class="tot">-</td><td class="netc">-</td></tr>`;
-  const pRow=(pid)=>{ const p=state.players.find(x=>x.id===pid); const sc=g.scores[pid]||[];
-    const cell=i=>`<td class="${hh(i)}">${sc[i]??''}</td>`;
-    return `<tr><td class="nm">${esc(p.name)}</td>${F9.map(cell).join('')}<td class="sub">${MT(sum(sc,0,9)||'')}</td>${B9.map(cell).join('')}<td class="sub">${MT(sum(sc,9,18)||'')}</td><td class="tot">${MT(gross(g,pid)||'')}</td><td class="tot">${MT(periaHdcp(g,pid))}</td><td class="netc">${MT(netScore(g,pid))}</td></tr>`; };
+  const pRow=(pid)=>{ const p=state.players.find(x=>x.id===pid); const av=adjArr(g,pid);
+    const cell=i=>`<td class="${hh(i)}">${av[i]??''}</td>`;
+    return `<tr><td class="nm">${esc(p.name)}</td>${F9.map(cell).join('')}<td class="sub">${MT(sum(av,0,9)||'')}</td>${B9.map(cell).join('')}<td class="sub">${MT(sum(av,9,18)||'')}</td><td class="tot">${MT(effGross(g,pid)||'')}</td><td class="tot">${MT(periaHdcp(g,pid))}</td><td class="netc">${MT(netScore(g,pid))}</td></tr>`; };
   let body='', note='';
   if(teams && teams.length){
     const colorOf=name=>/レッド|赤/.test(name)?'#c0392b':/ブルー|青/.test(name)?'#2471a3':/グリーン|緑/.test(name)?'#186a3b':/イエロー|黄/.test(name)?'#b9770e':'#5d6d7e';
-    const tAt=(t,i)=>{let s=0,c=0;t.memberIds.forEach(pid=>{const v=(g.scores[pid]||[])[i];if(v){s+=Number(v);c++;}});return c?s:null;};
+    const tAt=(t,i)=>{let s=0,c=0;t.memberIds.forEach(pid=>{const v=adjHole(g,pid,i);if(v!=null){s+=v;c++;}});return c?s:null;};
     const winAt=[]; for(let i=0;i<18;i++){const tot=teams.map(t=>tAt(t,i));const val=tot.filter(v=>v!=null);winAt.push(val.length?tot.map((v,ti)=>v===Math.min(...val)?ti:-1).filter(x=>x>=0):[]);}
     const won=teams.map((_,ti)=>{let w=0;winAt.forEach(ws=>{if(ws.includes(ti))w+=1/ws.length;});return w;});
     teams.forEach((t,ti)=>{ const col=colorOf(t.name);
       body+=`<tr><td class="nm" colspan="24" style="background:${col};color:#fff;font-weight:800;text-align:left">${esc(t.name)}</td></tr>`;
       t.memberIds.forEach(pid=>{ if(state.players.find(x=>x.id===pid)) body+=pRow(pid); });
       const tCell=(i)=>{ if(!show.totals) return '<td><span class="mask">·</span></td>';   // 合計値OFFなら値も色も隠す
-        const s=t.memberIds.reduce((a,pid)=>a+((g.scores[pid]||[])[i]?Number((g.scores[pid])[i]):0),0); return `<td class="${winAt[i].includes(ti)?'winc':''}">${s||''}</td>`;};
-      const tGross=t.memberIds.reduce((a,pid)=>a+gross(g,pid),0);
+        const s=t.memberIds.reduce((a,pid)=>a+(adjHole(g,pid,i)||0),0); return `<td class="${winAt[i].includes(ti)?'winc':''}">${s||''}</td>`;};
+      const tGross=t.memberIds.reduce((a,pid)=>a+effGross(g,pid),0);
       const tNet=Math.round(t.memberIds.reduce((a,pid)=>a+netScore(g,pid),0)*10)/10;
-      const tOut=t.memberIds.reduce((a,pid)=>a+sum(g.scores[pid]||[],0,9),0);
-      const tIn=t.memberIds.reduce((a,pid)=>a+sum(g.scores[pid]||[],9,18),0);
+      const tOut=t.memberIds.reduce((a,pid)=>a+sum(adjArr(g,pid),0,9),0);
+      const tIn=t.memberIds.reduce((a,pid)=>a+sum(adjArr(g,pid),9,18),0);
       body+=`<tr class="parr tsum"><td class="nm" style="color:${col};font-weight:800">計</td>${F9.map(i=>tCell(i)).join('')}<td class="sub">${MT(tOut||'')}</td>${B9.map(i=>tCell(i)).join('')}<td class="sub">${MT(tIn||'')}</td><td class="tot">${MT(tGross||'')}</td><td class="tot">-</td><td class="netc">${MT(tNet||'')}</td></tr>`;
     });
     note='緑＝そのホールを取ったチーム（合計最少）。';
@@ -1007,8 +1033,8 @@ function rlScorecard(g){
   let body='';
   teams.forEach(t=>{ const col=rColor(t.name);
     body+=`<tr><td class="nm" colspan="19" style="background:${col};color:#fff;text-align:left;font-weight:800">${esc(t.name)}</td></tr>`;
-    t.memberIds.forEach(pid=>{ const p=state.players.find(x=>x.id===pid); if(!p)return; const sc=g.scores[pid]||[]; const mm=mark[pid]||{};
-      body+=`<tr><td class="nm">${esc(p.name)}</td>${cols.map(i=>`<td class="${i===h?'cur':''} ${g.hidden[i]?'hh':''} ${mm[i]||''}">${sc[i]??''}</td>`).join('')}</tr>`; }); });
+    t.memberIds.forEach(pid=>{ const p=state.players.find(x=>x.id===pid); if(!p)return; const av=adjArr(g,pid); const mm=mark[pid]||{};
+      body+=`<tr><td class="nm">${esc(p.name)}</td>${cols.map(i=>`<td class="${i===h?'cur':''} ${g.hidden[i]?'hh':''} ${mm[i]||''}">${av[i]??''}</td>`).join('')}</tr>`; }); });
   return `<div class="card"><h2>スコア表 <span class="muted" style="font-weight:600;font-size:11px">太枠=採用 / 緑=勝ち / 橙=引分</span></h2>
     <div class="scroll"><table class="sc2 rlsc">${cg}${head}${parRow}${body}</table></div></div>`;
 }
@@ -1035,8 +1061,7 @@ function renderRouletteTab(g){
       holeInfo = wi.length===teams.length?'引き分け（各0.5H）':('WIN: <b>'+wi.map(i=>esc(teams[i].name)).join('・')+'</b>'); } }
   const winSet=(()=>{ if(!drawn)return new Set(); const sc=holeScores(); if(sc.some(s=>s==null))return new Set(); const mn=Math.min(...sc); return new Set(sc.map((s,i)=>s===mn?i:-1).filter(i=>i>=0)); })();
   const panels=teams.map((t,ti)=>{ const pid=reps[t.id]; const p=pid?state.players.find(x=>x.id===pid):null;
-    const raw=pid?rlRaw(g,pid,h):null; const ev=pid?rlEvery(g,pid):0; const sv=pid?(raw==null?'—':raw):'';
-    const evLine = (pid&&ev>0&&raw!=null)?`<div class="rl-ev">エブリ −${ev} → 実質 ${raw-ev}</div>`:'';
+    const av=pid?adjHole(g,pid,h):null; const sv=pid?(av==null?'—':av):'';
     const col=rColor(t.name); const win=winSet.has(ti);
     // 固定高さのアクション欄（ボタンが動かないように）
     let act='';
@@ -1047,7 +1072,6 @@ function renderRouletteTab(g){
       <div class="rl-team" style="color:${col}">${esc(t.name)}</div>
       <div class="rl-name" id="rl-name-${t.id}">${rl.spinning&&rl.spinTeams.includes(t.id)?'…':(p?esc(p.name):'―')}</div>
       <div class="rl-scorebig">${pid?sv:'&nbsp;'}</div>
-      ${evLine||'<div class="rl-ev">&nbsp;</div>'}
       <div class="rl-act">${act}</div>
     </div>`; }).join('');
   let mainBtn;
