@@ -217,8 +217,6 @@ function migrate(s){
     if(p.kanjiExempt===undefined) p.kanjiExempt=false;
     if(p.gender===undefined) p.gender='M';
     if(p.birth===undefined) p.birth=null;             // 生年月日(YYYY-MM-DD)。同ネットのタイブレークに使用
-    if(p.niapin2nd===undefined) p.niapin2nd=false;    // ニアピン2打目対象
-    if(p.dracon2nd===undefined) p.dracon2nd=false;    // ドラコン2打目対象
   });
   (s.games||[]).forEach(g=>{
     if(!g.womenEvery) g.womenEvery={enabled:false};
@@ -296,16 +294,14 @@ function renderPlayers(){
         <div style="flex:1;min-width:150px"><label class="fl">生年月日</label><input type="date" id="pBirth"></div>
       </div>
       <div class="row" style="margin-top:8px">
-        <label style="display:flex;align-items:center;gap:6px;font-size:13px"><input type="checkbox" id="pKanji"> 幹事対象外</label>
-        <label style="display:flex;align-items:center;gap:6px;font-size:13px"><input type="checkbox" id="pNp2"> 📍ニア2打目</label>
-        <label style="display:flex;align-items:center;gap:6px;font-size:13px"><input type="checkbox" id="pDc2"> 💪ドラ2打目</label>
+        <label style="display:flex;align-items:center;gap:6px;font-size:13px"><input type="checkbox" id="pKanji"> 幹事対象外（次回幹事に選ばれない）</label>
       </div>
       <button class="btn wide" style="margin-top:10px" onclick="addPlayer()">＋ 選手を追加</button>
-      <div class="muted" style="margin-top:6px">性別・生年月日は<b>同ネット時のタイブレーク</b>に使用（女性→年長の順で上位）。2打目対象＝ニアピン/ドラコンを2打目で計測してよい人。</div>
+      <div class="muted" style="margin-top:6px">性別・生年月日は<b>同ネット時のタイブレーク</b>に使用（女性→年長の順で上位）。ハンデ区分＝エブリなし/ワン/ツー。</div>
     </div>
     <div class="card">
       <h2>登録済み（${state.players.length}名）</h2>
-      ${state.players.length? `<div class="scroll"><table><tr><th>名前</th><th>性別</th><th>生年月日</th><th>ハンデ<br>区分</th><th>幹事<br>対象外</th><th>ニア<br>2打</th><th>ドラ<br>2打</th><th></th></tr>
+      ${state.players.length? `<div class="scroll"><table><tr><th>名前</th><th>性別</th><th>生年月日</th><th>ハンデ<br>区分</th><th>幹事<br>対象外</th><th></th></tr>
         ${state.players.map(p=>`<tr>
           <td style="text-align:left;white-space:nowrap">${esc(p.name)}</td>
           <td><select style="padding:4px;font-size:12px" onchange="setPlayerField('${p.id}','gender',this.value)"><option value="M" ${p.gender!=='F'?'selected':''}>男</option><option value="F" ${p.gender==='F'?'selected':''}>女</option></select></td>
@@ -315,8 +311,6 @@ function renderPlayers(){
             <option value="every1" ${p.everyType==='every1'?'selected':''}>E1(−18)</option>
             <option value="every2" ${p.everyType==='every2'?'selected':''}>E2(−36)</option></select></td>
           <td><input type="checkbox" ${p.kanjiExempt?'checked':''} onchange="setPlayerKanji('${p.id}',this.checked)"></td>
-          <td><input type="checkbox" ${p.niapin2nd?'checked':''} onchange="setPlayer2nd('${p.id}','niapin2nd',this.checked)"></td>
-          <td><input type="checkbox" ${p.dracon2nd?'checked':''} onchange="setPlayer2nd('${p.id}','dracon2nd',this.checked)"></td>
           <td><button class="btn sm gray" onclick="editPlayer('${p.id}')">✎</button>
               <button class="btn sm danger" onclick="delPlayer('${p.id}')">×</button></td>
         </tr>`).join('')}</table></div>` : `<div class="empty">まだ選手がいません</div>`}
@@ -334,8 +328,7 @@ function addPlayer(){
   const n=document.getElementById('pName').value.trim(); if(!n) return toast('名前を入力');
   state.players.push({id:uid(),name:n,gender:document.getElementById('pGender').value,
     birth:document.getElementById('pBirth').value||null,
-    everyType:document.getElementById('pEvery').value, kanjiExempt:document.getElementById('pKanji').checked,
-    niapin2nd:document.getElementById('pNp2').checked, dracon2nd:document.getElementById('pDc2').checked});
+    everyType:document.getElementById('pEvery').value, kanjiExempt:document.getElementById('pKanji').checked});
   save(); renderPlayers(); toast('追加しました');
 }
 function setPlayerField(id,field,val){ state.players.find(p=>p.id===id)[field]=val; save(); }
@@ -344,7 +337,6 @@ function editPlayer(id){ const p=state.players.find(x=>x.id===id);
   save(); renderPlayers(); }
 function setPlayerEvery(id,v){ state.players.find(p=>p.id===id).everyType=v; save(); }
 function setPlayerKanji(id,v){ state.players.find(p=>p.id===id).kanjiExempt=v; save(); }
-function setPlayer2nd(id,which,v){ state.players.find(p=>p.id===id)[which]=v; save(); }
 function delPlayer(id){ if(!confirm('削除しますか？'))return;
   state.players=state.players.filter(p=>p.id!==id);
   state.games.forEach(g=>{ g.participants=g.participants.filter(x=>x!==id); delete g.scores[id];
@@ -418,7 +410,7 @@ function renderGame(){
     <div style="margin-top:6px">${g.par.map((_,i)=>{
       const np=g.prizes.niapinHoles.includes(i), dc=g.prizes.draconHoles.includes(i);
       return `<button class="holebtn ${np?'np':''} ${dc?'dc':''}" onclick="cyclePrize(${i})">${i+1}</button>`}).join('')}</div>
-    <div class="muted" style="margin-top:6px">💡 女性はドラコン/ニアピンとも<b>2打目</b>を計測対象にできます（ローカルルールの注記）。</div></div>`;
+    <div class="muted" style="margin-top:6px">💡 2打目計測などのローカルルールは当日運用で。アプリは勝者だけ記録します。</div></div>`;
 
   const F=g.formats;
   const fchk=(k,label)=>`<label><input type="checkbox" ${F[k]?'checked':''} onchange="setFmt('${k}',this.checked)"> ${label}</label>`;
@@ -551,10 +543,9 @@ function seedTestData(){
     ['山本 大輔','M','none',true,'1972-12-05'],['中村 彩','F','every2',false,'1988-07-22'],['小林 誠','M','none',false,'1965-02-09'],
     ['加藤 香織','F','every1',false,'1993-05-17'],['吉田 隆','M','none',false,'1981-08-28'],['松本 恵','F','none',false,'1977-10-11']];
   const ids=samples.map(([name,gender,everyType,kanjiExempt,birth])=>{
-    const n2=gender==='F', d2=gender==='F';   // 女性はニアピン/ドラコン2打目対象（デモ）
     let p=state.players.find(x=>x.name===name);
-    if(!p){ p={id:uid(),name,gender,birth,everyType,kanjiExempt,niapin2nd:n2,dracon2nd:d2}; state.players.push(p); }
-    else { p.gender=gender; p.birth=birth; p.everyType=everyType; p.kanjiExempt=kanjiExempt; p.niapin2nd=n2; p.dracon2nd=d2; }
+    if(!p){ p={id:uid(),name,gender,birth,everyType,kanjiExempt}; state.players.push(p); }
+    else { p.gender=gender; p.birth=birth; p.everyType=everyType; p.kanjiExempt=kanjiExempt; }
     return p.id;
   });
   const g=newGame();
@@ -887,15 +878,13 @@ function renderPrizes(g){
   const parts=g.participants.filter(pid=>state.players.find(x=>x.id===pid));
   const opts=(sel)=>`<option value="">—</option>${parts.map(pid=>{const p=state.players.find(x=>x.id===pid);
     return `<option value="${pid}" ${sel===pid?'selected':''}>${esc(p.name)}</option>`}).join('')}`;
-  const np2=parts.filter(pid=>state.players.find(x=>x.id===pid)?.niapin2nd).map(pid=>esc(state.players.find(x=>x.id===pid).name));
-  const dc2=parts.filter(pid=>state.players.find(x=>x.id===pid)?.dracon2nd).map(pid=>esc(state.players.find(x=>x.id===pid).name));
   let html=`<div class="card prizewin"><h2>🎯 個人賞（ニアピン / ドラコン）</h2>
-    <div class="muted">勝者を選択して記録。2打目計測OKは選手マスターのチェックで設定します。</div>`;
-  if(P.niapinHoles.length){ html+=`<h3>📍 ニアピン</h3>${np2.length?`<div class="muted">2打目OK（ニアピン）: ${np2.join('、')}</div>`:''}`;
+    <div class="muted">対象ホールの勝者を選んで記録します。</div>`;
+  if(P.niapinHoles.length){ html+=`<h3>📍 ニアピン</h3>`;
     P.niapinHoles.slice().sort((a,b)=>a-b).forEach(h=>{ html+=`<div class="row between" style="margin:4px 0">
       <span class="pill e1">${h+1}H</span>
       <select style="flex:1;max-width:60%" onchange="setPrize('niapinWinner',${h},this.value)">${opts(P.niapinWinner[h])}</select></div>`; }); }
-  if(P.draconHoles.length){ html+=`<h3>💪 ドラコン</h3>${dc2.length?`<div class="muted">2打目OK（ドラコン）: ${dc2.join('、')}</div>`:''}`;
+  if(P.draconHoles.length){ html+=`<h3>💪 ドラコン</h3>`;
     P.draconHoles.slice().sort((a,b)=>a-b).forEach(h=>{ html+=`<div class="row between" style="margin:4px 0">
       <span class="pill f" style="background:#fadbd8;color:#c0392b">${h+1}H</span>
       <select style="flex:1;max-width:60%" onchange="setPrize('draconWinner',${h},this.value)">${opts(P.draconWinner[h])}</select></div>`; }); }
