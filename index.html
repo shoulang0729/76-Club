@@ -134,17 +134,22 @@
   .kanjibadge{background:#2471a3;color:#fff;border-radius:4px;font-size:10px;padding:1px 5px;margin-left:5px;font-weight:700}
   .card.tight{padding:11px}
   .card.tight h2{font-size:14px;margin-bottom:7px}
-  /* コンパクト・スコアカード（全18H＋OUT/IN/計/HDCP/Netを横スクロールなしで） */
-  .sc2{table-layout:fixed;width:100%;font-size:10px;border-collapse:collapse}
-  .sc2 th,.sc2 td{padding:2px 0;border:1px solid var(--line);text-align:center;overflow:hidden}
-  .sc2 th{background:#eafaf1;color:var(--green);font-size:9.5px}
-  .sc2 td.nm,.sc2 th.nm{text-align:left;font-weight:600;font-size:10.5px;white-space:nowrap;width:46px;padding-left:2px}
-  .sc2 .sub{background:#eafaf1;font-weight:700}
+  /* 共通スコアカード（全18H＋OUT/IN/計/HD/Netを横スクロールなし・枠固定）。
+     ホール列(ch)は全て均等、合計欄(cs=OUT/IN/計/HD/Net)は全て同一幅。投影(9:16)でも読める。 */
+  .sc2{table-layout:fixed;width:100%;font-size:12px;border-collapse:collapse}
+  .sc2 col.cnm{width:54px}
+  .sc2 col.cs{width:30px}
+  .sc2 th,.sc2 td{padding:3px 0;border:1px solid var(--line);text-align:center;overflow:hidden;line-height:1.15}
+  .sc2 th{background:#eafaf1;color:var(--green);font-size:10.5px}
+  .sc2 td.nm,.sc2 th.nm{text-align:left;font-weight:700;font-size:11px;white-space:nowrap;padding-left:3px}
+  .sc2 .sub{background:#eafaf1;font-weight:800}
   .sc2 .tot{background:#f4f6f7;font-weight:800}
   .sc2 .netc{background:#eafaf1;font-weight:800;color:var(--green)}
   .sc2 .hh{background:#fef9e7}
-  .sc2 .parr td{color:var(--sub);font-size:9px}
-  .sc2 .winc{background:#d5f5e3;font-weight:800;color:var(--green)}
+  .sc2 .parr td{color:var(--sub);font-size:10px}
+  .sc2 .tsum td{font-size:11px;background:#fbfcfc}
+  .sc2 .winc{background:#d5f5e3 !important;font-weight:800;color:var(--green)}
+  @media(min-width:560px){ .sc2{font-size:13px} .sc2 col.cnm{width:70px} .sc2 col.cs{width:36px} }
   /* 順位カードを左→右に並べる（狭い画面は折返し） */
   .rank-wrap{display:flex;flex-wrap:wrap;gap:8px;align-items:flex-start;margin-bottom:12px}
   .rank-wrap>.card{flex:1 1 150px;min-width:140px;max-width:260px;margin-bottom:0}
@@ -740,7 +745,7 @@ function renderIndividual(g, parts){
   if(F.callaway) cards+=leaderboard('📐 キャロウェイ', parts, pid=>callawayNet(g,pid),'asc',v=>v,'', 'cal');
   if(F.nassau) cards+=leaderboard('🤝 握り(トータル)', parts, pid=>nassauTotalNet(g,pid),'asc',v=>v,'', 'nas');
 
-  const scorecard = holeScorecard(g,parts);
+  const scorecard = renderScorecard(g,parts,null);
   return banner + scorecard + `<div class="rank-wrap">${cards}</div>
     <details style="margin-top:10px"><summary>📖 各ゲームのルール解説</summary><div class="in">
       <div class="rule"><b>ネット</b>：ダブルペリアのハンデ後スコア。総合優勝はこれで決めるのが定番。少ないほど上位。</div>
@@ -753,26 +758,51 @@ function renderIndividual(g, parts){
 }
 
 // 左パネル：全18ホール＋OUT/IN小計＋Gross/HDCP/Net を合体した1枚のスコアカード（横スクロールなし）
-function holeScorecard(g, parts){
+/* ★共通スコアカード（個人戦・チーム戦で同一仕様）。枠は全18ホール固定、開封ホールに値が入る。
+   列: 選手 | 1-9 | OUT | 10-18 | IN | 計 | HD | Net。ホール幅は全て均等・合計欄5列は全て同一幅。
+   teams を渡すとチーム別（見出し＋メンバー＋チーム小計＋ホール勝敗ハイライト）。*/
+const SC_COLGROUP = (()=>{ const F=[0,1,2,3,4,5,6,7,8],B=[9,10,11,12,13,14,15,16,17];
+  return `<colgroup><col class="cnm">${F.map(()=>'<col class="ch">').join('')}<col class="cs">${B.map(()=>'<col class="ch">').join('')}<col class="cs"><col class="cs"><col class="cs"><col class="cs"></colgroup>`; })();
+function renderScorecard(g, parts, teams){
   const n=revealHoles;
-  const front=[0,1,2,3,4,5,6,7,8], back=[9,10,11,12,13,14,15,16,17];
-  const parOut=sum(g.par,0,9), parIn=sum(g.par,9,18);
+  const F9=[0,1,2,3,4,5,6,7,8], B9=[9,10,11,12,13,14,15,16,17];
   const hh=i=>g.hidden[i]?'hh':'';
-  const colgroup=`<colgroup><col style="width:44px">${front.map(()=>'<col>').join('')}<col style="width:20px">${back.map(()=>'<col>').join('')}<col style="width:20px"><col style="width:22px"><col style="width:22px"><col style="width:26px"></colgroup>`;
-  const head=`<tr><th class="nm">選手</th>${front.map(i=>`<th class="${hh(i)}">${i+1}</th>`).join('')}<th class="sub">OUT</th>${back.map(i=>`<th class="${hh(i)}">${i+1}</th>`).join('')}<th class="sub">IN</th><th class="tot">計</th><th>HD</th><th class="netc">Net</th></tr>`;
-  const parRow=`<tr class="parr"><td class="nm">Par</td>${front.map(i=>`<td class="${hh(i)}">${g.par[i]}</td>`).join('')}<td class="sub">${parOut}</td>${back.map(i=>`<td class="${hh(i)}">${g.par[i]}</td>`).join('')}<td class="sub">${parIn}</td><td class="tot">${parOut+parIn}</td><td>-</td><td class="netc">-</td></tr>`;
-  const rows=parts.map(pid=>{ const p=state.players.find(x=>x.id===pid); const sc=g.scores[pid]||[];
+  const parOut=sum(g.par,0,9), parIn=sum(g.par,9,18);
+  const head=`<tr><th class="nm">選手</th>${F9.map(i=>`<th class="${hh(i)}">${i+1}</th>`).join('')}<th class="sub">OUT</th>${B9.map(i=>`<th class="${hh(i)}">${i+1}</th>`).join('')}<th class="sub">IN</th><th class="tot">計</th><th class="tot">HD</th><th class="netc">Net</th></tr>`;
+  const parRow=`<tr class="parr"><td class="nm">Par</td>${F9.map(i=>`<td class="${hh(i)}">${g.par[i]}</td>`).join('')}<td class="sub">${parOut}</td>${B9.map(i=>`<td class="${hh(i)}">${g.par[i]}</td>`).join('')}<td class="sub">${parIn}</td><td class="tot">${parOut+parIn}</td><td class="tot">-</td><td class="netc">-</td></tr>`;
+  const pRow=(pid)=>{ const p=state.players.find(x=>x.id===pid); const sc=g.scores[pid]||[];
     const cell=i=>`<td class="${hh(i)}">${sc[i]??''}</td>`;
-    return `<tr><td class="nm">${p.gender==='F'?'🌸':''}${esc(p.name)}</td>${front.map(cell).join('')}<td class="sub">${sum(sc,0,9)||''}</td>${back.map(cell).join('')}<td class="sub">${sum(sc,9,18)||''}</td><td class="tot">${gross(g,pid)||''}</td><td>${periaHdcp(g,pid)}</td><td class="netc">${netScore(g,pid)}</td></tr>`; }).join('');
-  return `<div class="card"><h2>🎬 スコア表 <span class="tag" style="background:#d4ac0d;color:#fff">${n>=18?'全ホール':n+'/18H開封'}</span></h2>
+    return `<tr><td class="nm">${p.gender==='F'?'🌸':''}${esc(p.name)}</td>${F9.map(cell).join('')}<td class="sub">${sum(sc,0,9)||''}</td>${B9.map(cell).join('')}<td class="sub">${sum(sc,9,18)||''}</td><td class="tot">${gross(g,pid)||''}</td><td class="tot">${periaHdcp(g,pid)}</td><td class="netc">${netScore(g,pid)}</td></tr>`; };
+  let body='', note='';
+  if(teams && teams.length){
+    const colorOf=name=>/レッド|赤/.test(name)?'#c0392b':/ブルー|青/.test(name)?'#2471a3':/グリーン|緑/.test(name)?'#186a3b':/イエロー|黄/.test(name)?'#b9770e':'#5d6d7e';
+    const tAt=(t,i)=>{let s=0,c=0;t.memberIds.forEach(pid=>{const v=(g.scores[pid]||[])[i];if(v){s+=Number(v);c++;}});return c?s:null;};
+    const winAt=[]; for(let i=0;i<18;i++){const tot=teams.map(t=>tAt(t,i));const val=tot.filter(v=>v!=null);winAt.push(val.length?tot.map((v,ti)=>v===Math.min(...val)?ti:-1).filter(x=>x>=0):[]);}
+    const won=teams.map((_,ti)=>{let w=0;winAt.forEach(ws=>{if(ws.includes(ti))w+=1/ws.length;});return w;});
+    teams.forEach((t,ti)=>{ const col=colorOf(t.name);
+      body+=`<tr><td class="nm" colspan="24" style="background:${col};color:#fff;font-weight:800;text-align:left">🚩 ${esc(t.name)} — ${Math.round(won[ti]*10)/10}H取得</td></tr>`;
+      t.memberIds.forEach(pid=>{ if(state.players.find(x=>x.id===pid)) body+=pRow(pid); });
+      const tCell=(i,arr)=>{const s=t.memberIds.reduce((a,pid)=>a+((g.scores[pid]||[])[i]?Number((g.scores[pid])[i]):0),0); return `<td class="${winAt[i].includes(ti)?'winc':''}">${arr.includes(i)&&s?s:(s||'')}</td>`;};
+      const tGross=t.memberIds.reduce((a,pid)=>a+gross(g,pid),0);
+      const tNet=Math.round(t.memberIds.reduce((a,pid)=>a+netScore(g,pid),0)*10)/10;
+      const tOut=t.memberIds.reduce((a,pid)=>a+sum(g.scores[pid]||[],0,9),0);
+      const tIn=t.memberIds.reduce((a,pid)=>a+sum(g.scores[pid]||[],9,18),0);
+      body+=`<tr class="parr tsum"><td class="nm" style="color:${col};font-weight:800">計</td>${F9.map(i=>tCell(i,F9)).join('')}<td class="sub">${tOut||''}</td>${B9.map(i=>tCell(i,B9)).join('')}<td class="sub">${tIn||''}</td><td class="tot">${tGross||''}</td><td class="tot">-</td><td class="netc">${tNet||''}</td></tr>`;
+    });
+    note='緑＝そのホールを取ったチーム（合計最少）。';
+  } else {
+    body=parts.map(pid=>pRow(pid)).join('');
+    note='黄＝隠しホール。';
+  }
+  return `<div class="card"><h2>🎬 スコア表${teams?'（チーム別）':''} <span class="tag" style="background:#d4ac0d;color:#fff">${n>=18?'全ホール':n+'/18H'}</span></h2>
     <div class="reveal-bar">
       <button class="btn gold sm" onclick="openNextHole()" ${n>=18?'disabled':''}>▶ 次のホール</button>
       <button class="btn gray sm" onclick="closeHole()" ${n<=0?'disabled':''}>◀</button>
       <button class="btn gray sm" onclick="openAllHoles()">全部</button>
       <button class="btn gray sm" onclick="resetHoles()">最初から</button>
     </div>
-    <table class="sc2" style="margin-top:8px">${colgroup}${head}${parRow}${rows}</table>
-    <div class="muted" style="margin-top:6px">黄=隠しホール / OUT=前半・IN=後半の小計 / 計=グロス。${n<18?'▶で1ホールずつ開くと右の順位が入れ替わります。':''}</div>
+    <table class="sc2" style="margin-top:8px">${SC_COLGROUP}${head}${parRow}${body}</table>
+    <div class="muted" style="margin-top:6px">${note} OUT/IN=前後半小計・計=グロス・HD=ハンデ・Net=ネット。${n<18?'▶で1ホールずつ開くと下の順位が更新されます。':''}</div>
   </div>`;
 }
 
@@ -792,50 +822,10 @@ function renderTeamTab(g){
     return `<div class="card"><h2>🚩 チーム戦</h2><div class="empty">「ゲーム」タブでチームを作成し、メンバーを割り当ててください。</div></div>`;
   if(!anyTeamFmt)
     return `<div class="card"><h2>🚩 チーム戦</h2><div class="empty">「ゲーム」タブの「集計する競技」でチーム戦の項目をONにしてください。</div></div>`;
-  return holeRevealGridByTeam(g) + `<div class="rank-wrap">${renderTeams(g)}</div>`;
+  const teams=g.teams.filter(t=>t.memberIds.length);
+  return renderScorecard(g, g.participants, teams) + `<div class="rank-wrap">${renderTeams(g)}</div>`;
 }
 
-// 左パネル：チーム名で区切ったスコア表（開封済みホールだけ列表示）
-function holeRevealGridByTeam(g){
-  const n=revealHoles; const cols=Array.from({length:n},(_,i)=>i);
-  const teams=g.teams.filter(t=>t.memberIds.length);
-  const colspan=n+2;
-  const val=(pid,i)=>{const v=(g.scores[pid]||[])[i];return v?Number(v):0;};
-  const runTot=pid=>{let t=0;for(let i=0;i<n;i++)t+=val(pid,i);return t;};
-  const parTot=()=>{let t=0;for(let i=0;i<n;i++)t+=g.par[i];return t;};
-  const colorOf=name=> /レッド|赤/.test(name)?'#c0392b' : /ブルー|青/.test(name)?'#2471a3' : /グリーン|緑/.test(name)?'#186a3b' : /イエロー|黄/.test(name)?'#b9770e' : '#5d6d7e';
-  // 各ホールの勝ちチーム（合計最少・同点は複数）
-  const teamTotalAt=(t,i)=>{ let s=0,c=0; t.memberIds.forEach(pid=>{const v=(g.scores[pid]||[])[i]; if(v){s+=Number(v);c++;}}); return c?s:null; };
-  const winAt=[]; for(let i=0;i<n;i++){ const tot=teams.map(t=>teamTotalAt(t,i)); const valid=tot.filter(v=>v!=null);
-    winAt.push(valid.length?tot.map((v,ti)=>v===Math.min(...valid)?ti:-1).filter(x=>x>=0):[]); }
-  const wonCount=teams.map((_,ti)=>{ let w=0; winAt.forEach(ws=>{ if(ws.includes(ti))w+=1/ws.length; }); return w; });
-  let rows='';
-  teams.forEach((t,ti)=>{
-    const col=colorOf(t.name);
-    rows+=`<tr><td class="nm" colspan="${colspan}" style="background:${col};color:#fff;font-weight:800;text-align:left">🚩 ${esc(t.name)} <span style="opacity:.85;font-weight:600">— ${Math.round(wonCount[ti]*10)/10}H取得</span></td></tr>`;
-    t.memberIds.forEach(pid=>{ const p=state.players.find(x=>x.id===pid); if(!p)return; const sc=g.scores[pid]||[];
-      rows+=`<tr><td class="nm">${p.gender==='F'?'🌸':''}${esc(p.name)}</td>${cols.map(i=>`<td class="${g.hidden[i]?'hh':''}">${sc[i]??''}</td>`).join('')}<td class="tot">${runTot(pid)||''}</td></tr>`; });
-    const tsub=t.memberIds.reduce((a,pid)=>a+runTot(pid),0);
-    rows+=`<tr class="parr"><td class="nm" style="color:${col};font-weight:700">計</td>${cols.map(i=>{const s=t.memberIds.reduce((a,pid)=>a+val(pid,i),0); const win=winAt[i].includes(ti); return `<td class="${win?'winc':''}">${s||''}</td>`}).join('')}<td class="tot" style="color:${col}">${tsub||''}</td></tr>`;
-  });
-  const front=cols.filter(i=>i<9), back=cols.filter(i=>i>=9);
-  const H=i=>`<th class="${g.hidden[i]?'hh':''}">${i+1}</th>`;
-  const cg=`<colgroup><col style="width:52px">${cols.map(()=>'<col>').join('')}<col style="width:26px"></colgroup>`;
-  return `<div class="card"><h2>🎬 スコア表（チーム別）<span class="tag" style="background:#d4ac0d;color:#fff">${n>=18?'全ホール':n+'/18H'}</span></h2>
-    <div class="reveal-bar">
-      <button class="btn gold sm" onclick="openNextHole()" ${n>=18?'disabled':''}>▶ 次のホール</button>
-      <button class="btn gray sm" onclick="closeHole()" ${n<=0?'disabled':''}>◀</button>
-      <button class="btn gray sm" onclick="openAllHoles()">全部</button>
-      <button class="btn gray sm" onclick="resetHoles()">最初から</button>
-    </div>
-    <table class="sc2" style="margin-top:8px">${cg}
-      <tr><th class="nm">選手</th>${cols.map(H).join('')}<th class="tot">計</th></tr>
-      <tr class="parr"><td class="nm">Par</td>${cols.map(i=>`<td class="${g.hidden[i]?'hh':''}">${g.par[i]}</td>`).join('')}<td class="tot">${parTot()||''}</td></tr>
-      ${rows}
-    </table>
-    <div class="muted" style="margin-top:6px">緑=そのホールを取ったチーム（合計最少）。${n<18?'▶で1ホールずつ開くと勝敗と下の対抗結果が更新されます。':''}</div>
-  </div>`;
-}
 
 // リーダーボード（1行=1選手。ホール開封で値が埋まり順位が入れ替わる。hlMap=強調する選手）
 function leaderboard(title, pids, valFn, dir, fmt, note, key, hlMap){
