@@ -124,6 +124,16 @@
   .kanjibadge{background:#2471a3;color:#fff;border-radius:4px;font-size:10px;padding:1px 5px;margin-left:5px;font-weight:700}
   .card.tight{padding:11px}
   .card.tight h2{font-size:14px;margin-bottom:7px}
+  /* コンパクト・スコアカード（全18H＋OUT/IN/計/HDCP/Netを横スクロールなしで） */
+  .sc2{table-layout:fixed;width:100%;font-size:10px;border-collapse:collapse}
+  .sc2 th,.sc2 td{padding:2px 0;border:1px solid var(--line);text-align:center;overflow:hidden}
+  .sc2 th{background:#eafaf1;color:var(--green);font-size:9.5px}
+  .sc2 td.nm,.sc2 th.nm{text-align:left;font-weight:600;font-size:10.5px;white-space:nowrap;width:46px;padding-left:2px}
+  .sc2 .sub{background:#eafaf1;font-weight:700}
+  .sc2 .tot{background:#f4f6f7;font-weight:800}
+  .sc2 .netc{background:#eafaf1;font-weight:800;color:var(--green)}
+  .sc2 .hh{background:#fef9e7}
+  .sc2 .parr td{color:var(--sub);font-size:9px}
 </style>
 </head>
 <body>
@@ -695,9 +705,8 @@ function renderIndividual(g, parts){
         <div class="muted" style="margin-top:6px">ネット順位で決定（幹事対象外は繰り下げ）。上のネット順位で🎌ハイライト。</div></div>`
     : `<div class="card kanjicard tight"><h2>🎌 次回幹事</h2><div class="muted">スコアが入り幹事対象が2名以上になると表示されます。</div></div>`;
 
-  // 右：順位群
+  // 右：順位群（スコア一覧は左のスコア表に合体）
   let right='';
-  right+=scoreSummaryCard(g,parts);
   if(F.net) right+=leaderboard('🥇 ネット順位', parts, pid=>netScore(g,pid), 'asc', v=>v, '', 'net', hl);
   right+=kanjiCard;
   if(F.gross) right+=leaderboard(g.womenEvery.enabled?'🏅 グロス順位（女性エブリ反映）':'🏅 グロス順位', parts, pid=>effGross(g,pid), 'asc', v=>v, '', 'gross');
@@ -708,7 +717,7 @@ function renderIndividual(g, parts){
       : `<div class="card tight"><h2>📐 キャロウェイ</h2><div class="muted">18H完了者がいません</div></div>`; }
   if(F.nassau) right+=leaderboard('🤝 握り順位（トータル・ネット）', parts, pid=>nassauTotalNet(g,pid),'asc',v=>v,'前半/後半/トータルの3勝負のうちトータル','nas');
 
-  const left = holeRevealGrid(g,parts);
+  const left = holeScorecard(g,parts);
   return banner + `<div class="ind-split"><div class="ind-left">${left}</div><div class="ind-right">${right}</div></div>
     <details style="margin-top:10px"><summary>📖 各ゲームのルール解説</summary><div class="in">
       <div class="rule"><b>ネット</b>：ダブルペリアのハンデ後スコア。総合優勝はこれで決めるのが定番。少ないほど上位。</div>
@@ -720,38 +729,28 @@ function renderIndividual(g, parts){
     </div></details>`;
 }
 
-// 左パネル：1ホールずつ開封するスコア表（開封済みホールだけ列表示）
-function holeRevealGrid(g, parts){
-  const n=revealHoles; const cols=Array.from({length:n},(_,i)=>i);
-  const runTot=pid=>{ let t=0; for(let i=0;i<n;i++){const v=(g.scores[pid]||[])[i]; if(v)t+=Number(v);} return t||''; };
-  const parTot=()=>{ let t=0; for(let i=0;i<n;i++)t+=g.par[i]; return t; };
-  return `<div class="card"><h2>🎬 スコア表（ホール開封）<span class="tag" style="background:#d4ac0d;color:#fff">${n}/18H</span></h2>
+// 左パネル：全18ホール＋OUT/IN小計＋Gross/HDCP/Net を合体した1枚のスコアカード（横スクロールなし）
+function holeScorecard(g, parts){
+  const n=revealHoles;
+  const front=[0,1,2,3,4,5,6,7,8], back=[9,10,11,12,13,14,15,16,17];
+  const parOut=sum(g.par,0,9), parIn=sum(g.par,9,18);
+  const hh=i=>g.hidden[i]?'hh':'';
+  const colgroup=`<colgroup><col style="width:44px">${front.map(()=>'<col>').join('')}<col style="width:20px">${back.map(()=>'<col>').join('')}<col style="width:20px"><col style="width:22px"><col style="width:22px"><col style="width:26px"></colgroup>`;
+  const head=`<tr><th class="nm">選手</th>${front.map(i=>`<th class="${hh(i)}">${i+1}</th>`).join('')}<th class="sub">OUT</th>${back.map(i=>`<th class="${hh(i)}">${i+1}</th>`).join('')}<th class="sub">IN</th><th class="tot">計</th><th>HD</th><th class="netc">Net</th></tr>`;
+  const parRow=`<tr class="parr"><td class="nm">Par</td>${front.map(i=>`<td class="${hh(i)}">${g.par[i]}</td>`).join('')}<td class="sub">${parOut}</td>${back.map(i=>`<td class="${hh(i)}">${g.par[i]}</td>`).join('')}<td class="sub">${parIn}</td><td class="tot">${parOut+parIn}</td><td>-</td><td class="netc">-</td></tr>`;
+  const rows=parts.map(pid=>{ const p=state.players.find(x=>x.id===pid); const sc=g.scores[pid]||[];
+    const cell=i=>`<td class="${hh(i)}">${sc[i]??''}</td>`;
+    return `<tr><td class="nm">${p.gender==='F'?'🌸':''}${esc(p.name)}</td>${front.map(cell).join('')}<td class="sub">${sum(sc,0,9)||''}</td>${back.map(cell).join('')}<td class="sub">${sum(sc,9,18)||''}</td><td class="tot">${gross(g,pid)||''}</td><td>${periaHdcp(g,pid)}</td><td class="netc">${netScore(g,pid)}</td></tr>`; }).join('');
+  return `<div class="card"><h2>🎬 スコア表 <span class="tag" style="background:#d4ac0d;color:#fff">${n>=18?'全ホール':n+'/18H開封'}</span></h2>
     <div class="reveal-bar">
       <button class="btn gold sm" onclick="openNextHole()" ${n>=18?'disabled':''}>▶ 次のホール</button>
       <button class="btn gray sm" onclick="closeHole()" ${n<=0?'disabled':''}>◀</button>
       <button class="btn gray sm" onclick="openAllHoles()">全部</button>
       <button class="btn gray sm" onclick="resetHoles()">最初から</button>
     </div>
-    <div class="scroll" style="margin-top:8px"><table class="scoregrid">
-      <tr><th class="name">選手</th>${cols.map(i=>`<th class="${g.hidden[i]?'hidden-h':''}">${i+1}</th>`).join('')}<th class="sum">計</th></tr>
-      <tr><td class="name" style="font-size:11px;color:var(--sub)">Par</td>${cols.map(i=>`<td class="${g.hidden[i]?'hidden-h':''}" style="font-size:11px;color:var(--sub)">${g.par[i]}</td>`).join('')}<td class="sum">${parTot()||''}</td></tr>
-      ${parts.map(pid=>{ const p=state.players.find(x=>x.id===pid); const sc=g.scores[pid]||[];
-        return `<tr><td class="name">${p.gender==='F'?'🌸':''}${esc(p.name)}</td>
-          ${cols.map(i=>`<td class="${g.hidden[i]?'hidden-h':''}">${sc[i]??''}</td>`).join('')}<td class="sum">${runTot(pid)}</td></tr>`; }).join('')}
-    </table></div>
-    ${n===0?'<div class="muted" style="margin-top:6px">▶「次のホール」を押すと1ホールずつ開き、右の順位が入れ替わります。</div>':''}
+    <table class="sc2" style="margin-top:8px">${colgroup}${head}${parRow}${rows}</table>
+    <div class="muted" style="margin-top:6px">黄=隠しホール / OUT=前半・IN=後半の小計 / 計=グロス。${n<18?'▶で1ホールずつ開くと右の順位が入れ替わります。':''}</div>
   </div>`;
-}
-
-// スコア一覧（Gross/HDCP/Net サマリ）
-function scoreSummaryCard(g, parts){
-  return `<div class="card tight"><h2>📊 スコア一覧</h2><div class="scroll"><table class="lb">
-    <tr><th>選手</th><th>Gross</th>${g.womenEvery.enabled?'<th>エブリ</th>':''}<th>HDCP</th><th>Net</th></tr>
-    ${parts.map(pid=>{ const p=state.players.find(x=>x.id===pid);
-      return `<tr class="rank"><td style="text-align:left">${p.gender==='F'?'🌸':''}${esc(p.name)}</td>
-        <td>${gross(g,pid)||'-'}</td>${g.womenEvery.enabled?`<td>${womenEvery(g,pid)?'−'+womenEvery(g,pid):'-'}</td>`:''}
-        <td>${periaHdcp(g,pid)}</td><td><b>${netScore(g,pid)}</b></td></tr>`; }).join('')}
-  </table></div></div>`;
 }
 
 // 🎯 ニアピン/ドラコン タブ
