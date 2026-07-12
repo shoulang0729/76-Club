@@ -150,11 +150,21 @@
   .sc2 .tsum td{font-size:11px;background:#fbfcfc}
   .sc2 .winc{background:#d5f5e3 !important;font-weight:800;color:var(--green)}
   @media(min-width:560px){ .sc2{font-size:13px} .sc2 col.cnm{width:70px} .sc2 col.cs{width:36px} }
-  /* 順位カードを左→右に並べる（狭い画面は折返し） */
-  .rank-wrap{display:flex;flex-wrap:wrap;gap:8px;align-items:flex-start;margin-bottom:12px}
-  .rank-wrap>.card{flex:1 1 150px;min-width:140px;max-width:260px;margin-bottom:0}
-  .rank-wrap .lb{font-size:12px}
-  .rank-wrap .lb th,.rank-wrap .lb td{padding:3px 4px}
+  /* 順位カードを左→右に並べる（狭い画面は折返し）。カードは広め、グロス/ネットは大きく目立たせる */
+  .rank-wrap{display:flex;flex-wrap:wrap;gap:10px;align-items:flex-start;margin-bottom:12px}
+  .rank-wrap>.card{flex:1 1 200px;min-width:180px;max-width:300px;margin-bottom:0}
+  .rank-wrap>.card.wide{flex:1 1 320px;min-width:270px;max-width:480px}
+  .rank-wrap .lb{font-size:13px}
+  .rank-wrap .lb th,.rank-wrap .lb td{padding:4px 6px}
+  .rank-wrap .lb.big{font-size:16px}
+  .rank-wrap .lb.big th{font-size:12px}
+  .rank-wrap .lb.big td{padding:7px 8px}
+  .rank-wrap .lb.big b{font-size:18px}
+  /* カード見出しは全カード同じ高さ（1行）＝表の開始行を揃える。次回幹事はタイトル横へ */
+  h2.lbh{display:flex;justify-content:space-between;align-items:baseline;gap:8px;white-space:nowrap;overflow:hidden}
+  h2.lbh>span:first-child{flex:0 0 auto}
+  .lbnote{font-size:11px;font-weight:600;color:var(--blue);overflow:hidden;text-overflow:ellipsis;min-width:0;white-space:nowrap}
+  .lbnote b{color:var(--ink)}
 </style>
 </head>
 <body>
@@ -267,27 +277,22 @@ function renderPlayers(){
     <div class="card">
       <h2>👥 選手マスター</h2>
       <div class="row">
-        <input id="pName" placeholder="名前" style="flex:2;min-width:120px">
-        <select id="pGender" style="flex:1"><option value="M">男性</option><option value="F">女性</option></select>
-      </div>
-      <div class="row" style="margin-top:6px">
-        <div style="flex:2;min-width:120px"><label class="fl">エブリハンデ区分</label>
-          <select id="pEvery"><option value="none">なし（男性と同扱い）</option><option value="every1">エブリワン（−18）</option><option value="every2">エブリツー（−36）</option></select></div>
-        <label style="flex:1;display:flex;align-items:center;gap:6px;font-size:13px;margin-top:18px"><input type="checkbox" id="pKanji"> 幹事対象外</label>
+        <input id="pName" placeholder="名前" style="flex:2;min-width:140px">
+        <div style="flex:1;min-width:140px"><select id="pEvery"><option value="none">ハンデなし</option><option value="every1">エブリワン（−18）</option><option value="every2">エブリツー（−36）</option></select></div>
       </div>
       <div class="row" style="margin-top:8px">
-        <label style="flex:1;display:flex;align-items:center;gap:6px;font-size:13px"><input type="checkbox" id="pNp2"> 📍ニアピン2打目対象</label>
-        <label style="flex:1;display:flex;align-items:center;gap:6px;font-size:13px"><input type="checkbox" id="pDc2"> 💪ドラコン2打目対象</label>
+        <label style="display:flex;align-items:center;gap:6px;font-size:13px"><input type="checkbox" id="pKanji"> 幹事対象外</label>
+        <label style="display:flex;align-items:center;gap:6px;font-size:13px"><input type="checkbox" id="pNp2"> 📍ニア2打目</label>
+        <label style="display:flex;align-items:center;gap:6px;font-size:13px"><input type="checkbox" id="pDc2"> 💪ドラ2打目</label>
       </div>
       <button class="btn wide" style="margin-top:10px" onclick="addPlayer()">＋ 選手を追加</button>
-      <div class="muted" style="margin-top:6px">2打目対象＝ニアピン/ドラコンを2打目で計測してよい人（女性など）。ハンデはエブリ区分で判定（女性でも「なし」可）。幹事対象外＝次回幹事に選ばれない人。</div>
+      <div class="muted" style="margin-top:6px">ハンデ区分＝エブリなし/ワン/ツー。2打目対象＝ニアピン/ドラコンを2打目で計測してよい人。幹事対象外＝次回幹事に選ばれない人。</div>
     </div>
     <div class="card">
       <h2>登録済み（${state.players.length}名）</h2>
-      ${state.players.length? `<div class="scroll"><table><tr><th>名前</th><th>性別</th><th>ハンデ<br>区分</th><th>幹事<br>対象外</th><th>ニア<br>2打</th><th>ドラ<br>2打</th><th></th></tr>
+      ${state.players.length? `<div class="scroll"><table><tr><th>名前</th><th>ハンデ<br>区分</th><th>幹事<br>対象外</th><th>ニア<br>2打</th><th>ドラ<br>2打</th><th></th></tr>
         ${state.players.map(p=>`<tr>
           <td style="text-align:left;white-space:nowrap">${esc(p.name)}</td>
-          <td>${p.gender==='F'?'<span class="pill f">女</span>':'<span class="pill">男</span>'}</td>
           <td><select style="padding:4px;font-size:12px" onchange="setPlayerEvery('${p.id}',this.value)">
             <option value="none" ${p.everyType==='none'?'selected':''}>なし</option>
             <option value="every1" ${p.everyType==='every1'?'selected':''}>E1(−18)</option>
@@ -310,14 +315,13 @@ function renderPlayers(){
 }
 function addPlayer(){
   const n=document.getElementById('pName').value.trim(); if(!n) return toast('名前を入力');
-  state.players.push({id:uid(),name:n,gender:document.getElementById('pGender').value,
+  state.players.push({id:uid(),name:n,gender:'M',
     everyType:document.getElementById('pEvery').value, kanjiExempt:document.getElementById('pKanji').checked,
     niapin2nd:document.getElementById('pNp2').checked, dracon2nd:document.getElementById('pDc2').checked});
   save(); renderPlayers(); toast('追加しました');
 }
 function editPlayer(id){ const p=state.players.find(x=>x.id===id);
   const n=prompt('名前',p.name); if(n===null)return; p.name=n.trim()||p.name;
-  const g=confirm('性別は「女性」ですか？（OK=女性 / キャンセル=男性）'); p.gender=g?'F':'M';
   save(); renderPlayers(); }
 function setPlayerEvery(id,v){ state.players.find(p=>p.id===id).everyType=v; save(); }
 function setPlayerKanji(id,v){ state.players.find(p=>p.id===id).kanjiExempt=v; save(); }
@@ -369,12 +373,12 @@ function renderGame(){
       <div style="flex:1"><label class="fl">HDCP上限（空欄=なし）</label><input type="number" step="1" value="${g.periaCap??''}" placeholder="例:36" onchange="setCap(this.value)"></div>
     </div></div>`;
 
-  html += `<div class="card"><h2>🌸 エブリハンデ</h2>
+  html += `<div class="card"><h2>⛳ エブリハンデ</h2>
     <label style="display:flex;gap:8px;align-items:center;font-size:14px"><input type="checkbox" ${g.womenEvery.enabled?'checked':''} onchange="setWE(this.checked)"> このゲームでエブリハンデを適用する</label>
     <div class="muted" style="margin-top:6px">適用ON時、各選手の<b>エブリ区分</b>（選手タブで設定）に応じてE1=−18/E2=−36を差し引きます。グロス個人戦・ネット個人戦の両方に反映。</div></div>`;
 
   html += `<div class="card"><h2>🙋 参加者</h2>
-    ${state.players.length? state.players.map(p=>`<span class="chip ${g.participants.includes(p.id)?'on':''}" onclick="toggleParticipant('${p.id}')">${p.gender==='F'?'🌸':''}${esc(p.name)}${p.everyType!=='none'?' '+EVERY_LABEL[p.everyType]:''}</span>`).join('')
+    ${state.players.length? state.players.map(p=>`<span class="chip ${g.participants.includes(p.id)?'on':''}" onclick="toggleParticipant('${p.id}')">${esc(p.name)}${p.everyType!=='none'?' '+EVERY_LABEL[p.everyType]:''}</span>`).join('')
       : '<div class="muted">先に「選手」タブで登録してください</div>'}
   </div>`;
 
@@ -490,7 +494,7 @@ function renderScore(){
     <tr><td class="name" style="font-size:11px;color:var(--sub)">Par</td>${g.par.map((p,i)=>`<td class="${g.hidden[i]?'hidden-h':''}" style="font-size:11px;color:var(--sub)">${p}</td>`).join('')}<td class="sum">${sum(g.par,0,9)}</td><td class="sum">${sum(g.par,9,18)}</td><td class="sum">${sum(g.par,0,18)}</td></tr>
     ${g.participants.map(pid=>{ const p=state.players.find(x=>x.id===pid); if(!p)return'';
       const sc=g.scores[pid]||Array(18).fill(null);
-      return `<tr><td class="name">${p.gender==='F'?'🌸':''}${esc(p.name)}</td>
+      return `<tr><td class="name">${esc(p.name)}</td>
         ${sc.map((v,i)=>`<td class="${g.hidden[i]?'hidden-h':''}"><input id="sc-${pid}-${i}" type="number" inputmode="numeric" pattern="[0-9]*" min="1" max="15" value="${v??''}" onchange="setScore('${pid}',${i},this)"></td>`).join('')}
         <td class="sum" id="out-${pid}">${sum(sc,0,9)||''}</td><td class="sum" id="in-${pid}">${sum(sc,9,18)||''}</td><td class="sum" id="tot-${pid}">${sum(sc,0,18)||''}</td></tr>`;
     }).join('')}
@@ -738,8 +742,8 @@ function renderIndividual(g, parts){
 
   // 順位カード（左→右の順）：グロス→ネット→ステーブル→オリンピック→キャロウェイ→握り
   let cards='';
-  if(F.gross) cards+=leaderboard(g.womenEvery.enabled?'🏅 グロス（エブリ反映）':'🏅 グロス', parts, pid=>effGross(g,pid), 'asc', v=>v, '', 'gross');
-  if(F.net) cards+=leaderboard('🥇 ネット', parts, pid=>netScore(g,pid), 'asc', v=>v, kanjiNote, 'net', hl);
+  if(F.gross) cards+=leaderboard(g.womenEvery.enabled?'🏅 グロス（エブリ反映）':'🏅 グロス', parts, pid=>effGross(g,pid), 'asc', v=>v, '', 'gross', null, true);
+  if(F.net) cards+=leaderboard('🥇 ネット', parts, pid=>netScore(g,pid), 'asc', v=>v, kanjiNote, 'net', hl, true);
   if(F.stableford) cards+=leaderboard('🎯 ステーブルフォード', parts, pid=>stablefordPts(g,pid), 'desc', v=>v+'pt', '', 'stb');
   if(F.olympic) cards+=leaderboard('🏆 オリンピック', parts, pid=>olympicPts(g,pid), 'desc', v=>v+'pt', '', 'oly');
   if(F.callaway) cards+=leaderboard('📐 キャロウェイ', parts, pid=>callawayNet(g,pid),'asc',v=>v,'', 'cal');
@@ -772,7 +776,7 @@ function renderScorecard(g, parts, teams){
   const parRow=`<tr class="parr"><td class="nm">Par</td>${F9.map(i=>`<td class="${hh(i)}">${g.par[i]}</td>`).join('')}<td class="sub">${parOut}</td>${B9.map(i=>`<td class="${hh(i)}">${g.par[i]}</td>`).join('')}<td class="sub">${parIn}</td><td class="tot">${parOut+parIn}</td><td class="tot">-</td><td class="netc">-</td></tr>`;
   const pRow=(pid)=>{ const p=state.players.find(x=>x.id===pid); const sc=g.scores[pid]||[];
     const cell=i=>`<td class="${hh(i)}">${sc[i]??''}</td>`;
-    return `<tr><td class="nm">${p.gender==='F'?'🌸':''}${esc(p.name)}</td>${F9.map(cell).join('')}<td class="sub">${sum(sc,0,9)||''}</td>${B9.map(cell).join('')}<td class="sub">${sum(sc,9,18)||''}</td><td class="tot">${gross(g,pid)||''}</td><td class="tot">${periaHdcp(g,pid)}</td><td class="netc">${netScore(g,pid)}</td></tr>`; };
+    return `<tr><td class="nm">${esc(p.name)}</td>${F9.map(cell).join('')}<td class="sub">${sum(sc,0,9)||''}</td>${B9.map(cell).join('')}<td class="sub">${sum(sc,9,18)||''}</td><td class="tot">${gross(g,pid)||''}</td><td class="tot">${periaHdcp(g,pid)}</td><td class="netc">${netScore(g,pid)}</td></tr>`; };
   let body='', note='';
   if(teams && teams.length){
     const colorOf=name=>/レッド|赤/.test(name)?'#c0392b':/ブルー|青/.test(name)?'#2471a3':/グリーン|緑/.test(name)?'#186a3b':/イエロー|黄/.test(name)?'#b9770e':'#5d6d7e';
@@ -796,10 +800,10 @@ function renderScorecard(g, parts, teams){
   }
   return `<div class="card"><h2>🎬 スコア表${teams?'（チーム別）':''} <span class="tag" style="background:#d4ac0d;color:#fff">${n>=18?'全ホール':n+'/18H'}</span></h2>
     <div class="reveal-bar">
-      <button class="btn gold sm" onclick="openNextHole()" ${n>=18?'disabled':''}>▶ 次のホール</button>
+      <button class="btn gray sm" onclick="resetHoles()" ${n<=0?'disabled':''}>リセット</button>
       <button class="btn gray sm" onclick="closeHole()" ${n<=0?'disabled':''}>◀</button>
-      <button class="btn gray sm" onclick="openAllHoles()">全部</button>
-      <button class="btn gray sm" onclick="resetHoles()">最初から</button>
+      <button class="btn gold sm" onclick="openNextHole()" ${n>=18?'disabled':''}>▶ 次のホール</button>
+      <button class="btn gray sm" onclick="openAllHoles()" ${n>=18?'disabled':''}>全部</button>
     </div>
     <table class="sc2" style="margin-top:8px">${SC_COLGROUP}${head}${parRow}${body}</table>
     <div class="muted" style="margin-top:6px">${note} OUT/IN=前後半小計・計=グロス・HD=ハンデ・Net=ネット。${n<18?'▶で1ホールずつ開くと下の順位が更新されます。':''}</div>
@@ -827,22 +831,22 @@ function renderTeamTab(g){
 }
 
 
-// リーダーボード（1行=1選手。ホール開封で値が埋まり順位が入れ替わる。hlMap=強調する選手）
-function leaderboard(title, pids, valFn, dir, fmt, note, key, hlMap){
+// リーダーボード（1行=1選手。ホール開封で値が埋まり順位が入れ替わる。hlMap=強調・note=タイトル横・big=大表示）
+function leaderboard(title, pids, valFn, dir, fmt, note, key, hlMap, big){
   const rows=ranked(pids,valFn,dir);
   const medalOf=r=> r.rank===1?'🥇':r.rank===2?'🥈':r.rank===3?'🥉':r.rank;
-  const nameOf=pid=>{const p=state.players.find(x=>x.id===pid);return (p&&p.gender==='F'?'🌸':'')+esc(p&&p.name);};
-  const body=`<table class="lb"><tr><th>順</th><th>選手</th><th>${dir==='asc'?'スコア':'得点'}</th></tr>
+  const nameOf=pid=>{const p=state.players.find(x=>x.id===pid);return esc(p&&p.name);};
+  const body=`<table class="lb ${big?'big':''}"><tr><th>順</th><th>選手</th><th>${dir==='asc'?'スコア':'得点'}</th></tr>
     ${rows.map(r=>{ const hb=hlMap&&hlMap[r.pid];
       return `<tr class="rank ${r.rank===1?'rank1':''} ${hb?'hlrow':''}"><td class="medal">${medalOf(r)}</td><td style="text-align:left">${nameOf(r.pid)}${hb?`<span class="kanjibadge">${hb}</span>`:''}</td><td><b>${fmt(r.v)}</b></td></tr>`; }).join('')}</table>`;
-  return `<div class="card tight"><h2>${title}</h2>${note?`<div class="muted" style="margin-bottom:6px">${note}</div>`:''}${body}</div>`;
+  return `<div class="card tight ${big?'wide':''}"><h2 class="lbh"><span>${title}</span>${note?`<span class="lbnote">${note}</span>`:''}</h2>${body}</div>`;
 }
 
 function renderPrizes(g){
   const P=g.prizes; if(!P.niapinHoles.length && !P.draconHoles.length) return '';
   const parts=g.participants.filter(pid=>state.players.find(x=>x.id===pid));
   const opts=(sel)=>`<option value="">—</option>${parts.map(pid=>{const p=state.players.find(x=>x.id===pid);
-    return `<option value="${pid}" ${sel===pid?'selected':''}>${p.gender==='F'?'🌸':''}${esc(p.name)}</option>`}).join('')}`;
+    return `<option value="${pid}" ${sel===pid?'selected':''}>${esc(p.name)}</option>`}).join('')}`;
   const np2=parts.filter(pid=>state.players.find(x=>x.id===pid)?.niapin2nd).map(pid=>esc(state.players.find(x=>x.id===pid).name));
   const dc2=parts.filter(pid=>state.players.find(x=>x.id===pid)?.dracon2nd).map(pid=>esc(state.players.find(x=>x.id===pid).name));
   let html=`<div class="card prizewin"><h2>🎯 個人賞（ニアピン / ドラコン）</h2>
