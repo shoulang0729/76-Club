@@ -68,13 +68,13 @@
   th{background:#f6f8fa;color:var(--sub);font-weight:800;font-size:11px;letter-spacing:.03em}
   .scroll{overflow-x:auto;-webkit-overflow-scrolling:touch}
   /* leaderboard tables */
-  .lb th,.lb td{white-space:nowrap}
+  .lb th,.lb td{white-space:nowrap;vertical-align:middle}
   .lb tr:nth-child(2n+1) td{background:#f8fafb}
   .lb .rank td{font-weight:600}
-  .pos{display:inline-flex;align-items:center;justify-content:center;width:23px;height:23px;border-radius:50%;
-    background:#e7eaee;color:#3a4450;font-size:12px;font-weight:900;font-variant-numeric:tabular-nums}
+  .pos{display:inline-flex;align-items:center;justify-content:center;width:24px;height:24px;border-radius:50%;
+    background:#e7eaee;color:#3a4450;font-size:12px;font-weight:900;font-variant-numeric:tabular-nums;line-height:1}
   .pos.p1{background:var(--acc);color:#fff}
-  .lb.big .pos{width:26px;height:26px;font-size:13px}
+  .lb.big .pos{width:28px;height:28px;font-size:14px}
   .rank1 td{}
   .hlrow td{background:#eef4fb !important}
   .kanjibadge{display:inline-block;background:var(--blue);color:#fff;border-radius:5px;font-size:10px;padding:1px 6px;margin-left:6px;font-weight:800;letter-spacing:.02em}
@@ -135,14 +135,15 @@
   .rank-wrap>.card{flex:1 1 210px;min-width:190px;max-width:320px;margin-bottom:0}
   .rank-wrap>.card.wide{flex:1 1 320px;min-width:270px;max-width:480px}
   .rank-wrap .lb{font-size:13px;table-layout:fixed;width:100%}
-  .rank-wrap .lb th,.rank-wrap .lb td{padding:5px 6px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-  .rank-wrap .lb .c-eye{width:36px;padding:2px}
-  .rank-wrap .lb .c-pos{width:34px}
-  .rank-wrap .lb .c-val{width:60px}
+  .rank-wrap .lb th,.rank-wrap .lb td{padding:6px 6px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;height:34px}
+  .rank-wrap .lb .c-eye{width:40px;padding:2px}
+  .rank-wrap .lb .c-pos{width:36px}
+  .rank-wrap .lb .c-val{width:66px;text-align:right;padding-right:8px}
   .rank-wrap .lb.big{font-size:15px}
-  .rank-wrap .lb.big .c-val{width:70px}
+  .rank-wrap .lb.big th,.rank-wrap .lb.big td{height:42px}
+  .rank-wrap .lb.big .c-val{width:86px}
   .rank-wrap .lb.big .nmc{font-size:var(--f-name);font-weight:800}
-  .rank-wrap .lb.big b{font-size:var(--f-val);font-weight:900;font-variant-numeric:tabular-nums}
+  .rank-wrap .lb.big b{font-size:18px;font-weight:900;font-variant-numeric:tabular-nums}
   .rank-wrap .lb .nmc{font-size:var(--f-name);font-weight:700}
   .rank-wrap .lb b{font-variant-numeric:tabular-nums}
   h2.lbh{display:flex;justify-content:space-between;align-items:baseline;gap:8px;white-space:nowrap;overflow:hidden}
@@ -150,11 +151,11 @@
   .lbnote{font-size:11px;font-weight:700;color:var(--sub);overflow:hidden;text-overflow:ellipsis;min-width:0;white-space:nowrap}
   /* score card (共通スコア表) */
   .sc2{table-layout:fixed;width:100%;font-size:12px;border-collapse:collapse}
-  .sc2 col.cnm{width:54px}
-  .sc2 col.cs{width:30px}
-  .sc2 th,.sc2 td{padding:3px 0;border:1px solid var(--line);text-align:center;overflow:hidden;line-height:1.15;color:var(--ink);font-weight:600}
-  .sc2 th{background:var(--dark);color:#fff;font-size:10.5px;font-weight:700}
-  .sc2 td.nm,.sc2 th.nm{text-align:left;font-weight:700;font-size:11px;white-space:nowrap;padding-left:4px}
+  .sc2 col.cnm{width:64px}
+  .sc2 col.cs{width:34px}
+  .sc2 th,.sc2 td{padding:4px 0;border:1px solid var(--line);text-align:center;overflow:hidden;line-height:1.2;color:var(--ink);font-weight:600;height:24px}
+  .sc2 th{background:var(--dark);color:#fff;font-size:11px;font-weight:700}
+  .sc2 td.nm,.sc2 th.nm{text-align:left;font-weight:700;font-size:11.5px;white-space:nowrap;padding-left:5px;text-overflow:ellipsis}
   .sc2 th.nm{background:var(--dark);color:#fff}
   .sc2 .sub{background:#eaf6f0;font-weight:800}
   .sc2 .tot{background:#f2f5f7;font-weight:800}
@@ -164,7 +165,7 @@
   .sc2 .parr td{color:#4a5560;font-size:10px;font-weight:700}
   .sc2 .tsum td{font-size:11px;background:#fbfcfc}
   .sc2 .winc{background:#d5f5e3 !important;font-weight:900;color:var(--accd)}
-  @media(min-width:560px){ .sc2{font-size:13px} .sc2 col.cnm{width:70px} .sc2 col.cs{width:36px} }
+  @media(min-width:560px){ .sc2{font-size:14px} .sc2 col.cnm{width:82px} .sc2 col.cs{width:42px} .sc2 td.nm,.sc2 th.nm{font-size:13px} .sc2 th,.sc2 td{height:28px} }
   /* two-column (未使用でも保持) */
   .ind-split{display:flex;gap:12px;align-items:flex-start}
   .ind-left{flex:1 1 46%;min-width:0}
@@ -199,7 +200,7 @@
   .sc2 .adopt{outline:2px solid #5b6672;outline-offset:-2px;font-weight:900;color:#12161c !important}
   .sc2 .rwin{background:#8fe0ad !important;font-weight:900;color:#06331d !important}   /* 勝ち：濃緑文字で高コントラスト */
   .sc2 .rtie{background:#f6d792 !important;font-weight:900;color:#5a3d00 !important}   /* 引分：濃橙文字 */
-  .rlsc td.nm,.rlsc th.nm{width:64px}
+  .rlsc td.nm,.rlsc th.nm{width:72px}
   @media(min-width:820px){
     .rlwrap{max-width:900px;margin:0 auto}
     .rl-hole{font-size:66px} .rl-name{font-size:40px;min-height:50px} .rl-scorebig{font-size:64px;min-height:66px}
@@ -222,6 +223,10 @@
     #view-result .sc2{font-size:15px}
     #view-result .rank-wrap>.card{flex:1 1 280px;max-width:400px}
     #view-result .rank-wrap>.card.wide{flex:1 1 400px;max-width:560px}
+    #view-result .rank-wrap .lb .c-val{width:80px}
+    #view-result .rank-wrap .lb.big .c-val{width:100px}
+    #view-result .rank-wrap .lb .c-eye{width:48px}
+    #view-result .rank-wrap .lb .c-pos{width:44px}
     #view-result .payoutcard .lb{font-size:16px}
     #view-result .togbar,#view-result .cardtools{font-size:14px}
     #view-result .tgl{font-size:13px;padding:6px 12px}
@@ -1029,7 +1034,7 @@ function rlMarks(g){
 }
 function rlScorecard(g){
   const teams=rTeams(g); const R=g.roulette; const h=R.cur<18?R.cur:-1; const cols=[...Array(18).keys()]; const mark=rlMarks(g);
-  const cg=`<colgroup><col style="width:64px">${cols.map(()=>'<col>').join('')}</colgroup>`;
+  const cg=`<colgroup><col style="width:72px">${cols.map(()=>'<col>').join('')}</colgroup>`;
   const head=`<tr><th class="nm">選手</th>${cols.map(i=>`<th class="${i===h?'cur':''}">${i+1}</th>`).join('')}</tr>`;
   const parRow=`<tr class="parr"><td class="nm">Par</td>${cols.map(i=>`<td class="${i===h?'cur':''} ${g.hidden[i]?'hh':''}">${g.par[i]}</td>`).join('')}</tr>`;
   let body='';
