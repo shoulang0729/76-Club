@@ -185,6 +185,12 @@
   .rl-btns{display:flex;gap:6px;margin-top:9px;justify-content:center;flex-wrap:wrap}
   .rl-btns .btn{padding:6px 8px;font-size:11px}
   .rl-ctrl{margin-top:14px}
+  .rl-scorebig{font-size:26px;font-weight:900;color:var(--accd);line-height:1;margin-top:3px;min-height:26px;font-variant-numeric:tabular-nums}
+  .rl-scorebig small{font-size:11px;color:var(--sub);font-weight:800}
+  .sc2 .cur{background:#fff3cf !important}
+  .sc2 .reprow td{background:#eafaf1}
+  .sc2 .reprow td.nm{font-weight:900;color:var(--accd)}
+  .rlsc td.nm,.rlsc th.nm{width:66px}
 </style>
 </head>
 <body>
@@ -245,7 +251,7 @@ function migrate(s){
 function newRoulette(){ return { changeN:1, challengeM:1, reps:{}, pool:{}, remChange:{}, remChallenge:{}, cur:0 }; }
 function defaultPoints(){ return {
   net:[5,3,1], gross:[5,3,1], stableford:[5,3,1], olympic:[5,3,1], callaway:[5,3,1], nassauTotal:[5,3,1],
-  teamGross:[3], teamNet:[3], holeByHole:[3], best2ball:[3], niapin:2, dracon:2 }; }
+  teamGross:[3], teamNet:[3], holeByHole:[3], best2ball:[3], roulette:[3], niapin:2, dracon:2 }; }
 function save(){ localStorage.setItem(LS_KEY, JSON.stringify(state)); }
 function uid(){ return Math.random().toString(36).slice(2,9); }
 function toast(m){ const t=document.getElementById('toast'); t.textContent=m; t.classList.add('show');
@@ -475,6 +481,7 @@ function renderGame(){
     ${ptsInd('olympic','オリンピック')}${ptsInd('callaway','キャロウェイ')}${ptsInd('nassauTotal','握り(トータル)')}
     <h3>チーム戦</h3>
     ${ptsTeam('teamGross','グロス対抗')}${ptsTeam('teamNet','ネット対抗')}${ptsTeam('holeByHole','ホールバイホール')}${ptsTeam('best2ball','ベスト2ボール')}
+    <div class="ptsrow"><span>ルーレット対抗（勝ちチーム各員）</span><span class="ptsedit"><input value="${(P.roulette||[]).join(',')}" onchange="setPoints('roulette',this.value)" placeholder="3"></span></div>
     <h3>個人賞</h3>
     <div class="ptsrow"><span>ニアピン（1回あたり）</span><span class="ptsedit"><input type="number" value="${P.niapin}" onchange="setPointsNum('niapin',this.value)"></span></div>
     <div class="ptsrow"><span>ドラコン（1回あたり）</span><span class="ptsedit"><input type="number" value="${P.dracon}" onchange="setPointsNum('dracon',this.value)"></span></div>
@@ -721,6 +728,11 @@ function computePoints(g){
       if(anyHole){ const rows=teams.map((t,i)=>({t,v:won[i]})); rows.sort((a,b)=>b.v-a.v);
         let rank=0,prev=null; rows.forEach((r,i)=>{ if(prev===null||r.v!==prev){rank=i+1;prev=r.v;} const p=(P.holeByHole||[])[rank-1]||0; r.t.memberIds.forEach(pid=>{ if(pts[pid]!=null)pts[pid]+=p; }); }); }
     }
+    // ルーレット対抗（実プレイの取得H順・勝ちチーム各員に配点）
+    if(P.roulette && P.roulette.length){ const g0=curGame(); const st=rlStandings(g0);
+      if(st.won.some(w=>w>0)){ const rows=st.teams.map((t,i)=>({t,v:st.won[i]})); rows.sort((a,b)=>b.v-a.v);
+        let rank=0,prev=null; rows.forEach((r,i)=>{ if(prev===null||r.v!==prev){rank=i+1;prev=r.v;} if(r.v>0){ const p=(P.roulette||[])[rank-1]||0; r.t.memberIds.forEach(pid=>{ if(pts[pid]!=null)pts[pid]+=p; }); } }); }
+    }
   }
   return pts;
 }
@@ -951,19 +963,39 @@ function rlStandings(g){ const teams=rTeams(g); const won=teams.map(()=>0); let 
     const mn=Math.min(...sc); const w=sc.map((s,i)=>s===mn?i:-1).filter(i=>i>=0); w.forEach(i=>won[i]+=1/w.length); }
   return {teams,won,pending}; }
 
+// 開発者メニュー：代表を手動指定 / 回数を戻す（誤操作の復旧用）
+function rlForceRep(tid,pid){ if(!pid)return; const g=curGame(); const R=g.roulette; R.reps[R.cur]=R.reps[R.cur]||{}; R.reps[R.cur][tid]=pid; save(); renderResult(); }
+function rlRefund(tid,which){ const g=curGame(); const R=g.roulette; if(which==='change')R.remChange[tid]=(R.remChange[tid]||0)+1; else R.remChallenge[tid]=(R.remChallenge[tid]||0)+1; save(); renderResult(); }
+
+// ルーレット用スコア表（読み取り専用・現在ホール強調・各チームの代表行に印）
+function rlScorecard(g){
+  const teams=rTeams(g); const R=g.roulette; const h=R.cur<18?R.cur:-1; const reps=R.reps[R.cur]||{};
+  const cols=[...Array(18).keys()];
+  const cg=`<colgroup><col style="width:66px">${cols.map(()=>'<col>').join('')}</colgroup>`;
+  const head=`<tr><th class="nm">選手</th>${cols.map(i=>`<th class="${i===h?'cur':''}">${i+1}</th>`).join('')}</tr>`;
+  const parRow=`<tr class="parr"><td class="nm">Par</td>${cols.map(i=>`<td class="${i===h?'cur':''} ${g.hidden[i]?'hh':''}">${g.par[i]}</td>`).join('')}</tr>`;
+  let body='';
+  teams.forEach(t=>{ const col=rColor(t.name);
+    body+=`<tr><td class="nm" colspan="19" style="background:${col};color:#fff;text-align:left;font-weight:800">${esc(t.name)}</td></tr>`;
+    t.memberIds.forEach(pid=>{ const p=state.players.find(x=>x.id===pid); if(!p)return; const sc=g.scores[pid]||[]; const isRep=reps[t.id]===pid;
+      body+=`<tr class="${isRep?'reprow':''}"><td class="nm">${isRep?'● ':''}${esc(p.name)}</td>${cols.map(i=>`<td class="${i===h?'cur':''} ${g.hidden[i]?'hh':''}">${sc[i]??''}</td>`).join('')}</tr>`; }); });
+  return `<div class="card"><h2>スコア表（現在 ${h>=0?(h+1)+'H':'—'}）<span class="muted" style="font-weight:600;font-size:11px">● = 今の代表</span></h2>
+    <div class="scroll"><table class="sc2 rlsc">${cg}${head}${parRow}${body}</table></div></div>`;
+}
+
 function renderRouletteTab(g){
   const teams=rTeams(g);
   if(teams.length<2) return `<div class="card"><h2>ルーレット対抗</h2><div class="empty">2チーム以上が必要です。「ゲーム」タブでチームを作成してください。</div></div>`;
   const R=g.roulette;
   teams.forEach(t=>{ if(R.remChange[t.id]===undefined)R.remChange[t.id]=R.changeN; if(R.remChallenge[t.id]===undefined)R.remChallenge[t.id]=R.challengeM; });
-  const {won,pending}=rlStandings(g); const maxw=Math.max(...won,0);
+  const {won,pending}=rlStandings(g);
   let html=`<div class="card payoutcard"><h2>ルーレット対抗 <span class="tag">${Math.min(R.cur,18)}/18H</span></h2>
     <table class="lb"><tr><th class="c-pos">順</th><th>チーム</th><th class="c-val">取得H</th></tr>
     ${teams.map(t=>({t,v:won[teams.indexOf(t)]})).sort((a,b)=>b.v-a.v).map((r,i)=>`<tr class="rank"><td class="c-pos">${posBadge(i+1,i===0&&r.v>0)}</td><td class="nmc" style="text-align:left"><span style="color:${rColor(r.t.name)};font-weight:800">${esc(r.t.name)}</span></td><td class="c-val"><b>${Math.round(r.v*10)/10}</b></td></tr>`).join('')}</table>
     ${pending?`<div class="muted" style="margin-top:4px">スコア未入力で保留中：${pending}ホール（入力で反映）</div>`:''}
     <div class="row" style="margin-top:8px"><button class="btn gray sm" onclick="rlReset()">リセット</button></div></div>`;
 
-  if(R.cur>=18){ return html+`<div class="card"><div class="empty"><b>全18ホール終了</b><br>上のスタンディングが最終結果です。</div></div>`; }
+  if(R.cur>=18){ return html+`<div class="card"><div class="empty"><b>全18ホール終了</b><br>上のスタンディングが最終結果です。</div></div>`+rlScorecard(g); }
 
   const h=R.cur; const reps=R.reps[h]||{}; const drawn=rlHoleDrawn(g);
   const holeScores=()=>teams.map(t=>{const pid=reps[t.id];const v=pid!=null?(g.scores[pid]||[])[h]:null;return (v!=null&&v!=='')?Number(v):null;});
@@ -978,24 +1010,36 @@ function renderRouletteTab(g){
     return `<div class="rl-panel${win?' win':''}" style="border-color:${col}">
       <div class="rl-team" style="color:${col}">${esc(t.name)}</div>
       <div class="rl-name" id="rl-name-${t.id}">${rl.spinning&&rl.spinTeams.includes(t.id)?'…':(p?esc(p.name):'―')}</div>
-      <div class="rl-score">${pid?('このH '+sv):''}</div>
+      <div class="rl-scorebig">${pid?sv:''}<small>${pid?' 打':''}</small></div>
       ${drawn&&!rl.spinning&&!rl.challengeFrom?`<div class="rl-btns">
         <button class="btn sec sm" ${(R.remChange[t.id]||0)<=0?'disabled':''} onclick="rlChange('${t.id}')">チェンジ ${R.remChange[t.id]||0}</button>
         <button class="btn gray sm" ${(R.remChallenge[t.id]||0)<=0?'disabled':''} onclick="rlChallengeStart('${t.id}')">チャレンジ ${R.remChallenge[t.id]||0}</button>
       </div>`:''}
       ${rl.challengeFrom&&rl.challengeFrom!==t.id?`<button class="btn sm" style="margin-top:6px" onclick="rlChallengeDo('${rl.challengeFrom}','${t.id}')">このチームを回す</button>`:''}
     </div>`; }).join('');
+  // 単一メインボタン（START / STOP / 確定 を同じ位置で切替）
+  let mainBtn;
+  if(rl.spinning) mainBtn=`<button class="btn danger wide" onclick="rlStop()">STOP（止める）</button>`;
+  else if(!drawn) mainBtn=`<button class="btn wide" onclick="rlStartInitial()">START（回す）</button>`;
+  else mainBtn=`<button class="btn wide" ${rlCanAdvance(g)?'':'disabled'} onclick="rlNextHole()">確定して次のホール ▸</button>`;
+  const devMenu=`<details style="margin-top:10px"><summary>開発者メニュー（手動修正）</summary><div class="in">
+    <div class="muted" style="margin-bottom:6px">誤操作の復旧用。代表を狙った人に直接セット／使った回数を戻せます。</div>
+    ${teams.map(t=>`<div class="row between" style="margin:4px 0"><span style="color:${rColor(t.name)};font-weight:800;min-width:70px">${esc(t.name)}</span>
+      <select style="flex:1;max-width:52%" onchange="rlForceRep('${t.id}',this.value)"><option value="">代表を選ぶ…</option>${t.memberIds.map(pid=>{const p=state.players.find(x=>x.id===pid);return `<option value="${pid}" ${reps[t.id]===pid?'selected':''}>${esc(p&&p.name)}</option>`}).join('')}</select></div>`).join('')}
+    <hr>${teams.map(t=>`<div class="row between" style="margin:3px 0"><span style="color:${rColor(t.name)};min-width:70px">${esc(t.name)}</span><span><button class="btn gray sm" onclick="rlRefund('${t.id}','change')">チェンジ+1（${R.remChange[t.id]||0}）</button> <button class="btn gray sm" onclick="rlRefund('${t.id}','challenge')">チャレンジ+1（${R.remChallenge[t.id]||0}）</button></span></div>`).join('')}
+  </div></details>`;
   html+=`<div class="card">
     <div class="rl-head"><div class="rl-hole">${h+1}<small>H</small></div><div class="rl-par">Par ${g.par[h]}</div></div>
     ${rl.challengeFrom?`<div class="muted" style="margin:2px 0 8px">チャレンジ：回したい相手チームの「このチームを回す」を選択 <button class="btn gray sm" onclick="rlCancelChallenge()">取消</button></div>`:''}
     <div class="rl-panels">${panels}</div>
     <div class="rl-ctrl">
-      ${(!rl.spinning&&!drawn)?`<button class="btn wide" onclick="rlStartInitial()">START（回す）</button>`:''}
-      ${rl.spinning?`<button class="btn danger wide" onclick="rlStop()">STOP（止める）</button>`:''}
-      ${(!rl.spinning&&drawn)?`<div class="row" style="align-items:center"><div style="flex:1;font-weight:700">${holeInfo}</div><button class="btn" ${rlCanAdvance(g)?'':'disabled'} onclick="rlNextHole()">確定して次のホール</button></div>${!rlCanAdvance(g)?'<div class="muted" style="margin-top:6px">チェンジが残っています。残りホールで使い切る必要があるため、このホールでチェンジを使ってください。</div>':''}`:''}
+      ${(!rl.spinning&&drawn)?`<div style="text-align:center;font-weight:800;margin-bottom:8px;min-height:20px">${holeInfo}</div>`:''}
+      ${mainBtn}
+      ${(!rl.spinning&&drawn&&!rlCanAdvance(g))?'<div class="muted" style="margin-top:6px">チェンジが残っています。残りホールで使い切る必要があるため、このホールで各チームがチェンジを使ってください。</div>':''}
     </div>
+    ${devMenu}
   </div>`;
-  return html;
+  return html + rlScorecard(g);
 }
 
 
