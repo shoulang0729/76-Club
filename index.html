@@ -7,15 +7,28 @@
 <title>76-Club COMPE</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;600;700;900&family=Noto+Sans+SC:wght@400;700;900&family=Noto+Serif+JP:wght@600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;600;700;800&family=Noto+Sans+SC:wght@400;600;700;800&family=Noto+Serif+JP:wght@600;700&display=swap" rel="stylesheet">
 <style>
   *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
-  /* コーポレートトーン（§11.4）：白基調＋ネイビー＋アクセント黄少量＋プライマリ青。勝敗の機能色(緑/橙/赤)は維持 */
+  /* ============ デザイントークン（§11.10）：色/角丸/太さ/サイズはここで一元管理。テーマA/B共通の唯一の定義元 ============ */
   :root{
-    --bg:#ffffff; --card:#ffffff; --panel:#f2f3f4; --ink:#2e404d; --sub:#6b7480; --line:#e8e8e8;
-    --dark:#070f26; --dark2:#141b31; --acc:#ffc400; --pri:#0072bc; --prid:#005b96;
-    --accd:#0e9e57; --warn:#d4a017; --red:#e42600; --blue:#0072bc;
+    /* サーフェス */
+    --bg:#ffffff; --card:#ffffff; --surface-1:#f8fafb; --surface-2:#f2f3f4; --line:#e8e8e8;
+    /* インク */
+    --dark:#070f26; --ink:#2e404d; --sub:#6b7480;
+    /* プライマリ(青) */
+    --pri:#0072bc; --prid:#005b96; --info-bg:#e8f2fa; --hl-bg:#eef4fb;
+    /* アクセント(黄) */
+    --acc:#ffc400; --acc-ink:#8a6100; --acc-bg:#fff7e6; --acc-bg-strong:#f2d98a;
+    /* 機能色: 勝ち=緑 / 引分=橙 / 危険=赤（意味は固定・値はここだけで定義） */
+    --win:#0e9e57; --win-ink:#186a3b; --win-bg:#d5f5e3; --win-bg-strong:#8fe0ad;
+    --tie:#d4a017; --tie-ink:#5a3d00; --tie-bg:#fdeec4;
+    --red:#e42600; --danger-bg:#fdecea; --danger-line:#f0c0ba;
+    /* 角丸3段 / 太さ3段 / サイズ */
+    --r-sm:6px; --r-md:10px; --r-pill:99px;
+    --w-reg:400; --w-med:600; --w-bold:800;
     --f-hero:21px; --f-val:20px; --f-name:16px; --f-title:15px; --f-body:13px; --f-small:11px;
+    --f-rl-hole:48px; --f-rl-name:30px; --f-rl-score:44px;   /* ルーレット投影用大型（§11.10別枠） */
   }
   html,body{margin:0}
   body{font-family:"Noto Sans JP","Noto Sans",-apple-system,"Hiragino Kaku Gothic ProN",Meiryo,sans-serif;
@@ -24,202 +37,210 @@
   /* header (dark scoreboard) */
   header{background:var(--dark);color:#fff;padding:12px 15px;position:sticky;top:0;z-index:20}
   .hdr-row{display:flex;align-items:center;justify-content:space-between;gap:8px}
-  header h1{font-size:17px;font-weight:900;letter-spacing:.06em}
-  header h1 span{font-weight:700;color:var(--acc);font-size:11px;margin-left:6px;letter-spacing:.12em}
-  header .gamename{font-size:11px;opacity:.7;margin-top:2px;font-weight:500}
-  .hamb{background:rgba(255,255,255,.12);border:0;color:#fff;font-size:13px;font-weight:800;padding:9px 15px;
-    border-radius:99px;cursor:pointer;white-space:nowrap;letter-spacing:.04em}
+  header h1{font-size:var(--f-name);font-weight:var(--w-bold);letter-spacing:.06em}
+  header h1 span{font-weight:var(--w-bold);color:var(--acc);font-size:var(--f-small);margin-left:6px;letter-spacing:.12em}
+  header .gamename{font-size:var(--f-small);opacity:.7;margin-top:2px;font-weight:var(--w-med)}
+  .hamb{background:rgba(255,255,255,.12);border:0;color:#fff;font-size:var(--f-body);font-weight:var(--w-bold);padding:9px 15px;
+    border-radius:var(--r-pill);cursor:pointer;white-space:nowrap;letter-spacing:.04em}
   .menu-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.3);z-index:35}
-  .appmenu{display:none;position:fixed;right:10px;top:60px;background:#fff;border:1px solid var(--line);
-    border-radius:12px;box-shadow:0 10px 30px rgba(0,0,0,.25);z-index:40;overflow:hidden;min-width:190px}
-  .appmenu button{display:block;width:100%;text-align:left;border:0;background:#fff;padding:13px 18px;
-    font-size:15px;color:var(--ink);cursor:pointer;border-bottom:1px solid var(--line);font-weight:600}
+  .appmenu{display:none;position:fixed;right:10px;top:60px;background:var(--card);border:1px solid var(--line);
+    border-radius:var(--r-md);box-shadow:0 10px 30px rgba(0,0,0,.25);z-index:40;overflow:hidden;min-width:190px}
+  .appmenu button{display:block;width:100%;text-align:left;border:0;background:var(--card);padding:13px 18px;
+    font-size:var(--f-title);color:var(--ink);cursor:pointer;border-bottom:1px solid var(--line);font-weight:var(--w-med)}
   .appmenu button:last-child{border-bottom:0}
-  .appmenu button.on{background:var(--pri);color:#fff;font-weight:800}
+  .appmenu button.on{background:var(--pri);color:#fff;font-weight:var(--w-bold)}
   main{padding:12px;max-width:960px;margin:0 auto}
   /* cards（小角丸・フラット §11.4） */
-  .card{background:var(--card);border:1px solid var(--line);border-radius:6px;padding:14px;margin-bottom:12px;
+  .card{background:var(--card);border:1px solid var(--line);border-radius:var(--r-sm);padding:14px;margin-bottom:12px;
     box-shadow:0 1px 2px rgba(7,15,38,.05)}
   .card.tight{padding:11px}
-  .card h2{margin:0 0 10px;font-size:var(--f-title);font-weight:800;color:var(--ink);display:flex;align-items:center;gap:7px;flex-wrap:wrap}
-  .card.tight h2{font-size:14px;margin-bottom:8px}
-  .card h3{margin:14px 0 6px;font-size:12px;font-weight:800;color:var(--sub);letter-spacing:.02em}
-  label.fl{display:block;font-size:12px;color:var(--sub);margin:8px 0 3px;font-weight:700}
-  input,select,textarea{font-family:inherit;font-size:15px;border:1px solid var(--line);border-radius:6px;
-    padding:8px 10px;width:100%;background:#fff;color:var(--ink)}
+  .card h2{margin:0 0 10px;font-size:var(--f-title);font-weight:var(--w-bold);color:var(--ink);display:flex;align-items:center;gap:7px;flex-wrap:wrap}
+  .card.tight h2{font-size:var(--f-body);margin-bottom:8px}
+  .card h3{margin:14px 0 6px;font-size:var(--f-small);font-weight:var(--w-bold);color:var(--sub);letter-spacing:.02em}
+  label.fl{display:block;font-size:var(--f-small);color:var(--sub);margin:8px 0 3px;font-weight:var(--w-bold)}
+  input,select,textarea{font-family:inherit;font-size:var(--f-title);border:1px solid var(--line);border-radius:var(--r-sm);
+    padding:8px 10px;width:100%;background:var(--card);color:var(--ink)}
   input[type=checkbox]{width:auto}
   /* buttons（ピル形・プライマリ青 §11.4） */
-  button.btn{background:var(--pri);color:#fff;border:0;border-radius:99px;padding:9px 16px;font-size:14px;font-weight:800;cursor:pointer;letter-spacing:.02em}
+  button.btn{background:var(--pri);color:#fff;border:0;border-radius:var(--r-pill);padding:9px 16px;font-size:var(--f-body);font-weight:var(--w-bold);cursor:pointer;letter-spacing:.02em}
   button.btn:active{transform:translateY(1px)}
-  button.btn.sec{background:#fff;color:var(--prid);border:1.5px solid var(--pri)}
-  button.btn.gray{background:var(--panel);color:var(--ink)}
+  button.btn.sec{background:var(--card);color:var(--prid);border:1.5px solid var(--pri)}
+  button.btn.gray{background:var(--surface-2);color:var(--ink)}
   button.btn.danger{background:var(--red)}
   button.btn.gold{background:var(--dark);color:#fff}
-  button.btn.sm{padding:6px 12px;font-size:12px}
+  button.btn.sm{padding:6px 12px;font-size:var(--f-small)}
   button.btn.wide{width:100%;padding:12px}
   button.btn:disabled{opacity:.4;cursor:default}
   .row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
   .row.between{justify-content:space-between}
-  .muted{color:var(--sub);font-size:12px}
-  .tag{font-size:10px;padding:1px 6px;border-radius:5px;background:var(--panel);color:var(--sub);margin-left:4px;font-weight:700}
-  .pill{display:inline-block;background:var(--panel);color:var(--ink);border-radius:99px;padding:2px 9px;font-size:11px;font-weight:800}
-  .pill.f{background:#fdecea;color:var(--red)}
-  .pill.e1{background:#e6eef6;color:var(--blue)}
+  /* 頻出inline styleのクラス化（§11.10④）: 余白/伸縮/整列ユーティリティ */
+  .mt6{margin-top:6px}.mt8{margin-top:8px}.mt10{margin-top:10px}
+  .fx1{flex:1}
+  .tal{text-align:left}
+  .tagtie{background:var(--tie);color:#fff}
+  .hdrsel{background:rgba(255,255,255,.12);color:#fff;border:0;border-radius:var(--r-pill);padding:8px 10px;font-weight:var(--w-bold);width:auto;min-height:40px}
+  .muted{color:var(--sub);font-size:var(--f-small)}
+  .tag{font-size:var(--f-small);padding:1px 6px;border-radius:var(--r-sm);background:var(--surface-2);color:var(--sub);margin-left:4px;font-weight:var(--w-bold)}
+  .pill{display:inline-block;background:var(--surface-2);color:var(--ink);border-radius:var(--r-pill);padding:2px 9px;font-size:var(--f-small);font-weight:var(--w-bold)}
+  .pill.f{background:var(--danger-bg);color:var(--red)}
+  .pill.e1{background:var(--info-bg);color:var(--pri)}
   .pill.e2{background:#efe7f5;color:#7d3c98}
-  .empty{text-align:center;color:var(--sub);padding:30px 10px;font-size:13px}
+  .empty{text-align:center;color:var(--sub);padding:30px 10px;font-size:var(--f-body)}
   hr{border:0;border-top:1px solid var(--line);margin:12px 0}
   /* generic tables */
   table{border-collapse:collapse;width:100%;font-size:var(--f-body)}
   th,td{border:1px solid var(--line);padding:5px 6px;text-align:center}
-  th{background:var(--panel);color:var(--sub);font-weight:800;font-size:11px;letter-spacing:.03em}
+  th{background:var(--surface-2);color:var(--sub);font-weight:var(--w-bold);font-size:var(--f-small);letter-spacing:.03em}
   .scroll{overflow-x:auto;-webkit-overflow-scrolling:touch}
   /* leaderboard tables（3表共通の基礎デザイン＝濃色ヘッダ＋ゼブラ） */
   .lb th,.lb td{white-space:nowrap;vertical-align:middle}
-  .lb th{background:var(--dark);color:#fff;font-weight:700;font-size:11px;letter-spacing:.02em}
-  .lb tr:nth-child(2n+1) td{background:#f8fafb}
-  .lb .rank td{font-weight:600}
+  .lb th{background:var(--dark);color:#fff;font-weight:var(--w-bold);font-size:var(--f-small);letter-spacing:.02em}
+  .lb tr:nth-child(2n+1) td{background:var(--surface-1)}
+  .lb .rank td{font-weight:var(--w-med)}
   /* 順位＝プレーンな太字数字（§11.7・丸バッジ全廃）。1位のみ青字で最小限の強調 */
-  .rankno{font-weight:800;font-variant-numeric:tabular-nums;color:var(--ink);font-size:14px;line-height:1}
+  .rankno{font-weight:var(--w-bold);font-variant-numeric:tabular-nums;color:var(--ink);font-size:var(--f-body);line-height:1}
   .rankno.r1{color:var(--pri)}
-  .lb.big .rankno{font-size:16px}
+  .lb.big .rankno{font-size:var(--f-name)}
   .rank1 td{}
-  .hlrow td{background:#eef4fb !important}
-  .kanjibadge{display:inline-block;background:var(--blue);color:#fff;border-radius:5px;font-size:10px;padding:1px 6px;margin-left:6px;font-weight:800;letter-spacing:.02em}
+  .hlrow td{background:var(--hl-bg) !important}
+  .kanjibadge{display:inline-block;background:var(--pri);color:#fff;border-radius:var(--r-sm);font-size:var(--f-small);padding:1px 6px;margin-left:6px;font-weight:var(--w-bold);letter-spacing:.02em}
   .mask{color:#c3c9cf;letter-spacing:1px}
   /* score input grid (入力タブ) */
-  .scoregrid td input{width:38px;padding:5px 2px;text-align:center;border-radius:5px;font-size:14px}
+  .scoregrid td input{width:38px;padding:5px 2px;text-align:center;border-radius:var(--r-sm);font-size:var(--f-body)}
   .scoregrid th,.scoregrid td{padding:3px 3px;min-width:34px}
-  .scoregrid td.name{position:sticky;left:0;background:#fff;text-align:left;min-width:96px;font-weight:700;z-index:2;white-space:nowrap}
-  .scoregrid th.name{position:sticky;left:0;background:var(--panel);z-index:3;text-align:left;min-width:96px;white-space:nowrap}
-  .scoregrid .sum{background:var(--panel);font-weight:800}
-  .hidden-h{background:#fff7e6 !important}
+  .scoregrid td.name{position:sticky;left:0;background:var(--card);text-align:left;min-width:96px;font-weight:var(--w-bold);z-index:2;white-space:nowrap}
+  .scoregrid th.name{position:sticky;left:0;background:var(--surface-2);z-index:3;text-align:left;min-width:96px;white-space:nowrap}
+  .scoregrid .sum{background:var(--surface-2);font-weight:var(--w-bold)}
+  .hidden-h{background:var(--acc-bg) !important}
   /* game setup */
-  .seg{display:flex;border:1px solid var(--pri);border-radius:6px;overflow:hidden;margin:4px 0}
-  .seg button{flex:1;border:0;background:#fff;color:var(--prid);padding:7px;font-size:13px;font-weight:800;cursor:pointer}
+  .seg{display:flex;border:1px solid var(--pri);border-radius:var(--r-sm);overflow:hidden;margin:4px 0}
+  .seg button{flex:1;border:0;background:var(--card);color:var(--prid);padding:7px;font-size:var(--f-body);font-weight:var(--w-bold);cursor:pointer}
   .seg button.on{background:var(--pri);color:#fff}
   .fmtgrid{display:grid;grid-template-columns:1fr 1fr;gap:6px}
-  .fmtgrid label{display:flex;align-items:center;gap:6px;font-size:13px;background:var(--panel);padding:8px;border-radius:6px;cursor:pointer}
-  .holebtn{width:34px;height:34px;border-radius:6px;border:1px solid var(--line);background:#fff;margin:2px;font-size:13px;cursor:pointer;font-weight:700}
-  .holebtn.np{background:var(--blue);color:#fff;border-color:var(--blue)}
+  .fmtgrid label{display:flex;align-items:center;gap:6px;font-size:var(--f-body);background:var(--surface-2);padding:8px;border-radius:var(--r-sm);cursor:pointer}
+  .holebtn{width:34px;height:34px;border-radius:var(--r-sm);border:1px solid var(--line);background:var(--card);margin:2px;font-size:var(--f-body);cursor:pointer;font-weight:var(--w-bold)}
+  .holebtn.np{background:var(--pri);color:#fff;border-color:var(--pri)}
   .holebtn.dc{background:var(--red);color:#fff;border-color:var(--red)}
   .ptsedit input{width:78px;text-align:center;display:inline-block;padding:5px}
   .ptsrow{display:flex;align-items:center;justify-content:space-between;gap:8px;margin:5px 0}
-  .ptsrow span{font-size:13px}
-  details{border:1px solid var(--line);border-radius:6px;margin-bottom:10px;background:#fff}
-  details>summary{padding:11px 12px;font-weight:800;cursor:pointer;color:var(--ink);font-size:14px;list-style:none}
+  .ptsrow span{font-size:var(--f-body)}
+  details{border:1px solid var(--line);border-radius:var(--r-sm);margin-bottom:10px;background:var(--card)}
+  details>summary{padding:11px 12px;font-weight:var(--w-bold);cursor:pointer;color:var(--ink);font-size:var(--f-body);list-style:none}
   details>summary::-webkit-details-marker{display:none}
-  details>summary::before{content:"› ";color:var(--pri);font-weight:900}
+  details>summary::before{content:"› ";color:var(--pri);font-weight:var(--w-bold)}
   details[open]>summary::before{content:"⌄ ";}
-  details .in{padding:0 12px 12px;font-size:13px}
-  .rule{background:var(--panel);border:1px solid var(--line);border-left:3px solid var(--acc);border-radius:6px;padding:8px 10px;font-size:12px;color:var(--ink);margin:6px 0}
-  .prizewin{background:#fff;border:1px solid var(--line);border-top:3px solid var(--acc)}
-  .payoutcard{background:#fff;border:1px solid var(--line);border-top:3px solid var(--acc)}
-  .kanjicard{background:#fff;border:1px solid var(--line);border-top:3px solid var(--blue)}
-  .big{font-size:var(--f-hero);font-weight:900}
+  details .in{padding:0 12px 12px;font-size:var(--f-body)}
+  .rule{background:var(--surface-2);border:1px solid var(--line);border-left:3px solid var(--acc);border-radius:var(--r-sm);padding:8px 10px;font-size:var(--f-small);color:var(--ink);margin:6px 0}
+  .prizewin{background:var(--card);border:1px solid var(--line);border-top:3px solid var(--acc)}
+  .payoutcard{background:var(--card);border:1px solid var(--line);border-top:3px solid var(--acc)}
+  .kanjicard{background:var(--card);border:1px solid var(--line);border-top:3px solid var(--pri)}
+  .big{font-size:var(--f-hero);font-weight:var(--w-bold)}
   .toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:var(--dark);color:#fff;
-    padding:10px 18px;border-radius:99px;font-size:13px;z-index:50;opacity:0;transition:.3s;pointer-events:none}
+    padding:10px 18px;border-radius:var(--r-pill);font-size:var(--f-body);z-index:50;opacity:0;transition:.3s;pointer-events:none}
   .toast.show{opacity:.96}
   /* result sub-nav (pill tabs) */
   .result-sticky{position:sticky;top:50px;z-index:15;background:var(--bg);padding:8px 0 8px;margin:-4px 0 10px;box-shadow:0 8px 8px -8px rgba(0,0,0,.15)}
   .subtab4{display:flex;gap:6px}
-  .subtab4 button{flex:1;border:1px solid var(--line);background:#fff;color:var(--ink);padding:9px 2px;border-radius:99px;font-size:12.5px;font-weight:800;cursor:pointer;letter-spacing:.02em}
+  .subtab4 button{flex:1;border:1px solid var(--line);background:var(--card);color:var(--ink);padding:9px 2px;border-radius:var(--r-pill);font-size:var(--f-body);font-weight:var(--w-bold);cursor:pointer;letter-spacing:.02em}
   .subtab4 button.on{background:var(--dark);color:#fff;border-color:var(--dark)}
   /* reveal bar */
-  .reveal-bar{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:6px;background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:7px 9px}
-  .reveal-bar .hole{font-weight:900;color:var(--prid);font-size:15px}
+  .reveal-bar{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:6px;background:var(--surface-2);border:1px solid var(--line);border-radius:var(--r-sm);padding:7px 9px}
+  .reveal-bar .hole{font-weight:var(--w-bold);color:var(--prid);font-size:var(--f-title)}
   /* toggle chips + eye buttons */
   .cardtools{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin-bottom:7px}
-  .tgl{display:inline-flex;align-items:center;gap:5px;border:1px solid var(--line);border-radius:99px;padding:5px 11px;font-size:12px;cursor:pointer;background:#fff;font-weight:800}
+  .tgl{display:inline-flex;align-items:center;gap:5px;border:1px solid var(--line);border-radius:var(--r-pill);padding:5px 11px;font-size:var(--f-small);cursor:pointer;background:var(--card);font-weight:var(--w-bold)}
   .tgl.on{background:var(--pri);color:#fff;border-color:var(--pri)}
-  .tgl.off{background:#fdecea;color:var(--red);border-color:#f0c0ba}
-  .eyebtn{border:1px solid var(--line);background:#fff;border-radius:6px;padding:3px 6px;cursor:pointer;line-height:0;color:var(--sub)}
-  .eyebtn.on{background:#e8f2fa;border-color:var(--pri);color:var(--prid)}
-  .eyebtn.off{background:#fdecea;border-color:#f0c0ba;color:var(--red)}
+  .tgl.off{background:var(--danger-bg);color:var(--red);border-color:var(--danger-line)}
+  .eyebtn{border:1px solid var(--line);background:var(--card);border-radius:var(--r-sm);padding:3px 6px;cursor:pointer;line-height:0;color:var(--sub)}
+  .eyebtn.on{background:var(--info-bg);border-color:var(--pri);color:var(--prid)}
+  .eyebtn.off{background:var(--danger-bg);border-color:var(--danger-line);color:var(--red)}
   .ei{width:15px;height:15px;stroke:currentColor;stroke-width:2;fill:none;stroke-linecap:round;stroke-linejoin:round;display:block}
   .ic{width:15px;height:15px;stroke:var(--acc);stroke-width:2;fill:none;stroke-linecap:round;stroke-linejoin:round;vertical-align:-2px}
   /* rank-wrap ranking cards */
   .rank-wrap{display:flex;flex-wrap:wrap;gap:10px;align-items:flex-start;margin-bottom:12px}
   .rank-wrap>.card{flex:1 1 210px;min-width:190px;max-width:320px;margin-bottom:0}
   .rank-wrap>.card.wide{flex:1 1 320px;min-width:270px;max-width:480px}
-  .rank-wrap .lb{font-size:13px;table-layout:fixed;width:100%}
+  .rank-wrap .lb{font-size:var(--f-body);table-layout:fixed;width:100%}
   .rank-wrap .lb th,.rank-wrap .lb td{padding:6px 6px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;height:34px}
   .rank-wrap .lb .c-eye{width:40px;padding:2px}
   .rank-wrap .lb .c-pos{width:30px}
   .rank-wrap .lb .c-val{width:66px;text-align:right;padding-right:8px}
-  .rank-wrap .lb.big{font-size:15px}
+  .rank-wrap .lb.big{font-size:var(--f-title)}
   .rank-wrap .lb.big th,.rank-wrap .lb.big td{height:42px}
   .rank-wrap .lb.big .c-val{width:86px}
-  .rank-wrap .lb.big .nmc{font-size:var(--f-name);font-weight:800}
-  .rank-wrap .lb.big b{font-size:18px;font-weight:900;font-variant-numeric:tabular-nums}
-  .rank-wrap .lb .nmc{font-size:var(--f-name);font-weight:700}
+  .rank-wrap .lb.big .nmc{font-size:var(--f-name);font-weight:var(--w-bold)}
+  .rank-wrap .lb.big b{font-size:18px;font-weight:var(--w-bold);font-variant-numeric:tabular-nums}
+  .rank-wrap .lb .nmc{font-size:var(--f-name);font-weight:var(--w-bold)}
+  .lb td.nmc{text-align:left}
   .rank-wrap .lb b{font-variant-numeric:tabular-nums}
   h2.lbh{display:flex;justify-content:space-between;align-items:baseline;gap:8px;white-space:nowrap;overflow:hidden}
   h2.lbh>span:first-child{flex:0 0 auto}
-  .lbnote{font-size:11px;font-weight:700;color:var(--sub);overflow:hidden;text-overflow:ellipsis;min-width:0;white-space:nowrap}
+  .lbnote{font-size:var(--f-small);font-weight:var(--w-bold);color:var(--sub);overflow:hidden;text-overflow:ellipsis;min-width:0;white-space:nowrap}
   /* score card (共通スコア表) */
   .sc2{table-layout:fixed;width:100%;font-size:12px;border-collapse:collapse}
   .sc2 col.cnm{width:64px}
   .sc2 col.cs{width:34px}
-  .sc2 th,.sc2 td{padding:4px 0;border:1px solid var(--line);text-align:center;overflow:hidden;line-height:1.2;color:var(--ink);font-weight:600;height:24px}
-  .sc2 th{background:var(--dark);color:#fff;font-size:11px;font-weight:700}
-  .sc2 td.nm,.sc2 th.nm{text-align:left;font-weight:700;font-size:11.5px;white-space:nowrap;padding-left:5px;text-overflow:ellipsis}
+  .sc2 th,.sc2 td{padding:4px 0;border:1px solid var(--line);text-align:center;overflow:hidden;line-height:1.2;color:var(--ink);font-weight:var(--w-med);height:24px}
+  .sc2 th{background:var(--dark);color:#fff;font-size:11px;font-weight:var(--w-bold)}
+  .sc2 td.nm,.sc2 th.nm{text-align:left;font-weight:var(--w-bold);font-size:11.5px;white-space:nowrap;padding-left:5px;text-overflow:ellipsis}
   .sc2 th.nm{background:var(--dark);color:#fff}
-  .sc2 td.sub{background:#eaf6f0;font-weight:800}
-  .sc2 td.tot{background:#f2f5f7;font-weight:800}
-  .sc2 td.netc{background:#dff2e8;font-weight:900;color:#06522f}
+  .sc2 td.sub{background:var(--win-bg);font-weight:var(--w-bold)}
+  .sc2 td.tot{background:var(--surface-1);font-weight:var(--w-bold)}
+  .sc2 td.netc{background:var(--win-bg);font-weight:var(--w-bold);color:var(--win-ink)}
   .sc2 th.sub,.sc2 th.tot,.sc2 th.netc{background:var(--dark);color:#fff}   /* ヘッダは一律濃色＋白文字（薄背景で消えない） */
-  .sc2 .hh{background:#fff7e6}
+  .sc2 .hh{background:var(--acc-bg)}
   .sc2 th.hh{background:var(--dark);color:var(--acc)}   /* 隠しホールのヘッダ番号：濃紺背景＋アクセント黄で常に読める */
-  .sc2 .parr td{color:#4a5560;font-size:10px;font-weight:700}
-  .sc2 .tsum td{font-size:11px;background:#fbfcfc}
-  .sc2 .winc{background:#d5f5e3 !important;font-weight:900;color:var(--accd)}
+  .sc2 .parr td{color:var(--ink);font-size:10px;font-weight:var(--w-bold)}
+  .sc2 .tsum td{font-size:11px;background:var(--surface-1)}
+  .sc2 .winc{background:var(--win-bg) !important;font-weight:var(--w-bold);color:var(--win-ink)}
   @media(min-width:560px){ .sc2{font-size:14px} .sc2 col.cnm{width:82px} .sc2 col.cs{width:42px} .sc2 td.nm,.sc2 th.nm{font-size:13px} .sc2 th,.sc2 td{height:28px} }
   /* two-column (未使用でも保持) */
   .ind-split{display:flex;gap:12px;align-items:flex-start}
   .ind-left{flex:1 1 46%;min-width:0}
   .ind-right{flex:1 1 46%;min-width:0}
-  .chip{display:inline-flex;align-items:center;gap:4px;border:1px solid var(--line);border-radius:99px;padding:3px 9px;font-size:12px;margin:3px 4px 0 0;background:#fff;cursor:pointer;font-weight:700}
+  .chip{display:inline-flex;align-items:center;gap:4px;border:1px solid var(--line);border-radius:var(--r-pill);padding:3px 9px;font-size:12px;margin:3px 4px 0 0;background:var(--card);cursor:pointer;font-weight:var(--w-bold)}
   .chip.on{background:var(--pri);color:#fff;border-color:var(--pri)}
   @media(max-width:760px){ .ind-split{flex-direction:column} .ind-left,.ind-right{flex:1 1 auto;width:100%} }
   /* ルーレット対抗（9:16大画面投影前提・大きめ/省スペース） */
   .rlwrap .card{margin-bottom:10px;padding:12px}
-  .rl-stand{display:flex;align-items:center;gap:8px;flex-wrap:wrap;background:var(--dark);color:#fff;border-radius:10px;padding:8px 12px;margin-bottom:10px}
-  .rl-chip{border:2px solid var(--line);border-radius:99px;padding:3px 12px;font-size:15px;font-weight:800;background:#fff;color:var(--ink)}
-  .rl-prog{font-size:13px;font-weight:800;opacity:.8;margin-left:4px}
+  .rl-stand{display:flex;align-items:center;gap:8px;flex-wrap:wrap;background:var(--dark);color:#fff;border-radius:var(--r-md);padding:8px 12px;margin-bottom:10px}
+  .rl-chip{border:2px solid var(--line);border-radius:var(--r-pill);padding:3px 12px;font-size:var(--f-title);font-weight:var(--w-bold);background:var(--card);color:var(--ink)}
+  .rl-prog{font-size:var(--f-body);font-weight:var(--w-bold);opacity:.8;margin-left:4px}
   .rl-head{display:flex;align-items:baseline;gap:14px;margin-bottom:10px}
-  .rl-hole{font-size:48px;font-weight:900;line-height:1;color:var(--ink)}
-  .rl-hole small{font-size:16px;font-weight:800;color:var(--sub);margin-left:2px}
-  .rl-par{font-size:15px;color:var(--sub);font-weight:800}
+  .rl-hole{font-size:var(--f-rl-hole);font-weight:var(--w-bold);line-height:1;color:var(--ink)}
+  .rl-hole small{font-size:var(--f-name);font-weight:var(--w-bold);color:var(--sub);margin-left:2px}
+  .rl-par{font-size:var(--f-title);color:var(--sub);font-weight:var(--w-bold)}
   .rl-panels{display:flex;flex-wrap:wrap;gap:10px}
-  .rl-panel{flex:1 1 150px;min-width:140px;border:3px solid var(--line);border-radius:14px;padding:14px 10px;text-align:center;background:#fff}
-  /* 確定時の勝敗背景（#6）。機能色は緑/赤/橙固定（デザイントークンに依存させない） */
-  .rl-panel.win{background:#eafaf1;box-shadow:0 0 0 3px #12b866 inset}
-  .rl-panel.lose{background:#fdecea;box-shadow:0 0 0 3px #c0392b inset}
-  .rl-panel.tie{background:#fdf3d7;box-shadow:0 0 0 3px #d4a017 inset}
+  .rl-panel{flex:1 1 150px;min-width:140px;border:3px solid var(--line);border-radius:var(--r-md);padding:14px 10px;text-align:center;background:var(--card)}
+  /* 確定時の勝敗背景（#6）。機能色トークン（--win/--red/--tie）から導出＝意味は固定 */
+  .rl-panel.win{background:var(--win-bg);box-shadow:0 0 0 3px var(--win) inset}
+  .rl-panel.lose{background:var(--danger-bg);box-shadow:0 0 0 3px var(--red) inset}
+  .rl-panel.tie{background:var(--tie-bg);box-shadow:0 0 0 3px var(--tie) inset}
   /* 回転中のフラッシュ（#6）：今の候補で止まったら勝ち/負け/引分かをピカピカ予告 */
   @keyframes rlblink{from{filter:brightness(1)}to{filter:brightness(1.14)}}
-  .rl-panel.fwin{background:#c9f2dd;box-shadow:0 0 0 4px #12b866 inset;animation:rlblink .22s infinite alternate}
-  .rl-panel.flose{background:#fbd9d3;box-shadow:0 0 0 4px #c0392b inset;animation:rlblink .22s infinite alternate}
-  .rl-panel.ftie{background:#fdeec4;box-shadow:0 0 0 4px #d4a017 inset;animation:rlblink .22s infinite alternate}
-  .rl-team{font-size:14px;font-weight:800;letter-spacing:.03em}
-  .rl-name{font-size:30px;font-weight:900;margin:6px 0 2px;min-height:38px;line-height:1.1}
-  .rl-scorebig{font-size:44px;font-weight:900;color:var(--accd);line-height:1;min-height:46px;font-variant-numeric:tabular-nums}
-  .rl-ev{font-size:12px;color:var(--accd);font-weight:800;min-height:16px;margin-top:2px}
+  .rl-panel.fwin{background:var(--win-bg-strong);box-shadow:0 0 0 4px var(--win) inset;animation:rlblink .22s infinite alternate}
+  .rl-panel.flose{background:var(--danger-bg);box-shadow:0 0 0 4px var(--red) inset;animation:rlblink .22s infinite alternate}
+  .rl-panel.ftie{background:var(--tie-bg);box-shadow:0 0 0 4px var(--tie) inset;animation:rlblink .22s infinite alternate}
+  .rl-team{font-size:var(--f-body);font-weight:var(--w-bold);letter-spacing:.03em}
+  .rl-name{font-size:var(--f-rl-name);font-weight:var(--w-bold);margin:6px 0 2px;min-height:38px;line-height:1.1}
+  .rl-scorebig{font-size:var(--f-rl-score);font-weight:var(--w-bold);color:var(--win);line-height:1;min-height:46px;font-variant-numeric:tabular-nums}
+  .rl-ev{font-size:var(--f-small);color:var(--win);font-weight:var(--w-bold);min-height:16px;margin-top:2px}
   .rl-act{min-height:40px;display:flex;gap:6px;justify-content:center;align-items:center;flex-wrap:wrap;margin-top:6px}
-  .rl-act .btn{padding:7px 10px;font-size:12px}
+  .rl-act .btn{padding:7px 10px;font-size:var(--f-small)}
   .rl-ctrl{margin-top:12px}
-  .rl-info{text-align:center;font-weight:800;font-size:17px;min-height:24px;margin-bottom:8px}
-  .rl-main{font-size:20px;padding:16px}
+  .rl-info{text-align:center;font-weight:var(--w-bold);font-size:var(--f-name);min-height:24px;margin-bottom:8px}
+  .rl-main{font-size:var(--f-val);padding:16px}
   .rl-dev{margin-bottom:10px}
-  .sc2 .cur{background:#fff3cf !important;color:#12161c !important}   /* 現在ホール列：黄背景でも文字は黒に */
-  .sc2 th.cur{background:#f2d98a !important;color:#12161c !important}
-  .sc2 .adopt{outline:2px solid #5b6672;outline-offset:-2px;font-weight:900;color:#12161c !important}
-  .sc2 .rwin{background:#8fe0ad !important;font-weight:900;color:#06331d !important}   /* 勝ち：濃緑文字で高コントラスト */
-  .sc2 .rtie{background:#f6d792 !important;font-weight:900;color:#5a3d00 !important}   /* 引分：濃橙文字 */
+  .sc2 .cur{background:var(--acc-bg) !important;color:var(--dark) !important}   /* 現在ホール列：黄背景でも文字は黒に */
+  .sc2 th.cur{background:var(--acc-bg-strong) !important;color:var(--dark) !important}
+  .sc2 .adopt{outline:2px solid var(--sub);outline-offset:-2px;font-weight:var(--w-bold);color:var(--dark) !important}
+  .sc2 .rwin{background:var(--win-bg-strong) !important;font-weight:var(--w-bold);color:var(--win-ink) !important}   /* 勝ち：濃緑文字で高コントラスト */
+  .sc2 .rtie{background:var(--tie-bg) !important;font-weight:var(--w-bold);color:var(--tie-ink) !important}   /* 引分：濃橙文字 */
   .rlsc td.nm,.rlsc th.nm{width:72px}
   @media(min-width:820px){
+    :root{--f-rl-hole:66px;--f-rl-name:40px;--f-rl-score:64px}
     .rlwrap{max-width:900px;margin:0 auto}
-    .rl-hole{font-size:66px} .rl-name{font-size:40px;min-height:50px} .rl-scorebig{font-size:64px;min-height:66px}
+    .rl-name{min-height:50px} .rl-scorebig{min-height:66px}
     .rl-panel{flex:1 1 200px;padding:20px 14px} .rl-main{font-size:24px;padding:20px} .rl-chip{font-size:18px}
     .sc2.rlsc{font-size:15px}
   }
@@ -252,7 +273,8 @@
   /* iPad Pro 13" 縦持ち(幅1032pt)〜（§11.5）：タッチターゲット44pt＋中間フォントスケール＋main拡張 */
   @media(min-width:1024px){
     main{max-width:1200px}
-    :root{--f-hero:23px;--f-val:22px;--f-name:17px;--f-title:16px;--f-body:14px;--f-small:12px}
+    :root{--f-hero:23px;--f-val:22px;--f-name:17px;--f-title:16px;--f-body:14px;--f-small:12px;
+      --f-rl-hole:70px;--f-rl-name:44px;--f-rl-score:68px}
     input,select{min-height:44px}
     button.btn{min-height:44px}
     button.btn.sm{min-height:44px;padding:8px 14px;font-size:13px}
@@ -266,12 +288,11 @@
     .scoregrid th,.scoregrid td{min-width:46px}
     .scoregrid td input{width:52px;min-height:44px;font-size:17px;padding:9px 2px}
     .scoregrid td input:focus{outline:2px solid var(--pri);outline-offset:-1px}
-    /* ルーレットのiPad中間スケール＋タッチ44pt（§11.9） */
+    /* ルーレットのiPad中間スケール＋タッチ44pt（§11.9）: --f-rl-*は上の:rootで再定義 */
     .rlwrap{max-width:1100px}
-    .rl-hole{font-size:70px}
     .rl-panel{flex:1 1 220px;padding:22px 16px}
-    .rl-name{font-size:44px;min-height:54px}
-    .rl-scorebig{font-size:68px;min-height:72px}
+    .rl-name{min-height:54px}
+    .rl-scorebig{min-height:72px}
     .rl-chip{font-size:19px;min-height:44px;display:inline-flex;align-items:center}
     .rl-main{min-height:56px;font-size:25px;padding:16px}
     .rl-act .btn{min-height:44px;padding:9px 14px;font-size:13px}
@@ -286,26 +307,27 @@
     #view-result .rank-wrap>.card{flex:1 1 300px;max-width:440px}
     #view-result .rank-wrap>.card.wide{flex:1 1 440px;max-width:620px}
     /* ルーレット横持ち一段拡大（§11.9） */
+    :root{--f-rl-hole:76px;--f-rl-name:48px;--f-rl-score:76px}
     .rlwrap{max-width:1280px}
-    .rl-hole{font-size:76px}
-    .rl-name{font-size:48px;min-height:58px}
-    .rl-scorebig{font-size:76px;min-height:80px}
+    .rl-name{min-height:58px}
+    .rl-scorebig{min-height:80px}
     .rl-main{font-size:27px}
     .sc2.rlsc{font-size:17px}
   }
   /* ============ テーマB（NTT DATA寄せ・エアリー）＝差分のみ上書き（§11.8）。A=無属性=現行 ============ */
+  html[data-theme="b"]{--w-bold:700}   /* Bはボールドを1段軽く（フォントは400/600/700/800を読込済） */
   /* テーブルヘッダ: 白地＋ネイビー文字＋下ハイライン */
-  html[data-theme="b"] th{background:#fff;color:var(--dark);border-bottom:2px solid var(--dark)}
-  html[data-theme="b"] .lb th{background:#fff;color:var(--dark);font-weight:700;border-bottom:2px solid var(--dark)}
-  html[data-theme="b"] .sc2 th,html[data-theme="b"] .sc2 th.nm,html[data-theme="b"] .sc2 th.sub,html[data-theme="b"] .sc2 th.tot,html[data-theme="b"] .sc2 th.netc{background:#fff;color:var(--dark);border-bottom:2px solid var(--dark)}
-  html[data-theme="b"] .sc2 th.hh{background:#fff7e6;color:#8a6100;border-bottom:2px solid var(--dark)}   /* 白地では黄文字が沈むため淡黄地＋濃金 */
-  html[data-theme="b"] .lb tr:nth-child(2n+1) td{background:#fafbfc}
+  html[data-theme="b"] th{background:var(--card);color:var(--dark);border-bottom:2px solid var(--dark)}
+  html[data-theme="b"] .lb th{background:var(--card);color:var(--dark);font-weight:var(--w-bold);border-bottom:2px solid var(--dark)}
+  html[data-theme="b"] .sc2 th,html[data-theme="b"] .sc2 th.nm,html[data-theme="b"] .sc2 th.sub,html[data-theme="b"] .sc2 th.tot,html[data-theme="b"] .sc2 th.netc{background:var(--card);color:var(--dark);border-bottom:2px solid var(--dark)}
+  html[data-theme="b"] .sc2 th.hh{background:var(--acc-bg);color:var(--acc-ink);border-bottom:2px solid var(--dark)}   /* 白地では黄文字が沈むため淡黄地＋濃金 */
+  html[data-theme="b"] .lb tr:nth-child(2n+1) td{background:var(--surface-1)}
   /* 見出し: Noto Serif JP＋ハイライン区切り・余白拡張・フォント軽量化 */
-  html[data-theme="b"] body{font-weight:400}
+  html[data-theme="b"] body{font-weight:var(--w-reg)}
   html[data-theme="b"] .card{padding:18px 16px;box-shadow:none}
-  html[data-theme="b"] .card h2{font-family:"Noto Serif JP","Noto Serif",serif;font-weight:700;padding-bottom:8px;border-bottom:1px solid var(--line);margin-bottom:12px}
+  html[data-theme="b"] .card h2{font-family:"Noto Serif JP","Noto Serif",serif;font-weight:var(--w-bold);padding-bottom:8px;border-bottom:1px solid var(--line);margin-bottom:12px}
   html[data-theme="b"] .card.tight h2{margin-bottom:10px}
-  html[data-theme="b"] header h1{font-family:"Noto Serif JP","Noto Serif",serif;font-weight:700}
+  html[data-theme="b"] header h1{font-family:"Noto Serif JP","Noto Serif",serif;font-weight:var(--w-bold)}
   html[data-theme="b"] .card h3{letter-spacing:.06em}
   /* 機能色（勝敗の緑/橙・rwin/rtie/adopt/winc）はテーマ共通＝上書きしない */
   /* 投影(≥820px)はテーマBでも高コントラスト＝テーブルヘッダを濃色復帰（§11.8） */
@@ -324,13 +346,11 @@
       <div class="gamename" id="hdrGame">— ゲーム未選択 —</div>
     </div>
     <div class="row" style="gap:6px;flex-wrap:nowrap">
-      <select id="themeSel" onchange="setTheme(this.value)" data-i18n-title="theme.label"
-              style="background:rgba(255,255,255,.12);color:#fff;border:0;border-radius:99px;padding:8px 10px;font-weight:700;width:auto;min-height:40px">
+      <select id="themeSel" onchange="setTheme(this.value)" data-i18n-title="theme.label" class="hdrsel">
         <option value="a" data-i18n="theme.a">スコアボード</option>
         <option value="b" data-i18n="theme.b">コーポレート</option>
       </select>
-      <select id="langSel" onchange="setLang(this.value)" aria-label="Language"
-              style="background:rgba(255,255,255,.12);color:#fff;border:0;border-radius:99px;padding:8px 10px;font-weight:700;width:auto;min-height:40px">
+      <select id="langSel" onchange="setLang(this.value)" aria-label="Language" class="hdrsel">
         <option value="ja">日本語</option>
         <option value="zh">中文</option>
         <option value="en">EN</option>
@@ -760,15 +780,15 @@ function renderPlayers(){
         <input id="pName" placeholder="${t('player.phName')}" style="flex:2;min-width:140px">
         <div style="flex:1;min-width:90px"><select id="pGender"><option value="M">${t('player.male')}</option><option value="F">${t('player.female')}</option></select></div>
       </div>
-      <div class="row" style="margin-top:8px">
+      <div class="row" class="mt8">
         <div style="flex:1;min-width:150px"><label class="fl">${t('player.hdcpType')}</label><select id="pEvery"><option value="none">${t('every.none')}</option><option value="every1">${t('term.every1')}</option><option value="every2">${t('term.every2')}</option></select></div>
         <div style="flex:1;min-width:150px"><label class="fl">${t('player.birth')}</label><input type="date" id="pBirth"></div>
       </div>
-      <div class="row" style="margin-top:8px">
+      <div class="row" class="mt8">
         <label style="display:flex;align-items:center;gap:6px;font-size:13px"><input type="checkbox" id="pKanji"> ${t('player.kanjiChk')}</label>
       </div>
-      <button class="btn wide" style="margin-top:10px" onclick="addPlayer()">${t('player.addBtn')}</button>
-      <div class="muted" style="margin-top:6px">${t('player.note')}</div>
+      <button class="btn wide" class="mt10" onclick="addPlayer()">${t('player.addBtn')}</button>
+      <div class="muted" class="mt6">${t('player.note')}</div>
     </div>
     <div class="card">
       <h2>${t('player.registered',{n:state.players.length})}</h2>
@@ -789,7 +809,7 @@ function renderPlayers(){
     <div class="card">
       <h2>${t('backup.title')}</h2>
       <div class="muted">${t('backup.note')}</div>
-      <div class="row" style="margin-top:8px">
+      <div class="row" class="mt8">
         <button class="btn sec" onclick="exportData()">${t('backup.export')}</button>
         <label class="btn sec" style="cursor:pointer">${t('backup.import')}<input type="file" accept="application/json" style="display:none" onchange="importData(this)"></label>
       </div>
@@ -819,7 +839,7 @@ function renderGame(){
   const el=document.getElementById('view-game');
   let html = `<div class="card"><h2>${t('game.title')}</h2>
     <div class="row between">
-      <select id="gameSel" onchange="selectGame(this.value)" style="flex:1">
+      <select id="gameSel" onchange="selectGame(this.value)" class="fx1">
         <option value="">${t('game.selectPh')}</option>
         ${state.games.map(g=>`<option value="${g.id}" ${g.id===state.currentGameId?'selected':''}>${esc(g.name)} (${g.date})</option>`).join('')}
       </select>
@@ -831,9 +851,9 @@ function renderGame(){
 
   html += `<div class="card"><h2>${t('game.basic')}</h2>
     <label class="fl">${t('game.compeName')}</label><input value="${esc(g.name)}" onchange="setG('name',this.value)">
-    <div class="row"><div style="flex:1"><label class="fl">${t('game.date')}</label><input type="date" value="${g.date}" onchange="setG('date',this.value)"></div>
-    <div style="flex:1"><label class="fl">${t('game.course')}</label><input value="${esc(g.course)}" placeholder="${t('game.coursePh')}" onchange="setG('course',this.value)"></div></div>
-    <div class="row" style="margin-top:10px">
+    <div class="row"><div class="fx1"><label class="fl">${t('game.date')}</label><input type="date" value="${g.date}" onchange="setG('date',this.value)"></div>
+    <div class="fx1"><label class="fl">${t('game.course')}</label><input value="${esc(g.course)}" placeholder="${t('game.coursePh')}" onchange="setG('course',this.value)"></div></div>
+    <div class="row" class="mt10">
       <button class="btn danger sm" onclick="deleteGame()">${t('game.deleteBtn')}</button>
       <button class="btn gray sm" onclick="dupGame()">${t('btn.dup')}</button>
     </div>
@@ -851,13 +871,13 @@ function renderGame(){
   html += `<div class="card"><h2>${t('game.periaCard')}</h2>
     <div class="muted">${t('game.periaFormula')}</div>
     <div class="row">
-      <div style="flex:1"><label class="fl">${t('game.coef')}</label><input type="number" step="0.05" value="${g.periaCoef}" onchange="setG('periaCoef',parseFloat(this.value))"></div>
-      <div style="flex:1"><label class="fl">${t('game.cap')}</label><input type="number" step="1" value="${g.periaCap??''}" placeholder="${t('game.capPh')}" onchange="setCap(this.value)"></div>
+      <div class="fx1"><label class="fl">${t('game.coef')}</label><input type="number" step="0.05" value="${g.periaCoef}" onchange="setG('periaCoef',parseFloat(this.value))"></div>
+      <div class="fx1"><label class="fl">${t('game.cap')}</label><input type="number" step="1" value="${g.periaCap??''}" placeholder="${t('game.capPh')}" onchange="setCap(this.value)"></div>
     </div></div>`;
 
   html += `<div class="card"><h2>${t('game.everyCard')}</h2>
     <label style="display:flex;gap:8px;align-items:center;font-size:14px"><input type="checkbox" ${g.womenEvery.enabled?'checked':''} onchange="setWE(this.checked)"> ${t('game.everyApply')}</label>
-    <div class="muted" style="margin-top:6px">${t('game.everyNote')}</div></div>`;
+    <div class="muted" class="mt6">${t('game.everyNote')}</div></div>`;
 
   html += `<div class="card"><h2>${t('game.partsCard')}</h2>
     ${state.players.length? state.players.map(p=>`<span class="chip ${g.participants.includes(p.id)?'on':''}" onclick="toggleParticipant('${p.id}')">${esc(p.name)}${p.everyType!=='none'?' '+everyLabel(p.everyType):''}</span>`).join('')
@@ -868,20 +888,20 @@ function renderGame(){
     <div class="row"><button class="btn sec sm" onclick="addTeam()">${t('game.addTeam')}</button>
       <button class="btn gray sm" onclick="autoTeams(2)">${t('game.auto2')}</button>
       <button class="btn gray sm" onclick="autoTeams(3)">${t('game.auto3')}</button></div>
-    ${g.teams.map(t=>`<div style="border:1px solid var(--line);border-radius:10px;padding:10px;margin-top:8px">
-      <div class="row between"><input value="${esc(t.name)}" onchange="setTeamName('${t.id}',this.value)" style="flex:1;font-weight:700">
+    ${g.teams.map(t=>`<div style="border:1px solid var(--line);border-radius:var(--r-md);padding:10px;margin-top:8px">
+      <div class="row between"><input value="${esc(t.name)}" onchange="setTeamName('${t.id}',this.value)" style="flex:1;font-weight:var(--w-bold)">
         <button class="btn sm danger" onclick="delTeam('${t.id}')">×</button></div>
-      <div style="margin-top:6px">${g.participants.map(pid=>{const p=state.players.find(x=>x.id===pid);if(!p)return'';
+      <div class="mt6">${g.participants.map(pid=>{const p=state.players.find(x=>x.id===pid);if(!p)return'';
         return `<span class="chip ${t.memberIds.includes(pid)?'on':''}" onclick="toggleTeamMember('${t.id}','${pid}')">${esc(p.name)}</span>`}).join('')}</div>
     </div>`).join('') || `<div class="muted">${t('game.teamEmpty')}</div>`}
   </div>`;
 
   html += `<div class="card"><h2>${t('game.npdcCard')}</h2>
     <div class="muted">${t('game.npdcNote')}</div>
-    <div style="margin-top:6px">${g.par.map((_,i)=>{
+    <div class="mt6">${g.par.map((_,i)=>{
       const np=g.prizes.niapinHoles.includes(i), dc=g.prizes.draconHoles.includes(i);
       return `<button class="holebtn ${np?'np':''} ${dc?'dc':''}" onclick="cyclePrize(${i})">${i+1}</button>`}).join('')}</div>
-    <div class="muted" style="margin-top:6px">${t('game.npdcLocal')}</div></div>`;
+    <div class="muted" class="mt6">${t('game.npdcLocal')}</div></div>`;
 
   const F=g.formats;
   const fchk=(k,label)=>`<label><input type="checkbox" ${F[k]?'checked':''} onchange="setFmt('${k}',this.checked)"> ${label}</label>`;
@@ -895,9 +915,9 @@ function renderGame(){
 
   html += `<div class="card"><h2>${t('game.rlCard')}</h2>
     <div class="muted">${t('game.rlNote')}</div>
-    <div class="row" style="margin-top:8px">
-      <div style="flex:1"><label class="fl">${t('game.rlChangeN')}</label><input type="number" min="0" max="9" value="${g.roulette.changeN}" onchange="setRoulette('changeN',this.value)"></div>
-      <div style="flex:1"><label class="fl">${t('game.rlChallengeM')}</label><input type="number" min="0" max="9" value="${g.roulette.challengeM}" onchange="setRoulette('challengeM',this.value)"></div>
+    <div class="row" class="mt8">
+      <div class="fx1"><label class="fl">${t('game.rlChangeN')}</label><input type="number" min="0" max="9" value="${g.roulette.changeN}" onchange="setRoulette('changeN',this.value)"></div>
+      <div class="fx1"><label class="fl">${t('game.rlChallengeM')}</label><input type="number" min="0" max="9" value="${g.roulette.challengeM}" onchange="setRoulette('challengeM',this.value)"></div>
     </div></div>`;
 
   // Points / prize pool
@@ -919,7 +939,7 @@ function renderGame(){
     <hr>
     <label class="fl">${t('game.pool')}</label>
     <input type="number" value="${g.prizePool||0}" placeholder="${t('game.poolPh')}" onchange="setG('prizePool',parseInt(this.value)||0)">
-    <div class="muted" style="margin-top:6px">${t('game.poolNote')}</div>
+    <div class="muted" class="mt6">${t('game.poolNote')}</div>
   </div>`;
 
   html += hostMenuCard();
@@ -930,7 +950,7 @@ function hostMenuCard(){
   return `<details><summary>${t('host.summary')}</summary><div class="in">
     <div class="muted" style="margin-bottom:8px">${t('host.note')}</div>
     <button class="btn gold sm" onclick="seedTestData()">${t('host.seedBtn')}</button>
-    <div class="muted" style="margin-top:6px">${t('host.seedNote')}</div>
+    <div class="muted" class="mt6">${t('host.seedNote')}</div>
   </div></details>`;
 }
 function setG(k,v){ const g=curGame(); g[k]=v; save(); if(k==='name'||k==='date'||k==='course')render(); }
@@ -983,7 +1003,7 @@ function renderScore(){
   if(!g.participants.length){ el.innerHTML=`<div class="empty">${t('score.pickParts')}</div>`; return; }
   let html=`<div class="card"><h2>${t('score.title')}</h2>
     <div class="muted">${t('score.note')}</div>
-    <div class="row" style="margin-top:8px"><button class="btn sec sm" onclick="fillRandomScores()">${t('score.fillRandom')}</button>
+    <div class="row" class="mt8"><button class="btn sec sm" onclick="fillRandomScores()">${t('score.fillRandom')}</button>
       <button class="btn gray sm" onclick="clearScores()">${t('score.clearBtn')}</button></div>
   </div>`;
   html+=`<div class="card"><div class="scroll"><table class="scoregrid">
@@ -1017,8 +1037,8 @@ function clearScores(){ const g=curGame(); if(!g)return; if(!confirm(t('confirm.
 function allComplete(g){ const parts=g.participants.filter(pid=>state.players.find(x=>x.id===pid));
   return parts.length>0 && parts.every(pid=>complete(g,pid)); }
 function statusBadge(g){ return allComplete(g)
-  ? `<span class="tag" style="background:#186a3b;color:#fff">${t('status.fixed')}</span>`
-  : `<span class="tag" style="background:#d4ac0d;color:#fff">${t('status.prov')}</span>`; }
+  ? `<span class="tag" style="background:var(--win-ink);color:#fff">${t('status.fixed')}</span>`
+  : `<span class="tag tagtie">${t('status.prov')}</span>`; }
 
 /* ============================ TEST DATA ============================ */
 function seedTestData(){
@@ -1215,7 +1235,7 @@ function renderResult(){
   const parts=g0.participants.filter(pid=>state.players.find(x=>x.id===pid));
   if(!parts.length){ el.innerHTML=`<div class="empty">${t('result.noParts')}</div>`; return; }
   const g=viewGame(g0);   // 開封済みホールのみ反映
-  const partial = revealHoles<18 ? `<span class="tag" style="background:#d4ac0d;color:#fff">${revealHoles}/18H</span>` : '';
+  const partial = revealHoles<18 ? `<span class="tag tagtie">${revealHoles}/18H</span>` : '';
   let sticky=`<div class="result-sticky"><div class="subtab4">
       <button class="${resultSub==='prize'?'on':''}" onclick="setResultSub('prize')">${t('result.sub.prize')}</button>
       <button class="${resultSub==='ind'?'on':''}" onclick="setResultSub('ind')">${t('result.sub.ind')}</button>
@@ -1238,9 +1258,9 @@ function renderStanding(g, parts){
   const prows=parts.map(pid=>({pid,pt:pts[pid]||0,yen:payout[pid]||0})).sort((a,b)=>b.pt-a.pt);
   return `<div class="card payoutcard"><h2>${t('standing.title')} ${statusBadge(g)}</h2>
     <div class="muted">${t('standing.total',{t:total})}${pool?t('standing.poolNote',{p:pool.toLocaleString()}):t('standing.noPool')}。${revealHoles<18?t('standing.revealNote',{n:revealHoles}):t('standing.autoNote')}</div>
-    <table class="lb" style="margin-top:6px"><tr><th>${t('col.rank')}</th><th>${t('col.player')}</th><th>${t('col.points')}</th>${pool?`<th>${t('col.payout')}</th>`:''}</tr>
+    <table class="lb" class="mt6"><tr><th>${t('col.rank')}</th><th>${t('col.player')}</th><th>${t('col.points')}</th>${pool?`<th>${t('col.payout')}</th>`:''}</tr>
     ${prows.map((r,i)=>{const p=state.players.find(x=>x.id===r.pid);
-      return `<tr class="rank ${i===0&&r.pt>0?'rank1':''}"><td>${r.pt>0?(i+1):'-'}</td><td style="text-align:left">${esc(p.name)}</td><td><b>${r.pt}</b>pt</td>${pool?`<td><b>¥${r.yen.toLocaleString()}</b></td>`:''}</tr>`}).join('')}
+      return `<tr class="rank ${i===0&&r.pt>0?'rank1':''}"><td>${r.pt>0?(i+1):'-'}</td><td class="tal">${esc(p.name)}</td><td><b>${r.pt}</b>pt</td>${pool?`<td><b>¥${r.yen.toLocaleString()}</b></td>`:''}</tr>`}).join('')}
     </table></div>`;
 }
 
@@ -1249,8 +1269,8 @@ function renderIndividual(g, parts){
   const F=g.formats;
   const done=parts.filter(pid=>complete(g,pid)).length;
   const banner = allComplete(g)
-    ? `<div class="card" style="background:#eafaf1">${t('ind.finalBanner',{N:parts.length})}</div>`
-    : `<div class="card" style="background:#fef9e7">${t('ind.provBanner',{n:done,N:parts.length,rev:revealHoles<18?t('ind.revealing',{h:revealHoles}):''})}</div>`;
+    ? `<div class="card" style="background:var(--win-bg)">${t('ind.finalBanner',{N:parts.length})}</div>`
+    : `<div class="card" style="background:var(--acc-bg)">${t('ind.provBanner',{n:done,N:parts.length,rev:revealHoles<18?t('ind.revealing',{h:revealHoles}):''})}</div>`;
   // 次回幹事（ネットで決定）：バッジをネット順位の2位/ブービー行に表示（タイトル横の注記は廃止）
   const nk=nextKanji(g); const hl={};
   if(nk){ hl[nk.nikai]=t('term.organizer'); hl[nk.booby]=t('term.organizer'); }
@@ -1266,7 +1286,7 @@ function renderIndividual(g, parts){
 
   const scorecard = renderScorecard(g,parts,null);
   return banner + scorecard + `<div class="rank-wrap">${cards}</div>
-    <details style="margin-top:10px"><summary>${t('rule.summary')}</summary><div class="in">
+    <details class="mt10"><summary>${t('rule.summary')}</summary><div class="in">
       <div class="rule">${t('rule.net')}</div>
       <div class="rule">${t('rule.gross')}</div>
       <div class="rule">${t('rule.stableford')}</div>
@@ -1300,7 +1320,7 @@ function renderScorecard(g, parts, teams){
     const winAt=[]; for(let i=0;i<18;i++){const tot=teams.map(t=>tAt(t,i));const val=tot.filter(v=>v!=null);winAt.push(val.length?tot.map((v,ti)=>v===Math.min(...val)?ti:-1).filter(x=>x>=0):[]);}
     const won=teams.map((_,ti)=>{let w=0;winAt.forEach(ws=>{if(ws.includes(ti))w+=1/ws.length;});return w;});
     teams.forEach((tm,ti)=>{ const col=colorOf(tm.name);
-      body+=`<tr><td class="nm" colspan="24" style="background:${col};color:#fff;font-weight:800;text-align:left">${esc(tm.name)}</td></tr>`;
+      body+=`<tr><td class="nm" colspan="24" style="background:${col};color:#fff;font-weight:var(--w-bold);text-align:left">${esc(tm.name)}</td></tr>`;
       tm.memberIds.forEach(pid=>{ if(state.players.find(x=>x.id===pid)) body+=pRow(pid); });
       const tCell=(i)=>{ if(!show.totals) return '<td><span class="mask">·</span></td>';   // 合計値OFFなら値も色も隠す
         const s=tm.memberIds.reduce((a,pid)=>a+(adjHole(g,pid,i)||0),0); return `<td class="${winAt[i].includes(ti)?'winc':''}">${s||''}</td>`;};
@@ -1308,14 +1328,14 @@ function renderScorecard(g, parts, teams){
       const tNet=Math.round(tm.memberIds.reduce((a,pid)=>a+netScore(g,pid),0)*10)/10;
       const tOut=tm.memberIds.reduce((a,pid)=>a+sum(adjArr(g,pid),0,9),0);
       const tIn=tm.memberIds.reduce((a,pid)=>a+sum(adjArr(g,pid),9,18),0);
-      body+=`<tr class="parr tsum"><td class="nm" style="color:${col};font-weight:800">${t('col.total')}</td>${F9.map(i=>tCell(i)).join('')}<td class="sub">${MT(tOut||'')}</td>${B9.map(i=>tCell(i)).join('')}<td class="sub">${MT(tIn||'')}</td><td class="tot">${MT(tGross||'')}</td><td class="tot">-</td><td class="netc">${MT(tNet||'')}</td></tr>`;
+      body+=`<tr class="parr tsum"><td class="nm" style="color:${col};font-weight:var(--w-bold)">${t('col.total')}</td>${F9.map(i=>tCell(i)).join('')}<td class="sub">${MT(tOut||'')}</td>${B9.map(i=>tCell(i)).join('')}<td class="sub">${MT(tIn||'')}</td><td class="tot">${MT(tGross||'')}</td><td class="tot">-</td><td class="netc">${MT(tNet||'')}</td></tr>`;
     });
     note=t('sc.noteTeam');
   } else {
     body=parts.map(pid=>pRow(pid)).join('');
     note=t('sc.noteHidden');
   }
-  return `<div class="card"><h2 class="lbh"><span>${t('sc.title')}${teams?t('sc.teamSuffix'):''} <span class="tag" style="background:#d4ac0d;color:#fff">${n>=18?t('sc.allHoles'):n+'/18H'}</span></span>
+  return `<div class="card"><h2 class="lbh"><span>${t('sc.title')}${teams?t('sc.teamSuffix'):''} <span class="tag tagtie">${n>=18?t('sc.allHoles'):n+'/18H'}</span></span>
       <span class="tgl ${show.totals?'on':'off'}" onclick="toggleShow('totals')">${t('sc.totalsTgl')} ${show.totals?t('btn.show'):t('btn.hide')}</span></h2>
     <div class="reveal-bar">
       <button class="btn gray sm" onclick="resetHoles()" ${n<=0?'disabled':''}>${t('btn.reset')}</button>
@@ -1323,8 +1343,8 @@ function renderScorecard(g, parts, teams){
       <button class="btn gold sm" onclick="openNextHole()" ${n>=18?'disabled':''}>${t('sc.next')}</button>
       <button class="btn gray sm" onclick="openAllHoles()" ${n>=18?'disabled':''}>${t('btn.all')}</button>
     </div>
-    <table class="sc2" style="margin-top:8px">${SC_COLGROUP}${head}${parRow}${body}</table>
-    <div class="muted" style="margin-top:6px">${note} ${t('sc.noteCols')}${n<18?t('sc.noteOpen'):''}</div>
+    <table class="sc2" class="mt8">${SC_COLGROUP}${head}${parRow}${body}</table>
+    <div class="muted" class="mt6">${note} ${t('sc.noteCols')}${n<18?t('sc.noteOpen'):''}</div>
   </div>`;
 }
 
@@ -1339,7 +1359,7 @@ function rankCardNS(title, pids, valFn, dir, fmt, table, hlMap){
     ${rows.map(r=>{ const hb=hlMap&&hlMap[r.pid]; const m=nsMasked(table,r.pid);
       const nm = m ? '<span class="mask">※※※</span>' : nameOf(r.pid);
       const sv = m ? '<span class="mask">？</span>' : `<b>${fmt(r.v)}</b>`;
-      return `<tr class="rank ${hb?'hlrow':''}"><td class="c-eye"><button class="eyebtn ${m?'off':'on'}" onclick="toggleNSRow('${table}','${r.pid}')">${m?EYEOFF:EYE}</button></td><td class="c-pos">${posBadge(r.rank,r.rank===1)}</td><td class="nmc" style="text-align:left">${nm}${hb?`<span class="kanjibadge">${hb}</span>`:''}</td><td class="c-val">${sv}</td></tr>`; }).join('')}</table>`;
+      return `<tr class="rank ${hb?'hlrow':''}"><td class="c-eye"><button class="eyebtn ${m?'off':'on'}" onclick="toggleNSRow('${table}','${r.pid}')">${m?EYEOFF:EYE}</button></td><td class="c-pos">${posBadge(r.rank,r.rank===1)}</td><td class="nmc">${nm}${hb?`<span class="kanjibadge">${hb}</span>`:''}</td><td class="c-val">${sv}</td></tr>`; }).join('')}</table>`;
   return `<div class="card tight wide"><h2 class="lbh"><span>${title}</span></h2>${tools}${body}</div>`;
 }
 
@@ -1454,10 +1474,10 @@ function rlScorecard(g){
   const parRow=`<tr class="parr"><td class="nm">Par</td>${cols.map(i=>`<td class="${i===h?'cur':''} ${g.hidden[i]?'hh':''}">${g.par[i]}</td>`).join('')}</tr>`;
   let body='';
   teams.forEach(t=>{ const col=rColor(t.name);
-    body+=`<tr><td class="nm" colspan="19" style="background:${col};color:#fff;text-align:left;font-weight:800">${esc(t.name)}</td></tr>`;
+    body+=`<tr><td class="nm" colspan="19" style="background:${col};color:#fff;text-align:left;font-weight:var(--w-bold)">${esc(t.name)}</td></tr>`;
     t.memberIds.forEach(pid=>{ const p=state.players.find(x=>x.id===pid); if(!p)return; const av=adjArr(g,pid); const mm=mark[pid]||{};
       body+=`<tr><td class="nm">${esc(p.name)}</td>${cols.map(i=>`<td class="${i===h?'cur':''} ${g.hidden[i]?'hh':''} ${mm[i]||''}">${av[i]??''}</td>`).join('')}</tr>`; }); });
-  return `<div class="card"><h2>${t('sc.title')} <span class="muted" style="font-weight:600;font-size:11px">${t('rl.legend')}</span></h2>
+  return `<div class="card"><h2>${t('sc.title')} <span class="muted" style="font-weight:var(--w-med);font-size:11px">${t('rl.legend')}</span></h2>
     <div class="scroll"><table class="sc2 rlsc">${cg}${head}${parRow}${body}</table></div></div>`;
 }
 
@@ -1505,7 +1525,7 @@ function renderRouletteTab(g){
   else if(!drawn) mainBtn=`<button class="btn wide rl-main" onclick="rlStartInitial()">${t('rl.start')}</button>`;
   else mainBtn=`<button class="btn wide rl-main" ${rlCanAdvance(g)?'':'disabled'} onclick="rlNextHole()">${t('rl.confirmNext')}</button>`;
   const devMenu=`<details class="rl-dev"><summary>${t('rl.dev')}</summary><div class="in">
-    ${teams.map(tm=>`<div class="row between" style="margin:3px 0"><span style="color:${rColor(tm.name)};font-weight:800;min-width:64px">${esc(tm.name)}</span>
+    ${teams.map(tm=>`<div class="row between" style="margin:3px 0"><span style="color:${rColor(tm.name)};font-weight:var(--w-bold);min-width:64px">${esc(tm.name)}</span>
       <select style="flex:1;max-width:52%" onchange="rlForceRep('${tm.id}',this.value)"><option value="">${t('rl.pickRep')}</option>${tm.memberIds.map(pid=>{const p=state.players.find(x=>x.id===pid);return `<option value="${pid}" ${reps[tm.id]===pid?'selected':''}>${esc(p&&p.name)}</option>`}).join('')}</select></div>`).join('')}
     <hr>${teams.map(tm=>`<div class="row between" style="margin:2px 0"><span style="color:${rColor(tm.name)};min-width:64px">${esc(tm.name)}</span><span><button class="btn gray sm" onclick="rlRefund('${tm.id}','change')">${t('rl.refundChange',{n:R.remChange[tm.id]||0})}</button> <button class="btn gray sm" onclick="rlRefund('${tm.id}','challenge')">${t('rl.refundChallenge',{n:R.remChallenge[tm.id]||0})}</button></span></div>`).join('')}
   </div></details>`;
@@ -1533,7 +1553,7 @@ function leaderboard(title, pids, valFn, dir, fmt, note, key, hlMap, big){
   const nameOf=pid=>{const p=state.players.find(x=>x.id===pid);return esc(p&&p.name);};
   const body=`<table class="lb ${big?'big':''}"><tr><th class="c-pos">${t('col.rank')}</th><th>${t('col.player')}</th><th class="c-val">${dir==='asc'?t('col.score'):t('col.pts')}</th></tr>
     ${rows.map(r=>{ const hb=hlMap&&hlMap[r.pid];
-      return `<tr class="rank ${hb?'hlrow':''}"><td class="c-pos">${posBadge(r.rank,r.rank===1)}</td><td class="nmc" style="text-align:left">${nameOf(r.pid)}${hb?`<span class="kanjibadge">${hb}</span>`:''}</td><td class="c-val"><b>${fmt(r.v)}</b></td></tr>`; }).join('')}</table>`;
+      return `<tr class="rank ${hb?'hlrow':''}"><td class="c-pos">${posBadge(r.rank,r.rank===1)}</td><td class="nmc">${nameOf(r.pid)}${hb?`<span class="kanjibadge">${hb}</span>`:''}</td><td class="c-val"><b>${fmt(r.v)}</b></td></tr>`; }).join('')}</table>`;
   return `<div class="card tight ${big?'wide':''}"><h2 class="lbh"><span>${title}</span>${note?`<span class="lbnote">${note}</span>`:''}</h2>${body}</div>`;
 }
 
@@ -1550,7 +1570,7 @@ function renderPrizes(g){
       <select style="flex:1;max-width:60%" onchange="setPrize('niapinWinner',${h},this.value)">${opts(P.niapinWinner[h])}</select></div>`; }); }
   if(P.draconHoles.length){ html+=`<h3>${t('term.dracon')}</h3>`;
     P.draconHoles.slice().sort((a,b)=>a-b).forEach(h=>{ html+=`<div class="row between" style="margin:4px 0">
-      <span class="pill f" style="background:#fadbd8;color:#c0392b">${h+1}H</span>
+      <span class="pill f" style="background:var(--danger-bg);color:var(--red)">${h+1}H</span>
       <select style="flex:1;max-width:60%" onchange="setPrize('draconWinner',${h},this.value)">${opts(P.draconWinner[h])}</select></div>`; }); }
   html+=`</div>`; return html;
 }
@@ -1568,7 +1588,7 @@ function renderTeams(g){
       ${rows.map((r,i)=>{ const m=tgMasked(key,r.t.id);
         const nm = m ? '<span class="mask">？？？</span>' : esc(r.t.name);
         const val = m ? '<span class="mask">？</span>' : `<b>${Math.round(r.v*10)/10}</b>`;
-        return `<tr class="rank"><td class="c-eye"><button class="eyebtn ${m?'off':'on'}" onclick="toggleTgRow('${key}','${r.t.id}')">${m?EYEOFF:EYE}</button></td><td class="c-pos">${posBadge(i+1,i===0)}</td><td class="nmc" style="text-align:left">${nm}</td><td class="c-val">${val}</td></tr>`; }).join('')}</table></div>`; };
+        return `<tr class="rank"><td class="c-eye"><button class="eyebtn ${m?'off':'on'}" onclick="toggleTgRow('${key}','${r.t.id}')">${m?EYEOFF:EYE}</button></td><td class="c-pos">${posBadge(i+1,i===0)}</td><td class="nmc">${nm}</td><td class="c-val">${val}</td></tr>`; }).join('')}</table></div>`; };
   let out='';
   if(F.teamGross) out+=card('teamGross',t('term.teamGross'),teamGross,'asc',t('team.noteLow'));
   if(F.teamNet) out+=card('teamNet',t('term.teamNet'),teamNet,'asc',t('team.noteLow'));
