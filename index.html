@@ -10,12 +10,25 @@
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;600;700;900&family=Noto+Sans+SC:wght@400;700;900&family=Noto+Serif+JP:wght@600;700&display=swap" rel="stylesheet">
 <style>
   *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
-  /* コーポレートトーン（§11.4）：白基調＋ネイビー＋アクセント黄少量＋プライマリ青。勝敗の機能色(緑/橙/赤)は維持 */
+  /* ============ デザイントークン（§11.10）：色/角丸/太さ/サイズはここで一元管理。テーマA/B共通の唯一の定義元 ============ */
   :root{
-    --bg:#ffffff; --card:#ffffff; --panel:#f2f3f4; --ink:#2e404d; --sub:#6b7480; --line:#e8e8e8;
-    --dark:#070f26; --dark2:#141b31; --acc:#ffc400; --pri:#0072bc; --prid:#005b96;
-    --accd:#0e9e57; --warn:#d4a017; --red:#e42600; --blue:#0072bc;
+    /* サーフェス */
+    --bg:#ffffff; --card:#ffffff; --surface-1:#f8fafb; --surface-2:#f2f3f4; --line:#e8e8e8;
+    /* インク */
+    --dark:#070f26; --ink:#2e404d; --sub:#6b7480;
+    /* プライマリ(青) */
+    --pri:#0072bc; --prid:#005b96; --info-bg:#e8f2fa; --hl-bg:#eef4fb;
+    /* アクセント(黄) */
+    --acc:#ffc400; --acc-ink:#8a6100; --acc-bg:#fff7e6; --acc-bg-strong:#f2d98a;
+    /* 機能色: 勝ち=緑 / 引分=橙 / 危険=赤（意味は固定・値はここだけで定義） */
+    --win:#0e9e57; --win-ink:#186a3b; --win-bg:#d5f5e3; --win-bg-strong:#8fe0ad;
+    --tie:#d4a017; --tie-ink:#5a3d00; --tie-bg:#fdeec4;
+    --red:#e42600; --danger-bg:#fdecea; --danger-line:#f0c0ba;
+    /* 角丸3段 / 太さ3段 / サイズ */
+    --r-sm:6px; --r-md:10px; --r-pill:99px;
+    --w-reg:400; --w-med:600; --w-bold:800;
     --f-hero:21px; --f-val:20px; --f-name:16px; --f-title:15px; --f-body:13px; --f-small:11px;
+    --f-rl-hole:48px; --f-rl-name:30px; --f-rl-score:44px;   /* ルーレット投影用大型（§11.10別枠） */
   }
   html,body{margin:0}
   body{font-family:"Noto Sans JP","Noto Sans",-apple-system,"Hiragino Kaku Gothic ProN",Meiryo,sans-serif;
@@ -52,7 +65,7 @@
   button.btn{background:var(--pri);color:#fff;border:0;border-radius:99px;padding:9px 16px;font-size:14px;font-weight:800;cursor:pointer;letter-spacing:.02em}
   button.btn:active{transform:translateY(1px)}
   button.btn.sec{background:#fff;color:var(--prid);border:1.5px solid var(--pri)}
-  button.btn.gray{background:var(--panel);color:var(--ink)}
+  button.btn.gray{background:var(--surface-2);color:var(--ink)}
   button.btn.danger{background:var(--red)}
   button.btn.gold{background:var(--dark);color:#fff}
   button.btn.sm{padding:6px 12px;font-size:12px}
@@ -61,46 +74,46 @@
   .row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
   .row.between{justify-content:space-between}
   .muted{color:var(--sub);font-size:12px}
-  .tag{font-size:10px;padding:1px 6px;border-radius:5px;background:var(--panel);color:var(--sub);margin-left:4px;font-weight:700}
-  .pill{display:inline-block;background:var(--panel);color:var(--ink);border-radius:99px;padding:2px 9px;font-size:11px;font-weight:800}
-  .pill.f{background:#fdecea;color:var(--red)}
-  .pill.e1{background:#e6eef6;color:var(--blue)}
+  .tag{font-size:10px;padding:1px 6px;border-radius:5px;background:var(--surface-2);color:var(--sub);margin-left:4px;font-weight:700}
+  .pill{display:inline-block;background:var(--surface-2);color:var(--ink);border-radius:99px;padding:2px 9px;font-size:11px;font-weight:800}
+  .pill.f{background:var(--danger-bg);color:var(--red)}
+  .pill.e1{background:var(--info-bg);color:var(--pri)}
   .pill.e2{background:#efe7f5;color:#7d3c98}
   .empty{text-align:center;color:var(--sub);padding:30px 10px;font-size:13px}
   hr{border:0;border-top:1px solid var(--line);margin:12px 0}
   /* generic tables */
   table{border-collapse:collapse;width:100%;font-size:var(--f-body)}
   th,td{border:1px solid var(--line);padding:5px 6px;text-align:center}
-  th{background:var(--panel);color:var(--sub);font-weight:800;font-size:11px;letter-spacing:.03em}
+  th{background:var(--surface-2);color:var(--sub);font-weight:800;font-size:11px;letter-spacing:.03em}
   .scroll{overflow-x:auto;-webkit-overflow-scrolling:touch}
   /* leaderboard tables（3表共通の基礎デザイン＝濃色ヘッダ＋ゼブラ） */
   .lb th,.lb td{white-space:nowrap;vertical-align:middle}
   .lb th{background:var(--dark);color:#fff;font-weight:700;font-size:11px;letter-spacing:.02em}
-  .lb tr:nth-child(2n+1) td{background:#f8fafb}
+  .lb tr:nth-child(2n+1) td{background:var(--surface-1)}
   .lb .rank td{font-weight:600}
   /* 順位＝プレーンな太字数字（§11.7・丸バッジ全廃）。1位のみ青字で最小限の強調 */
   .rankno{font-weight:800;font-variant-numeric:tabular-nums;color:var(--ink);font-size:14px;line-height:1}
   .rankno.r1{color:var(--pri)}
   .lb.big .rankno{font-size:16px}
   .rank1 td{}
-  .hlrow td{background:#eef4fb !important}
-  .kanjibadge{display:inline-block;background:var(--blue);color:#fff;border-radius:5px;font-size:10px;padding:1px 6px;margin-left:6px;font-weight:800;letter-spacing:.02em}
+  .hlrow td{background:var(--hl-bg) !important}
+  .kanjibadge{display:inline-block;background:var(--pri);color:#fff;border-radius:5px;font-size:10px;padding:1px 6px;margin-left:6px;font-weight:800;letter-spacing:.02em}
   .mask{color:#c3c9cf;letter-spacing:1px}
   /* score input grid (入力タブ) */
   .scoregrid td input{width:38px;padding:5px 2px;text-align:center;border-radius:5px;font-size:14px}
   .scoregrid th,.scoregrid td{padding:3px 3px;min-width:34px}
   .scoregrid td.name{position:sticky;left:0;background:#fff;text-align:left;min-width:96px;font-weight:700;z-index:2;white-space:nowrap}
-  .scoregrid th.name{position:sticky;left:0;background:var(--panel);z-index:3;text-align:left;min-width:96px;white-space:nowrap}
-  .scoregrid .sum{background:var(--panel);font-weight:800}
-  .hidden-h{background:#fff7e6 !important}
+  .scoregrid th.name{position:sticky;left:0;background:var(--surface-2);z-index:3;text-align:left;min-width:96px;white-space:nowrap}
+  .scoregrid .sum{background:var(--surface-2);font-weight:800}
+  .hidden-h{background:var(--acc-bg) !important}
   /* game setup */
   .seg{display:flex;border:1px solid var(--pri);border-radius:6px;overflow:hidden;margin:4px 0}
   .seg button{flex:1;border:0;background:#fff;color:var(--prid);padding:7px;font-size:13px;font-weight:800;cursor:pointer}
   .seg button.on{background:var(--pri);color:#fff}
   .fmtgrid{display:grid;grid-template-columns:1fr 1fr;gap:6px}
-  .fmtgrid label{display:flex;align-items:center;gap:6px;font-size:13px;background:var(--panel);padding:8px;border-radius:6px;cursor:pointer}
+  .fmtgrid label{display:flex;align-items:center;gap:6px;font-size:13px;background:var(--surface-2);padding:8px;border-radius:6px;cursor:pointer}
   .holebtn{width:34px;height:34px;border-radius:6px;border:1px solid var(--line);background:#fff;margin:2px;font-size:13px;cursor:pointer;font-weight:700}
-  .holebtn.np{background:var(--blue);color:#fff;border-color:var(--blue)}
+  .holebtn.np{background:var(--pri);color:#fff;border-color:var(--pri)}
   .holebtn.dc{background:var(--red);color:#fff;border-color:var(--red)}
   .ptsedit input{width:78px;text-align:center;display:inline-block;padding:5px}
   .ptsrow{display:flex;align-items:center;justify-content:space-between;gap:8px;margin:5px 0}
@@ -111,10 +124,10 @@
   details>summary::before{content:"› ";color:var(--pri);font-weight:900}
   details[open]>summary::before{content:"⌄ ";}
   details .in{padding:0 12px 12px;font-size:13px}
-  .rule{background:var(--panel);border:1px solid var(--line);border-left:3px solid var(--acc);border-radius:6px;padding:8px 10px;font-size:12px;color:var(--ink);margin:6px 0}
+  .rule{background:var(--surface-2);border:1px solid var(--line);border-left:3px solid var(--acc);border-radius:6px;padding:8px 10px;font-size:12px;color:var(--ink);margin:6px 0}
   .prizewin{background:#fff;border:1px solid var(--line);border-top:3px solid var(--acc)}
   .payoutcard{background:#fff;border:1px solid var(--line);border-top:3px solid var(--acc)}
-  .kanjicard{background:#fff;border:1px solid var(--line);border-top:3px solid var(--blue)}
+  .kanjicard{background:#fff;border:1px solid var(--line);border-top:3px solid var(--pri)}
   .big{font-size:var(--f-hero);font-weight:900}
   .toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:var(--dark);color:#fff;
     padding:10px 18px;border-radius:99px;font-size:13px;z-index:50;opacity:0;transition:.3s;pointer-events:none}
@@ -125,16 +138,16 @@
   .subtab4 button{flex:1;border:1px solid var(--line);background:#fff;color:var(--ink);padding:9px 2px;border-radius:99px;font-size:12.5px;font-weight:800;cursor:pointer;letter-spacing:.02em}
   .subtab4 button.on{background:var(--dark);color:#fff;border-color:var(--dark)}
   /* reveal bar */
-  .reveal-bar{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:6px;background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:7px 9px}
+  .reveal-bar{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:6px;background:var(--surface-2);border:1px solid var(--line);border-radius:6px;padding:7px 9px}
   .reveal-bar .hole{font-weight:900;color:var(--prid);font-size:15px}
   /* toggle chips + eye buttons */
   .cardtools{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin-bottom:7px}
   .tgl{display:inline-flex;align-items:center;gap:5px;border:1px solid var(--line);border-radius:99px;padding:5px 11px;font-size:12px;cursor:pointer;background:#fff;font-weight:800}
   .tgl.on{background:var(--pri);color:#fff;border-color:var(--pri)}
-  .tgl.off{background:#fdecea;color:var(--red);border-color:#f0c0ba}
+  .tgl.off{background:var(--danger-bg);color:var(--red);border-color:var(--danger-line)}
   .eyebtn{border:1px solid var(--line);background:#fff;border-radius:6px;padding:3px 6px;cursor:pointer;line-height:0;color:var(--sub)}
-  .eyebtn.on{background:#e8f2fa;border-color:var(--pri);color:var(--prid)}
-  .eyebtn.off{background:#fdecea;border-color:#f0c0ba;color:var(--red)}
+  .eyebtn.on{background:var(--info-bg);border-color:var(--pri);color:var(--prid)}
+  .eyebtn.off{background:var(--danger-bg);border-color:var(--danger-line);color:var(--red)}
   .ei{width:15px;height:15px;stroke:currentColor;stroke-width:2;fill:none;stroke-linecap:round;stroke-linejoin:round;display:block}
   .ic{width:15px;height:15px;stroke:var(--acc);stroke-width:2;fill:none;stroke-linecap:round;stroke-linejoin:round;vertical-align:-2px}
   /* rank-wrap ranking cards */
@@ -164,15 +177,15 @@
   .sc2 th{background:var(--dark);color:#fff;font-size:11px;font-weight:700}
   .sc2 td.nm,.sc2 th.nm{text-align:left;font-weight:700;font-size:11.5px;white-space:nowrap;padding-left:5px;text-overflow:ellipsis}
   .sc2 th.nm{background:var(--dark);color:#fff}
-  .sc2 td.sub{background:#eaf6f0;font-weight:800}
-  .sc2 td.tot{background:#f2f5f7;font-weight:800}
-  .sc2 td.netc{background:#dff2e8;font-weight:900;color:#06522f}
+  .sc2 td.sub{background:var(--win-bg);font-weight:800}
+  .sc2 td.tot{background:var(--surface-1);font-weight:800}
+  .sc2 td.netc{background:var(--win-bg);font-weight:900;color:var(--win-ink)}
   .sc2 th.sub,.sc2 th.tot,.sc2 th.netc{background:var(--dark);color:#fff}   /* ヘッダは一律濃色＋白文字（薄背景で消えない） */
-  .sc2 .hh{background:#fff7e6}
+  .sc2 .hh{background:var(--acc-bg)}
   .sc2 th.hh{background:var(--dark);color:var(--acc)}   /* 隠しホールのヘッダ番号：濃紺背景＋アクセント黄で常に読める */
-  .sc2 .parr td{color:#4a5560;font-size:10px;font-weight:700}
-  .sc2 .tsum td{font-size:11px;background:#fbfcfc}
-  .sc2 .winc{background:#d5f5e3 !important;font-weight:900;color:var(--accd)}
+  .sc2 .parr td{color:var(--ink);font-size:10px;font-weight:700}
+  .sc2 .tsum td{font-size:11px;background:var(--surface-1)}
+  .sc2 .winc{background:var(--win-bg) !important;font-weight:900;color:var(--win-ink)}
   @media(min-width:560px){ .sc2{font-size:14px} .sc2 col.cnm{width:82px} .sc2 col.cs{width:42px} .sc2 td.nm,.sc2 th.nm{font-size:13px} .sc2 th,.sc2 td{height:28px} }
   /* two-column (未使用でも保持) */
   .ind-split{display:flex;gap:12px;align-items:flex-start}
@@ -192,30 +205,30 @@
   .rl-par{font-size:15px;color:var(--sub);font-weight:800}
   .rl-panels{display:flex;flex-wrap:wrap;gap:10px}
   .rl-panel{flex:1 1 150px;min-width:140px;border:3px solid var(--line);border-radius:14px;padding:14px 10px;text-align:center;background:#fff}
-  /* 確定時の勝敗背景（#6）。機能色は緑/赤/橙固定（デザイントークンに依存させない） */
-  .rl-panel.win{background:#eafaf1;box-shadow:0 0 0 3px #12b866 inset}
-  .rl-panel.lose{background:#fdecea;box-shadow:0 0 0 3px #c0392b inset}
-  .rl-panel.tie{background:#fdf3d7;box-shadow:0 0 0 3px #d4a017 inset}
+  /* 確定時の勝敗背景（#6）。機能色トークン（--win/--red/--tie）から導出＝意味は固定 */
+  .rl-panel.win{background:var(--win-bg);box-shadow:0 0 0 3px var(--win) inset}
+  .rl-panel.lose{background:var(--danger-bg);box-shadow:0 0 0 3px var(--red) inset}
+  .rl-panel.tie{background:var(--tie-bg);box-shadow:0 0 0 3px var(--tie) inset}
   /* 回転中のフラッシュ（#6）：今の候補で止まったら勝ち/負け/引分かをピカピカ予告 */
   @keyframes rlblink{from{filter:brightness(1)}to{filter:brightness(1.14)}}
-  .rl-panel.fwin{background:#c9f2dd;box-shadow:0 0 0 4px #12b866 inset;animation:rlblink .22s infinite alternate}
-  .rl-panel.flose{background:#fbd9d3;box-shadow:0 0 0 4px #c0392b inset;animation:rlblink .22s infinite alternate}
-  .rl-panel.ftie{background:#fdeec4;box-shadow:0 0 0 4px #d4a017 inset;animation:rlblink .22s infinite alternate}
+  .rl-panel.fwin{background:var(--win-bg-strong);box-shadow:0 0 0 4px var(--win) inset;animation:rlblink .22s infinite alternate}
+  .rl-panel.flose{background:var(--danger-bg);box-shadow:0 0 0 4px var(--red) inset;animation:rlblink .22s infinite alternate}
+  .rl-panel.ftie{background:var(--tie-bg);box-shadow:0 0 0 4px var(--tie) inset;animation:rlblink .22s infinite alternate}
   .rl-team{font-size:14px;font-weight:800;letter-spacing:.03em}
   .rl-name{font-size:30px;font-weight:900;margin:6px 0 2px;min-height:38px;line-height:1.1}
-  .rl-scorebig{font-size:44px;font-weight:900;color:var(--accd);line-height:1;min-height:46px;font-variant-numeric:tabular-nums}
-  .rl-ev{font-size:12px;color:var(--accd);font-weight:800;min-height:16px;margin-top:2px}
+  .rl-scorebig{font-size:var(--f-rl-score);font-weight:900;color:var(--win);line-height:1;min-height:46px;font-variant-numeric:tabular-nums}
+  .rl-ev{font-size:12px;color:var(--win);font-weight:800;min-height:16px;margin-top:2px}
   .rl-act{min-height:40px;display:flex;gap:6px;justify-content:center;align-items:center;flex-wrap:wrap;margin-top:6px}
   .rl-act .btn{padding:7px 10px;font-size:12px}
   .rl-ctrl{margin-top:12px}
   .rl-info{text-align:center;font-weight:800;font-size:17px;min-height:24px;margin-bottom:8px}
   .rl-main{font-size:20px;padding:16px}
   .rl-dev{margin-bottom:10px}
-  .sc2 .cur{background:#fff3cf !important;color:#12161c !important}   /* 現在ホール列：黄背景でも文字は黒に */
-  .sc2 th.cur{background:#f2d98a !important;color:#12161c !important}
-  .sc2 .adopt{outline:2px solid #5b6672;outline-offset:-2px;font-weight:900;color:#12161c !important}
-  .sc2 .rwin{background:#8fe0ad !important;font-weight:900;color:#06331d !important}   /* 勝ち：濃緑文字で高コントラスト */
-  .sc2 .rtie{background:#f6d792 !important;font-weight:900;color:#5a3d00 !important}   /* 引分：濃橙文字 */
+  .sc2 .cur{background:var(--acc-bg) !important;color:var(--dark) !important}   /* 現在ホール列：黄背景でも文字は黒に */
+  .sc2 th.cur{background:var(--acc-bg-strong) !important;color:var(--dark) !important}
+  .sc2 .adopt{outline:2px solid var(--sub);outline-offset:-2px;font-weight:900;color:var(--dark) !important}
+  .sc2 .rwin{background:var(--win-bg-strong) !important;font-weight:900;color:var(--win-ink) !important}   /* 勝ち：濃緑文字で高コントラスト */
+  .sc2 .rtie{background:var(--tie-bg) !important;font-weight:900;color:var(--tie-ink) !important}   /* 引分：濃橙文字 */
   .rlsc td.nm,.rlsc th.nm{width:72px}
   @media(min-width:820px){
     .rlwrap{max-width:900px;margin:0 auto}
@@ -298,8 +311,8 @@
   html[data-theme="b"] th{background:#fff;color:var(--dark);border-bottom:2px solid var(--dark)}
   html[data-theme="b"] .lb th{background:#fff;color:var(--dark);font-weight:700;border-bottom:2px solid var(--dark)}
   html[data-theme="b"] .sc2 th,html[data-theme="b"] .sc2 th.nm,html[data-theme="b"] .sc2 th.sub,html[data-theme="b"] .sc2 th.tot,html[data-theme="b"] .sc2 th.netc{background:#fff;color:var(--dark);border-bottom:2px solid var(--dark)}
-  html[data-theme="b"] .sc2 th.hh{background:#fff7e6;color:#8a6100;border-bottom:2px solid var(--dark)}   /* 白地では黄文字が沈むため淡黄地＋濃金 */
-  html[data-theme="b"] .lb tr:nth-child(2n+1) td{background:#fafbfc}
+  html[data-theme="b"] .sc2 th.hh{background:var(--acc-bg);color:var(--acc-ink);border-bottom:2px solid var(--dark)}   /* 白地では黄文字が沈むため淡黄地＋濃金 */
+  html[data-theme="b"] .lb tr:nth-child(2n+1) td{background:var(--surface-1)}
   /* 見出し: Noto Serif JP＋ハイライン区切り・余白拡張・フォント軽量化 */
   html[data-theme="b"] body{font-weight:400}
   html[data-theme="b"] .card{padding:18px 16px;box-shadow:none}
@@ -1017,8 +1030,8 @@ function clearScores(){ const g=curGame(); if(!g)return; if(!confirm(t('confirm.
 function allComplete(g){ const parts=g.participants.filter(pid=>state.players.find(x=>x.id===pid));
   return parts.length>0 && parts.every(pid=>complete(g,pid)); }
 function statusBadge(g){ return allComplete(g)
-  ? `<span class="tag" style="background:#186a3b;color:#fff">${t('status.fixed')}</span>`
-  : `<span class="tag" style="background:#d4ac0d;color:#fff">${t('status.prov')}</span>`; }
+  ? `<span class="tag" style="background:var(--win-ink);color:#fff">${t('status.fixed')}</span>`
+  : `<span class="tag" style="background:var(--tie);color:#fff">${t('status.prov')}</span>`; }
 
 /* ============================ TEST DATA ============================ */
 function seedTestData(){
@@ -1215,7 +1228,7 @@ function renderResult(){
   const parts=g0.participants.filter(pid=>state.players.find(x=>x.id===pid));
   if(!parts.length){ el.innerHTML=`<div class="empty">${t('result.noParts')}</div>`; return; }
   const g=viewGame(g0);   // 開封済みホールのみ反映
-  const partial = revealHoles<18 ? `<span class="tag" style="background:#d4ac0d;color:#fff">${revealHoles}/18H</span>` : '';
+  const partial = revealHoles<18 ? `<span class="tag" style="background:var(--tie);color:#fff">${revealHoles}/18H</span>` : '';
   let sticky=`<div class="result-sticky"><div class="subtab4">
       <button class="${resultSub==='prize'?'on':''}" onclick="setResultSub('prize')">${t('result.sub.prize')}</button>
       <button class="${resultSub==='ind'?'on':''}" onclick="setResultSub('ind')">${t('result.sub.ind')}</button>
@@ -1249,8 +1262,8 @@ function renderIndividual(g, parts){
   const F=g.formats;
   const done=parts.filter(pid=>complete(g,pid)).length;
   const banner = allComplete(g)
-    ? `<div class="card" style="background:#eafaf1">${t('ind.finalBanner',{N:parts.length})}</div>`
-    : `<div class="card" style="background:#fef9e7">${t('ind.provBanner',{n:done,N:parts.length,rev:revealHoles<18?t('ind.revealing',{h:revealHoles}):''})}</div>`;
+    ? `<div class="card" style="background:var(--win-bg)">${t('ind.finalBanner',{N:parts.length})}</div>`
+    : `<div class="card" style="background:var(--acc-bg)">${t('ind.provBanner',{n:done,N:parts.length,rev:revealHoles<18?t('ind.revealing',{h:revealHoles}):''})}</div>`;
   // 次回幹事（ネットで決定）：バッジをネット順位の2位/ブービー行に表示（タイトル横の注記は廃止）
   const nk=nextKanji(g); const hl={};
   if(nk){ hl[nk.nikai]=t('term.organizer'); hl[nk.booby]=t('term.organizer'); }
@@ -1315,7 +1328,7 @@ function renderScorecard(g, parts, teams){
     body=parts.map(pid=>pRow(pid)).join('');
     note=t('sc.noteHidden');
   }
-  return `<div class="card"><h2 class="lbh"><span>${t('sc.title')}${teams?t('sc.teamSuffix'):''} <span class="tag" style="background:#d4ac0d;color:#fff">${n>=18?t('sc.allHoles'):n+'/18H'}</span></span>
+  return `<div class="card"><h2 class="lbh"><span>${t('sc.title')}${teams?t('sc.teamSuffix'):''} <span class="tag" style="background:var(--tie);color:#fff">${n>=18?t('sc.allHoles'):n+'/18H'}</span></span>
       <span class="tgl ${show.totals?'on':'off'}" onclick="toggleShow('totals')">${t('sc.totalsTgl')} ${show.totals?t('btn.show'):t('btn.hide')}</span></h2>
     <div class="reveal-bar">
       <button class="btn gray sm" onclick="resetHoles()" ${n<=0?'disabled':''}>${t('btn.reset')}</button>
@@ -1550,7 +1563,7 @@ function renderPrizes(g){
       <select style="flex:1;max-width:60%" onchange="setPrize('niapinWinner',${h},this.value)">${opts(P.niapinWinner[h])}</select></div>`; }); }
   if(P.draconHoles.length){ html+=`<h3>${t('term.dracon')}</h3>`;
     P.draconHoles.slice().sort((a,b)=>a-b).forEach(h=>{ html+=`<div class="row between" style="margin:4px 0">
-      <span class="pill f" style="background:#fadbd8;color:#c0392b">${h+1}H</span>
+      <span class="pill f" style="background:var(--danger-bg);color:var(--red)">${h+1}H</span>
       <select style="flex:1;max-width:60%" onchange="setPrize('draconWinner',${h},this.value)">${opts(P.draconWinner[h])}</select></div>`; }); }
   html+=`</div>`; return html;
 }
