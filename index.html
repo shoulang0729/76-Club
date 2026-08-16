@@ -292,7 +292,8 @@ function migrate(s){
     else { const r=newRoulette(); for(const k in r) if(g.roulette[k]===undefined) g.roulette[k]=r[k]; }
   });
 }
-function newRoulette(){ return { changeN:1, challengeM:1, reps:{}, pool:{}, remChange:{}, remChallenge:{}, cur:0 }; }
+/* changeN/challengeM は「ハーフ9Hあたり」の回数（§11.3・2026-08-16に意味変更。既存ゲームの値もハーフあたりとして解釈） */
+function newRoulette(){ return { changeN:2, challengeM:2, reps:{}, pool:{}, remChange:{}, remChallenge:{}, cur:0 }; }
 function defaultPoints(){ return {
   net:[5,3,1], gross:[5,3,1], stableford:[5,3,1], olympic:[5,3,1], callaway:[5,3,1], nassauTotal:[5,3,1],
   teamGross:[3], teamNet:[3], holeByHole:[3], best2ball:[3], roulette:[3], niapin:2, dracon:2 }; }
@@ -507,10 +508,10 @@ function renderGame(){
   </div></div>`;
 
   html += `<div class="card"><h2>ルーレット対抗（抽選ホールバイホール）</h2>
-    <div class="muted">ホールごとに各チームの代表を抽選し、その代表のスコアで1ホールずつ勝負。結果タブ「ルーレット」で実行します。回数はチームごとに付与。</div>
+    <div class="muted">ホールごとに各チームの代表を抽選し、その代表のスコアで1ホールずつ勝負。結果タブ「ルーレット」で実行します。回数はチームごと・<b>ハーフ9Hあたり</b>に付与（10番進行時に再付与・前半の余りは失効）。</div>
     <div class="row" style="margin-top:8px">
-      <div style="flex:1"><label class="fl">チェンジ回数（自分を変える・使い切り必須）</label><input type="number" min="0" max="18" value="${g.roulette.changeN}" onchange="setRoulette('changeN',this.value)"></div>
-      <div style="flex:1"><label class="fl">チャレンジ回数（相手を変える・任意）</label><input type="number" min="0" max="18" value="${g.roulette.challengeM}" onchange="setRoulette('challengeM',this.value)"></div>
+      <div style="flex:1"><label class="fl">チェンジ回数（ハーフ9Hあたり・自分を変える・使い切り必須）</label><input type="number" min="0" max="9" value="${g.roulette.changeN}" onchange="setRoulette('changeN',this.value)"></div>
+      <div style="flex:1"><label class="fl">チャレンジ回数（ハーフ9Hあたり・相手を変える・任意）</label><input type="number" min="0" max="9" value="${g.roulette.challengeM}" onchange="setRoulette('challengeM',this.value)"></div>
     </div></div>`;
 
   // Points / prize pool
@@ -1006,10 +1007,16 @@ function rlChallengeStart(fromTid){ const g=curGame(); const R=g.roulette; if((R
 function rlChallengeDo(fromTid, targetTid){ const g=curGame(); const R=g.roulette; if((R.remChallenge[fromTid]||0)<=0)return; R.remChallenge[fromTid]--; rl.challengeFrom=null; save(); rlBeginSpin([targetTid]); }
 function rlCancelChallenge(){ rl.challengeFrom=null; renderResult(); }
 function rlHoleDrawn(g){ const reps=g.roulette.reps[g.roulette.cur]||{}; return rTeams(g).every(t=>reps[t.id]); }
-function rlCanAdvance(g){ if(!rlHoleDrawn(g))return false; const left=18-(g.roulette.cur+1); return rTeams(g).every(t=>(g.roulette.remChange[t.id]||0)<=left); }
+/* 使い切り必須の判定はハーフ単位（§11.3）：前半=9番(index8)終了まで／後半=18番(index17)終了までに残チェンジ0 */
+function rlCanAdvance(g){ if(!rlHoleDrawn(g))return false; const cur=g.roulette.cur;
+  const left = cur<=8 ? 8-cur : 17-cur;
+  return rTeams(g).every(t=>(g.roulette.remChange[t.id]||0)<=left); }
 function rlNextHole(){ const g=curGame(); const R=g.roulette; if(!rlCanAdvance(g)){toast('チェンジを使い切ってください');return;}
   const reps=R.reps[R.cur]||{}; rTeams(g).forEach(t=>{ R.pool[t.id]=[...(R.pool[t.id]||[]), reps[t.id]]; });
-  R.cur=Math.min(18,R.cur+1); rl.challengeFrom=null; save(); renderResult(); }
+  R.cur=Math.min(18,R.cur+1);
+  // OUT終了→後半開始：チェンジ/チャレンジをハーフ分再付与（上書き＝前半の余りは失効・§11.3）
+  if(R.cur===9) rTeams(g).forEach(t=>{ R.remChange[t.id]=R.changeN; R.remChallenge[t.id]=R.challengeM; });
+  rl.challengeFrom=null; save(); renderResult(); }
 function rlReset(){ if(!confirm('ルーレットを最初からやり直しますか？'))return; const g=curGame(); const R=g.roulette;
   R.reps={};R.pool={};R.remChange={};R.remChallenge={};R.cur=0; rTeams(g).forEach(t=>{R.remChange[t.id]=R.changeN;R.remChallenge[t.id]=R.challengeM;});
   rl.challengeFrom=null; rlStopTimer(); rl.spinTeams=[]; save(); renderResult(); }
