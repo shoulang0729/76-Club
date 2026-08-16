@@ -991,10 +991,14 @@ function rlDraw(g, teamId, excludePid){
   if(cand.length===0){ g.roulette.pool[teamId]=[]; cand=members.filter(m=>m!==excludePid); if(!cand.length)cand=members.slice(); }
   return cand[Math.floor(Math.random()*cand.length)];
 }
-function rlTick(){ const g=curGame(); if(!g)return;
+function rlTick(){ const g=curGame(); if(!g)return; const h=g.roulette.cur;
   rl.spinTeams.forEach(tid=>{ const t=g.teams.find(x=>x.id===tid); if(!t||!t.memberIds.length)return;
+    const pid=t.memberIds[Math.floor(Math.random()*t.memberIds.length)]; const p=state.players.find(x=>x.id===pid);
     const el=document.getElementById('rl-name-'+tid);
-    if(el){ const pid=t.memberIds[Math.floor(Math.random()*t.memberIds.length)]; const p=state.players.find(x=>x.id===pid); el.textContent=p?p.name:''; } }); }
+    if(el) el.textContent=p?p.name:'';
+    // 名前とセットで候補のスコア（エブリ適用後）も回す（#5）
+    const es=document.getElementById('rl-score-'+tid);
+    if(es){ const av=adjHole(g,pid,h); es.textContent = av==null?'—':av; } }); }
 function rlBeginSpin(teamIds){ if(rl.timer)clearInterval(rl.timer); rl.spinning=true; rl.spinTeams=teamIds.slice(); rl.challengeFrom=null; renderResult(); rl.timer=setInterval(rlTick,75); }
 function rlStop(){ rlStopTimer(); const g=curGame(); const R=g.roulette; const h=R.cur; R.reps[h]=R.reps[h]||{};
   rl.spinTeams.forEach(tid=>{ const prev=R.reps[h][tid]; R.reps[h][tid]=rlDraw(g,tid, rl.spinTeams.length===1?prev:null); });
@@ -1092,7 +1096,7 @@ function renderRouletteTab(g){
     return `<div class="rl-panel${win?' win':''}" style="border-color:${col}">
       <div class="rl-team" style="color:${col}">${esc(t.name)}</div>
       <div class="rl-name" id="rl-name-${t.id}">${rl.spinning&&rl.spinTeams.includes(t.id)?'…':(p?esc(p.name):'―')}</div>
-      <div class="rl-scorebig">${pid?sv:'&nbsp;'}</div>
+      <div class="rl-scorebig" id="rl-score-${t.id}">${pid?sv:'&nbsp;'}</div>
       <div class="rl-act">${act}</div>
     </div>`; }).join('');
   let mainBtn;
