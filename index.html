@@ -5,58 +5,63 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <title>76-Club COMPE</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;600;700;900&display=swap" rel="stylesheet">
 <style>
   *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+  /* コーポレートトーン（§11.4）：白基調＋ネイビー＋アクセント黄少量＋プライマリ青。勝敗の機能色(緑/橙/赤)は維持 */
   :root{
-    --bg:#eef1f4; --card:#ffffff; --ink:#12161c; --sub:#8b93a1; --line:#e7eaee;
-    --dark:#141a22; --dark2:#1e2731; --acc:#12b866; --accd:#0e9e57; --warn:#d4a017; --red:#c0392b; --blue:#2c6e9e;
+    --bg:#ffffff; --card:#ffffff; --panel:#f2f3f4; --ink:#2e404d; --sub:#6b7480; --line:#e8e8e8;
+    --dark:#070f26; --dark2:#141b31; --acc:#ffc400; --pri:#0072bc; --prid:#005b96;
+    --accd:#0e9e57; --warn:#d4a017; --red:#e42600; --blue:#0072bc;
     --f-hero:21px; --f-val:20px; --f-name:16px; --f-title:15px; --f-body:13px; --f-small:11px;
   }
   html,body{margin:0}
-  body{font-family:-apple-system,"Hiragino Kaku Gothic ProN","Yu Gothic",Meiryo,sans-serif;
+  body{font-family:"Noto Sans JP","Noto Sans",-apple-system,"Hiragino Kaku Gothic ProN",Meiryo,sans-serif;
     background:var(--bg);color:var(--ink);font-size:var(--f-body);line-height:1.45;padding-bottom:24px}
   /* header (dark scoreboard) */
   header{background:var(--dark);color:#fff;padding:12px 15px;position:sticky;top:0;z-index:20}
   .hdr-row{display:flex;align-items:center;justify-content:space-between;gap:8px}
   header h1{font-size:17px;font-weight:900;letter-spacing:.06em}
-  header h1 span{font-weight:600;opacity:.55;font-size:11px;margin-left:6px;letter-spacing:.12em}
+  header h1 span{font-weight:700;color:var(--acc);font-size:11px;margin-left:6px;letter-spacing:.12em}
   header .gamename{font-size:11px;opacity:.7;margin-top:2px;font-weight:500}
-  .hamb{background:rgba(255,255,255,.12);border:0;color:#fff;font-size:13px;font-weight:800;padding:9px 13px;
-    border-radius:9px;cursor:pointer;white-space:nowrap;letter-spacing:.04em}
+  .hamb{background:rgba(255,255,255,.12);border:0;color:#fff;font-size:13px;font-weight:800;padding:9px 15px;
+    border-radius:99px;cursor:pointer;white-space:nowrap;letter-spacing:.04em}
   .menu-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.3);z-index:35}
   .appmenu{display:none;position:fixed;right:10px;top:60px;background:#fff;border:1px solid var(--line);
     border-radius:12px;box-shadow:0 10px 30px rgba(0,0,0,.25);z-index:40;overflow:hidden;min-width:190px}
   .appmenu button{display:block;width:100%;text-align:left;border:0;background:#fff;padding:13px 18px;
     font-size:15px;color:var(--ink);cursor:pointer;border-bottom:1px solid var(--line);font-weight:600}
   .appmenu button:last-child{border-bottom:0}
-  .appmenu button.on{background:var(--acc);color:#fff;font-weight:800}
+  .appmenu button.on{background:var(--pri);color:#fff;font-weight:800}
   main{padding:12px;max-width:960px;margin:0 auto}
-  /* cards */
-  .card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:14px;margin-bottom:12px;
-    box-shadow:0 1px 2px rgba(20,26,34,.04)}
+  /* cards（小角丸・フラット §11.4） */
+  .card{background:var(--card);border:1px solid var(--line);border-radius:6px;padding:14px;margin-bottom:12px;
+    box-shadow:0 1px 2px rgba(7,15,38,.05)}
   .card.tight{padding:11px}
   .card h2{margin:0 0 10px;font-size:var(--f-title);font-weight:800;color:var(--ink);display:flex;align-items:center;gap:7px;flex-wrap:wrap}
   .card.tight h2{font-size:14px;margin-bottom:8px}
   .card h3{margin:14px 0 6px;font-size:12px;font-weight:800;color:var(--sub);letter-spacing:.02em}
   label.fl{display:block;font-size:12px;color:var(--sub);margin:8px 0 3px;font-weight:700}
-  input,select,textarea{font-family:inherit;font-size:15px;border:1px solid var(--line);border-radius:8px;
+  input,select,textarea{font-family:inherit;font-size:15px;border:1px solid var(--line);border-radius:6px;
     padding:8px 10px;width:100%;background:#fff;color:var(--ink)}
   input[type=checkbox]{width:auto}
-  /* buttons */
-  button.btn{background:var(--acc);color:#fff;border:0;border-radius:8px;padding:9px 14px;font-size:14px;font-weight:800;cursor:pointer;letter-spacing:.02em}
+  /* buttons（ピル形・プライマリ青 §11.4） */
+  button.btn{background:var(--pri);color:#fff;border:0;border-radius:99px;padding:9px 16px;font-size:14px;font-weight:800;cursor:pointer;letter-spacing:.02em}
   button.btn:active{transform:translateY(1px)}
-  button.btn.sec{background:#fff;color:var(--accd);border:1.5px solid var(--acc)}
-  button.btn.gray{background:#eef1f4;color:var(--ink)}
+  button.btn.sec{background:#fff;color:var(--prid);border:1.5px solid var(--pri)}
+  button.btn.gray{background:var(--panel);color:var(--ink)}
   button.btn.danger{background:var(--red)}
   button.btn.gold{background:var(--dark);color:#fff}
-  button.btn.sm{padding:6px 10px;font-size:12px;border-radius:7px}
+  button.btn.sm{padding:6px 12px;font-size:12px}
   button.btn.wide{width:100%;padding:12px}
   button.btn:disabled{opacity:.4;cursor:default}
   .row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
   .row.between{justify-content:space-between}
   .muted{color:var(--sub);font-size:12px}
-  .tag{font-size:10px;padding:1px 6px;border-radius:5px;background:#eef1f4;color:var(--sub);margin-left:4px;font-weight:700}
-  .pill{display:inline-block;background:#e9f7f0;color:var(--accd);border-radius:99px;padding:2px 9px;font-size:11px;font-weight:800}
+  .tag{font-size:10px;padding:1px 6px;border-radius:5px;background:var(--panel);color:var(--sub);margin-left:4px;font-weight:700}
+  .pill{display:inline-block;background:var(--panel);color:var(--ink);border-radius:99px;padding:2px 9px;font-size:11px;font-weight:800}
   .pill.f{background:#fdecea;color:var(--red)}
   .pill.e1{background:#e6eef6;color:var(--blue)}
   .pill.e2{background:#efe7f5;color:#7d3c98}
@@ -65,7 +70,7 @@
   /* generic tables */
   table{border-collapse:collapse;width:100%;font-size:var(--f-body)}
   th,td{border:1px solid var(--line);padding:5px 6px;text-align:center}
-  th{background:#f6f8fa;color:var(--sub);font-weight:800;font-size:11px;letter-spacing:.03em}
+  th{background:var(--panel);color:var(--sub);font-weight:800;font-size:11px;letter-spacing:.03em}
   .scroll{overflow-x:auto;-webkit-overflow-scrolling:touch}
   /* leaderboard tables（3表共通の基礎デザイン＝濃色ヘッダ＋ゼブラ） */
   .lb th,.lb td{white-space:nowrap;vertical-align:middle}
@@ -73,8 +78,8 @@
   .lb tr:nth-child(2n+1) td{background:#f8fafb}
   .lb .rank td{font-weight:600}
   .pos{display:inline-flex;align-items:center;justify-content:center;width:24px;height:24px;border-radius:50%;
-    background:#e7eaee;color:#3a4450;font-size:12px;font-weight:900;font-variant-numeric:tabular-nums;line-height:1}
-  .pos.p1{background:var(--acc);color:#fff}
+    background:#fff;color:var(--dark);border:1.5px solid var(--dark);font-size:12px;font-weight:900;font-variant-numeric:tabular-nums;line-height:1}
+  .pos.p1{background:var(--acc);color:var(--dark);border-color:var(--acc)}   /* 1位＝イエロー地＋濃色文字（§11.4） */
   .lb.big .pos{width:28px;height:28px;font-size:14px}
   .rank1 td{}
   .hlrow td{background:#eef4fb !important}
@@ -84,28 +89,28 @@
   .scoregrid td input{width:38px;padding:5px 2px;text-align:center;border-radius:5px;font-size:14px}
   .scoregrid th,.scoregrid td{padding:3px 3px;min-width:34px}
   .scoregrid td.name{position:sticky;left:0;background:#fff;text-align:left;min-width:96px;font-weight:700;z-index:2;white-space:nowrap}
-  .scoregrid th.name{position:sticky;left:0;background:#f6f8fa;z-index:3;text-align:left;min-width:96px;white-space:nowrap}
-  .scoregrid .sum{background:#f8f9f9;font-weight:800}
+  .scoregrid th.name{position:sticky;left:0;background:var(--panel);z-index:3;text-align:left;min-width:96px;white-space:nowrap}
+  .scoregrid .sum{background:var(--panel);font-weight:800}
   .hidden-h{background:#fff7e6 !important}
   /* game setup */
-  .seg{display:flex;border:1px solid var(--acc);border-radius:8px;overflow:hidden;margin:4px 0}
-  .seg button{flex:1;border:0;background:#fff;color:var(--accd);padding:7px;font-size:13px;font-weight:800;cursor:pointer}
-  .seg button.on{background:var(--acc);color:#fff}
+  .seg{display:flex;border:1px solid var(--pri);border-radius:6px;overflow:hidden;margin:4px 0}
+  .seg button{flex:1;border:0;background:#fff;color:var(--prid);padding:7px;font-size:13px;font-weight:800;cursor:pointer}
+  .seg button.on{background:var(--pri);color:#fff}
   .fmtgrid{display:grid;grid-template-columns:1fr 1fr;gap:6px}
-  .fmtgrid label{display:flex;align-items:center;gap:6px;font-size:13px;background:#f6f8fa;padding:8px;border-radius:8px;cursor:pointer}
-  .holebtn{width:34px;height:34px;border-radius:8px;border:1px solid var(--line);background:#fff;margin:2px;font-size:13px;cursor:pointer;font-weight:700}
+  .fmtgrid label{display:flex;align-items:center;gap:6px;font-size:13px;background:var(--panel);padding:8px;border-radius:6px;cursor:pointer}
+  .holebtn{width:34px;height:34px;border-radius:6px;border:1px solid var(--line);background:#fff;margin:2px;font-size:13px;cursor:pointer;font-weight:700}
   .holebtn.np{background:var(--blue);color:#fff;border-color:var(--blue)}
   .holebtn.dc{background:var(--red);color:#fff;border-color:var(--red)}
   .ptsedit input{width:78px;text-align:center;display:inline-block;padding:5px}
   .ptsrow{display:flex;align-items:center;justify-content:space-between;gap:8px;margin:5px 0}
   .ptsrow span{font-size:13px}
-  details{border:1px solid var(--line);border-radius:10px;margin-bottom:10px;background:#fff}
+  details{border:1px solid var(--line);border-radius:6px;margin-bottom:10px;background:#fff}
   details>summary{padding:11px 12px;font-weight:800;cursor:pointer;color:var(--ink);font-size:14px;list-style:none}
   details>summary::-webkit-details-marker{display:none}
-  details>summary::before{content:"› ";color:var(--acc);font-weight:900}
+  details>summary::before{content:"› ";color:var(--pri);font-weight:900}
   details[open]>summary::before{content:"⌄ ";}
   details .in{padding:0 12px 12px;font-size:13px}
-  .rule{background:#f6f8fa;border:1px solid var(--line);border-left:3px solid var(--acc);border-radius:6px;padding:8px 10px;font-size:12px;color:var(--ink);margin:6px 0}
+  .rule{background:var(--panel);border:1px solid var(--line);border-left:3px solid var(--acc);border-radius:6px;padding:8px 10px;font-size:12px;color:var(--ink);margin:6px 0}
   .prizewin{background:#fff;border:1px solid var(--line);border-top:3px solid var(--acc)}
   .payoutcard{background:#fff;border:1px solid var(--line);border-top:3px solid var(--acc)}
   .kanjicard{background:#fff;border:1px solid var(--line);border-top:3px solid var(--blue)}
@@ -116,18 +121,18 @@
   /* result sub-nav (pill tabs) */
   .result-sticky{position:sticky;top:50px;z-index:15;background:var(--bg);padding:8px 0 8px;margin:-4px 0 10px;box-shadow:0 8px 8px -8px rgba(0,0,0,.15)}
   .subtab4{display:flex;gap:6px}
-  .subtab4 button{flex:1;border:0;background:var(--dark2);color:#9aa3b0;padding:9px 2px;border-radius:9px;font-size:12.5px;font-weight:800;cursor:pointer;letter-spacing:.02em}
-  .subtab4 button.on{background:var(--acc);color:#fff}
+  .subtab4 button{flex:1;border:1px solid var(--line);background:#fff;color:var(--ink);padding:9px 2px;border-radius:99px;font-size:12.5px;font-weight:800;cursor:pointer;letter-spacing:.02em}
+  .subtab4 button.on{background:var(--dark);color:#fff;border-color:var(--dark)}
   /* reveal bar */
-  .reveal-bar{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:6px;background:#f6f8fa;border:1px solid var(--line);border-radius:9px;padding:7px 9px}
-  .reveal-bar .hole{font-weight:900;color:var(--accd);font-size:15px}
+  .reveal-bar{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:6px;background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:7px 9px}
+  .reveal-bar .hole{font-weight:900;color:var(--prid);font-size:15px}
   /* toggle chips + eye buttons */
   .cardtools{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin-bottom:7px}
-  .tgl{display:inline-flex;align-items:center;gap:5px;border:1px solid var(--line);border-radius:8px;padding:5px 10px;font-size:12px;cursor:pointer;background:#fff;font-weight:800}
-  .tgl.on{background:var(--acc);color:#fff;border-color:var(--acc)}
+  .tgl{display:inline-flex;align-items:center;gap:5px;border:1px solid var(--line);border-radius:99px;padding:5px 11px;font-size:12px;cursor:pointer;background:#fff;font-weight:800}
+  .tgl.on{background:var(--pri);color:#fff;border-color:var(--pri)}
   .tgl.off{background:#fdecea;color:var(--red);border-color:#f0c0ba}
-  .eyebtn{border:1px solid var(--line);background:#fff;border-radius:7px;padding:3px 6px;cursor:pointer;line-height:0;color:var(--sub)}
-  .eyebtn.on{background:#e9f7f0;border-color:var(--acc);color:var(--accd)}
+  .eyebtn{border:1px solid var(--line);background:#fff;border-radius:6px;padding:3px 6px;cursor:pointer;line-height:0;color:var(--sub)}
+  .eyebtn.on{background:#e8f2fa;border-color:var(--pri);color:var(--prid)}
   .eyebtn.off{background:#fdecea;border-color:#f0c0ba;color:var(--red)}
   .ei{width:15px;height:15px;stroke:currentColor;stroke-width:2;fill:none;stroke-linecap:round;stroke-linejoin:round;display:block}
   .ic{width:15px;height:15px;stroke:var(--acc);stroke-width:2;fill:none;stroke-linecap:round;stroke-linejoin:round;vertical-align:-2px}
@@ -163,7 +168,7 @@
   .sc2 td.netc{background:#dff2e8;font-weight:900;color:#06522f}
   .sc2 th.sub,.sc2 th.tot,.sc2 th.netc{background:var(--dark);color:#fff}   /* ヘッダは一律濃色＋白文字（薄背景で消えない） */
   .sc2 .hh{background:#fff7e6}
-  .sc2 th.hh{background:var(--dark);color:#ffd24d}   /* 隠しホールのヘッダ番号：濃背景＋金色で常に読める */
+  .sc2 th.hh{background:var(--dark);color:var(--acc)}   /* 隠しホールのヘッダ番号：濃紺背景＋アクセント黄で常に読める */
   .sc2 .parr td{color:#4a5560;font-size:10px;font-weight:700}
   .sc2 .tsum td{font-size:11px;background:#fbfcfc}
   .sc2 .winc{background:#d5f5e3 !important;font-weight:900;color:var(--accd)}
@@ -173,7 +178,7 @@
   .ind-left{flex:1 1 46%;min-width:0}
   .ind-right{flex:1 1 46%;min-width:0}
   .chip{display:inline-flex;align-items:center;gap:4px;border:1px solid var(--line);border-radius:99px;padding:3px 9px;font-size:12px;margin:3px 4px 0 0;background:#fff;cursor:pointer;font-weight:700}
-  .chip.on{background:var(--acc);color:#fff;border-color:var(--acc)}
+  .chip.on{background:var(--pri);color:#fff;border-color:var(--pri)}
   @media(max-width:760px){ .ind-split{flex-direction:column} .ind-left,.ind-right{flex:1 1 auto;width:100%} }
   /* ルーレット対抗（9:16大画面投影前提・大きめ/省スペース） */
   .rlwrap .card{margin-bottom:10px;padding:12px}
@@ -186,7 +191,15 @@
   .rl-par{font-size:15px;color:var(--sub);font-weight:800}
   .rl-panels{display:flex;flex-wrap:wrap;gap:10px}
   .rl-panel{flex:1 1 150px;min-width:140px;border:3px solid var(--line);border-radius:14px;padding:14px 10px;text-align:center;background:#fff}
-  .rl-panel.win{background:#eafaf1;box-shadow:0 0 0 3px var(--acc) inset}
+  /* 確定時の勝敗背景（#6）。機能色は緑/赤/橙固定（デザイントークンに依存させない） */
+  .rl-panel.win{background:#eafaf1;box-shadow:0 0 0 3px #12b866 inset}
+  .rl-panel.lose{background:#fdecea;box-shadow:0 0 0 3px #c0392b inset}
+  .rl-panel.tie{background:#fdf3d7;box-shadow:0 0 0 3px #d4a017 inset}
+  /* 回転中のフラッシュ（#6）：今の候補で止まったら勝ち/負け/引分かをピカピカ予告 */
+  @keyframes rlblink{from{filter:brightness(1)}to{filter:brightness(1.14)}}
+  .rl-panel.fwin{background:#c9f2dd;box-shadow:0 0 0 4px #12b866 inset;animation:rlblink .22s infinite alternate}
+  .rl-panel.flose{background:#fbd9d3;box-shadow:0 0 0 4px #c0392b inset;animation:rlblink .22s infinite alternate}
+  .rl-panel.ftie{background:#fdeec4;box-shadow:0 0 0 4px #d4a017 inset;animation:rlblink .22s infinite alternate}
   .rl-team{font-size:14px;font-weight:800;letter-spacing:.03em}
   .rl-name{font-size:30px;font-weight:900;margin:6px 0 2px;min-height:38px;line-height:1.1}
   .rl-scorebig{font-size:44px;font-weight:900;color:var(--accd);line-height:1;min-height:46px;font-variant-numeric:tabular-nums}
@@ -234,6 +247,34 @@
     #view-result .tgl{font-size:13px;padding:6px 12px}
     #view-result .eyebtn{padding:4px 8px}
     #view-result .ei{width:18px;height:18px}
+  }
+  /* iPad Pro 13" 縦持ち(幅1032pt)〜（§11.5）：タッチターゲット44pt＋中間フォントスケール＋main拡張 */
+  @media(min-width:1024px){
+    main{max-width:1200px}
+    :root{--f-hero:23px;--f-val:22px;--f-name:17px;--f-title:16px;--f-body:14px;--f-small:12px}
+    input,select{min-height:44px}
+    button.btn{min-height:44px}
+    button.btn.sm{min-height:44px;padding:8px 14px;font-size:13px}
+    .hamb{min-height:44px}
+    .tgl{min-height:44px;padding:9px 14px;font-size:13px}
+    .eyebtn{min-width:44px;min-height:44px;display:inline-flex;align-items:center;justify-content:center;padding:0}
+    .chip{min-height:44px;padding:9px 14px;font-size:14px}
+    .subtab4 button{min-height:48px;font-size:15px}
+    .holebtn{width:46px;height:46px;font-size:15px}
+    .appmenu button{padding:15px 20px}
+    .scoregrid th,.scoregrid td{min-width:46px}
+    .scoregrid td input{width:52px;min-height:44px;font-size:17px;padding:9px 2px}
+    .scoregrid td input:focus{outline:2px solid var(--pri);outline-offset:-1px}
+  }
+  /* iPad Pro 13" 横持ち(幅1376pt)：1376ptを活かして全幅拡張（§11.5） */
+  @media(min-width:1366px){
+    main{max-width:1320px}
+    .sc2 col.cnm{width:100px} .sc2 col.cs{width:48px}
+    #view-result .sc2{font-size:17px}
+    #view-result .rank-wrap>.card{flex:1 1 300px;max-width:440px}
+    #view-result .rank-wrap>.card.wide{flex:1 1 440px;max-width:620px}
+    .rlwrap{max-width:1100px}
+    .rl-hole{font-size:72px}
   }
 </style>
 </head>
@@ -292,7 +333,8 @@ function migrate(s){
     else { const r=newRoulette(); for(const k in r) if(g.roulette[k]===undefined) g.roulette[k]=r[k]; }
   });
 }
-function newRoulette(){ return { changeN:1, challengeM:1, reps:{}, pool:{}, remChange:{}, remChallenge:{}, cur:0 }; }
+/* changeN/challengeM は「ハーフ9Hあたり」の回数（§11.3・2026-08-16に意味変更。既存ゲームの値もハーフあたりとして解釈） */
+function newRoulette(){ return { changeN:2, challengeM:2, reps:{}, pool:{}, remChange:{}, remChallenge:{}, cur:0 }; }
 function defaultPoints(){ return {
   net:[5,3,1], gross:[5,3,1], stableford:[5,3,1], olympic:[5,3,1], callaway:[5,3,1], nassauTotal:[5,3,1],
   teamGross:[3], teamNet:[3], holeByHole:[3], best2ball:[3], roulette:[3], niapin:2, dracon:2 }; }
@@ -507,10 +549,10 @@ function renderGame(){
   </div></div>`;
 
   html += `<div class="card"><h2>ルーレット対抗（抽選ホールバイホール）</h2>
-    <div class="muted">ホールごとに各チームの代表を抽選し、その代表のスコアで1ホールずつ勝負。結果タブ「ルーレット」で実行します。回数はチームごとに付与。</div>
+    <div class="muted">ホールごとに各チームの代表を抽選し、その代表のスコアで1ホールずつ勝負。結果タブ「ルーレット」で実行します。回数はチームごと・<b>ハーフ9Hあたり</b>に付与（10番進行時に再付与・前半の余りは失効）。</div>
     <div class="row" style="margin-top:8px">
-      <div style="flex:1"><label class="fl">チェンジ回数（自分を変える・使い切り必須）</label><input type="number" min="0" max="18" value="${g.roulette.changeN}" onchange="setRoulette('changeN',this.value)"></div>
-      <div style="flex:1"><label class="fl">チャレンジ回数（相手を変える・任意）</label><input type="number" min="0" max="18" value="${g.roulette.challengeM}" onchange="setRoulette('challengeM',this.value)"></div>
+      <div style="flex:1"><label class="fl">チェンジ回数（ハーフ9Hあたり・自分を変える・使い切り必須）</label><input type="number" min="0" max="9" value="${g.roulette.changeN}" onchange="setRoulette('changeN',this.value)"></div>
+      <div style="flex:1"><label class="fl">チャレンジ回数（ハーフ9Hあたり・相手を変える・任意）</label><input type="number" min="0" max="9" value="${g.roulette.challengeM}" onchange="setRoulette('challengeM',this.value)"></div>
     </div></div>`;
 
   // Points / prize pool
@@ -551,8 +593,14 @@ function setCap(v){ const g=curGame(); g.periaCap = v===''?null:parseFloat(v); s
 function setWE(v){ curGame().womenEvery.enabled=v; save(); }
 function setPar(i,v){ curGame().par[i]=parseInt(v)||0; save(); renderGame(); }
 function toggleHidden(i){ const g=curGame(); g.hidden[i]=!g.hidden[i]; save(); document.getElementById('hidCount').textContent=g.hidden.filter(Boolean).length; }
-function randomHidden(){ const g=curGame(); const idx=[...Array(18).keys()].sort(()=>Math.random()-0.5).slice(0,12);
-  g.hidden=Array(18).fill(false); idx.forEach(i=>g.hidden[i]=true); save(); renderGame(); }
+/* 隠し12H＝ショート(Par3)2・ミドル(Par4)8・ロング(Par5)2（隠しPar合計48の標準新ペリア構成）。
+   非標準コースは各グループ数でクリップし、不足はミドル→ロング→ショート順に補充（§11.1） */
+function randomHidden(){ const g=curGame();
+  const pick=(arr,n)=>arr.slice().sort(()=>Math.random()-0.5).slice(0,Math.max(0,n));
+  const p3=[],p4=[],p5=[]; g.par.forEach((p,i)=>{ (p<=3?p3:p===4?p4:p5).push(i); });
+  const sel=[...pick(p3,Math.min(2,p3.length)), ...pick(p4,Math.min(8,p4.length)), ...pick(p5,Math.min(2,p5.length))];
+  [p4,p5,p3].forEach(grp=>{ pick(grp,grp.length).forEach(i=>{ if(sel.length<12 && !sel.includes(i)) sel.push(i); }); });
+  g.hidden=Array(18).fill(false); sel.forEach(i=>g.hidden[i]=true); save(); renderGame(); }
 function clearHidden(){ curGame().hidden=Array(18).fill(false); save(); renderGame(); }
 function setFmt(k,v){ curGame().formats[k]=v; save(); renderGame(); }
 function setPoints(k,v){ curGame().points[k]=v.split(',').map(x=>parseInt(x.trim())).filter(x=>!isNaN(x)); save(); }
@@ -674,13 +722,10 @@ function periaHdcp(g,pid){
   return Math.round(hd*10)/10;
 }
 function enteredCount(g,pid){ return (g.scores[pid]||[]).filter(v=>v!=null&&v!=='').length; }
-function womenEvery(g,pid){ const p=state.players.find(x=>x.id===pid);
-  if(!g.womenEvery.enabled || !p) return 0;
-  const full = p.everyType==='every1'?18 : p.everyType==='every2'?36 : 0;
-  if(!full) return 0;
-  // プレーしたホール数に応じて段階的に反映（1ホール1/18ずつ）。18Hで満額。
-  return Math.round(full * enteredCount(g,pid) / 18 * 10)/10;
-}
+/* エブリ控除の実額（§11.2）：入力済み各ホールに−1(E1)/−2(E2)を積み上げる＝表示系(adjArr/adjHole)と同一基準。
+   18H入力時は従来どおりE1=−18/E2=−36。ペリアHDCPは生スコア基準のまま（慣例・独立ハンデ）。 */
+function everyStrokes(g,pid){ return evPer(g,pid)*enteredCount(g,pid); }
+function womenEvery(g,pid){ return everyStrokes(g,pid); }
 function gross_(g,pid){ return gross(g,pid); }
 function effGross(g,pid){ return gross(g,pid) - womenEvery(g,pid); }
 // エブリ支給（各ホール−1/−2）。表示用のホール別スコアは「エブリ適用後」に統一（入力タブのみ生スコア）
@@ -709,7 +754,9 @@ function callawayHdcp(g,pid){
   let hd=ded+a; if(hd<0)hd=0; return Math.round(hd*10)/10;
 }
 function callawayNet(g,pid){ const h=callawayHdcp(g,pid); return h==null?null:gross(g,pid)-h; }
-function net9(g,pid,s,e){ const raw=sum(g.scores[pid]||[],s,e); return Math.round((raw-womenEvery(g,pid)/2-periaHdcp(g,pid)/2)*10)/10; }
+function net9(g,pid,s,e){ const sc=g.scores[pid]||[]; const raw=sum(sc,s,e);
+  let ev=0; for(let i=s;i<e;i++){ if(sc[i]!=null&&sc[i]!=='') ev+=evPer(g,pid); }   // 当該9Hのエブリ実額（§11.2）
+  return Math.round((raw-ev-periaHdcp(g,pid)/2)*10)/10; }
 function nassauTotalNet(g,pid){ return Math.round((net9(g,pid,0,9)+net9(g,pid,9,18))*10)/10; }
 
 /* ---- ranking helpers ---- */
@@ -985,10 +1032,25 @@ function rlDraw(g, teamId, excludePid){
   if(cand.length===0){ g.roulette.pool[teamId]=[]; cand=members.filter(m=>m!==excludePid); if(!cand.length)cand=members.slice(); }
   return cand[Math.floor(Math.random()*cand.length)];
 }
-function rlTick(){ const g=curGame(); if(!g)return;
+function rlTick(){ const g=curGame(); if(!g)return; const h=g.roulette.cur;
+  const pick=Object.assign({}, g.roulette.reps[h]||{});   // 非回転チームは確定代表で比較（#6）
   rl.spinTeams.forEach(tid=>{ const t=g.teams.find(x=>x.id===tid); if(!t||!t.memberIds.length)return;
+    const pid=t.memberIds[Math.floor(Math.random()*t.memberIds.length)]; pick[tid]=pid;
+    const p=state.players.find(x=>x.id===pid);
     const el=document.getElementById('rl-name-'+tid);
-    if(el){ const pid=t.memberIds[Math.floor(Math.random()*t.memberIds.length)]; const p=state.players.find(x=>x.id===pid); el.textContent=p?p.name:''; } }); }
+    if(el) el.textContent=p?p.name:'';
+    // 名前とセットで候補のスコア（エブリ適用後）も回す（#5）
+    const es=document.getElementById('rl-score-'+tid);
+    if(es){ const av=adjHole(g,pid,h); es.textContent = av==null?'—':av; } });
+  rlFlash(g,h,pick); }
+/* 回転中の勝敗予告（#6）：今表示中の候補どうしを比較し、勝ち=緑/負け=赤/引分=橙で点滅。未入力が混じれば消灯 */
+function rlFlash(g,h,pick){ const teams=rTeams(g);
+  const sc=teams.map(t=>{ const pid=pick[t.id]; return pid?adjHole(g,pid,h):null; });
+  const ok=!sc.some(s=>s==null); const mn=ok?Math.min(...sc):null;
+  const allTie=ok && sc.every(s=>s===mn);
+  teams.forEach((t,i)=>{ const el=document.getElementById('rl-panel-'+t.id); if(!el)return;
+    el.classList.remove('fwin','flose','ftie');
+    if(ok) el.classList.add(allTie?'ftie':(sc[i]===mn?'fwin':'flose')); }); }
 function rlBeginSpin(teamIds){ if(rl.timer)clearInterval(rl.timer); rl.spinning=true; rl.spinTeams=teamIds.slice(); rl.challengeFrom=null; renderResult(); rl.timer=setInterval(rlTick,75); }
 function rlStop(){ rlStopTimer(); const g=curGame(); const R=g.roulette; const h=R.cur; R.reps[h]=R.reps[h]||{};
   rl.spinTeams.forEach(tid=>{ const prev=R.reps[h][tid]; R.reps[h][tid]=rlDraw(g,tid, rl.spinTeams.length===1?prev:null); });
@@ -1001,10 +1063,16 @@ function rlChallengeStart(fromTid){ const g=curGame(); const R=g.roulette; if((R
 function rlChallengeDo(fromTid, targetTid){ const g=curGame(); const R=g.roulette; if((R.remChallenge[fromTid]||0)<=0)return; R.remChallenge[fromTid]--; rl.challengeFrom=null; save(); rlBeginSpin([targetTid]); }
 function rlCancelChallenge(){ rl.challengeFrom=null; renderResult(); }
 function rlHoleDrawn(g){ const reps=g.roulette.reps[g.roulette.cur]||{}; return rTeams(g).every(t=>reps[t.id]); }
-function rlCanAdvance(g){ if(!rlHoleDrawn(g))return false; const left=18-(g.roulette.cur+1); return rTeams(g).every(t=>(g.roulette.remChange[t.id]||0)<=left); }
+/* 使い切り必須の判定はハーフ単位（§11.3）：前半=9番(index8)終了まで／後半=18番(index17)終了までに残チェンジ0 */
+function rlCanAdvance(g){ if(!rlHoleDrawn(g))return false; const cur=g.roulette.cur;
+  const left = cur<=8 ? 8-cur : 17-cur;
+  return rTeams(g).every(t=>(g.roulette.remChange[t.id]||0)<=left); }
 function rlNextHole(){ const g=curGame(); const R=g.roulette; if(!rlCanAdvance(g)){toast('チェンジを使い切ってください');return;}
   const reps=R.reps[R.cur]||{}; rTeams(g).forEach(t=>{ R.pool[t.id]=[...(R.pool[t.id]||[]), reps[t.id]]; });
-  R.cur=Math.min(18,R.cur+1); rl.challengeFrom=null; save(); renderResult(); }
+  R.cur=Math.min(18,R.cur+1);
+  // OUT終了→後半開始：チェンジ/チャレンジをハーフ分再付与（上書き＝前半の余りは失効・§11.3）
+  if(R.cur===9) rTeams(g).forEach(t=>{ R.remChange[t.id]=R.changeN; R.remChallenge[t.id]=R.challengeM; });
+  rl.challengeFrom=null; save(); renderResult(); }
 function rlReset(){ if(!confirm('ルーレットを最初からやり直しますか？'))return; const g=curGame(); const R=g.roulette;
   R.reps={};R.pool={};R.remChange={};R.remChallenge={};R.cur=0; rTeams(g).forEach(t=>{R.remChange[t.id]=R.changeN;R.remChallenge[t.id]=R.challengeM;});
   rl.challengeFrom=null; rlStopTimer(); rl.spinTeams=[]; save(); renderResult(); }
@@ -1068,19 +1136,23 @@ function renderRouletteTab(g){
     if(sc.some(s=>s==null)) holeInfo='<span class="muted">代表のスコア未入力</span>';
     else{ const mn=Math.min(...sc); const wi=sc.map((s,i)=>s===mn?i:-1).filter(i=>i>=0);
       holeInfo = wi.length===teams.length?'引き分け（各0.5H）':('WIN: <b>'+wi.map(i=>esc(teams[i].name)).join('・')+'</b>'); } }
-  const winSet=(()=>{ if(!drawn)return new Set(); const sc=holeScores(); if(sc.some(s=>s==null))return new Set(); const mn=Math.min(...sc); return new Set(sc.map((s,i)=>s===mn?i:-1).filter(i=>i>=0)); })();
+  // 確定時の勝敗クラス（#6）：勝ち=win/負け=lose/全チーム同点=tie。スコア未入力が混じれば無色
+  const stCls=(()=>{ const none=teams.map(()=>''); if(!drawn||rl.spinning)return none;
+    const sc=holeScores(); if(sc.some(s=>s==null))return none;
+    const mn=Math.min(...sc); if(sc.every(s=>s===mn))return teams.map(()=>' tie');
+    return sc.map(s=>s===mn?' win':' lose'); })();
   const panels=teams.map((t,ti)=>{ const pid=reps[t.id]; const p=pid?state.players.find(x=>x.id===pid):null;
     const av=pid?adjHole(g,pid,h):null; const sv=pid?(av==null?'—':av):'';
-    const col=rColor(t.name); const win=winSet.has(ti);
+    const col=rColor(t.name);
     // 固定高さのアクション欄（ボタンが動かないように）
     let act='';
     if(rl.spinning) act='';
     else if(rl.challengeFrom) act = (rl.challengeFrom!==t.id)?`<button class="btn sm" onclick="rlChallengeDo('${rl.challengeFrom}','${t.id}')">このチームを回す</button>`:`<span class="muted" style="font-size:11px">相手を選択中</span>`;
     else if(drawn) act=`<button class="btn sec sm" ${(R.remChange[t.id]||0)<=0?'disabled':''} onclick="rlChange('${t.id}')">チェンジ ${R.remChange[t.id]||0}</button><button class="btn gray sm" ${(R.remChallenge[t.id]||0)<=0?'disabled':''} onclick="rlChallengeStart('${t.id}')">チャレンジ ${R.remChallenge[t.id]||0}</button>`;
-    return `<div class="rl-panel${win?' win':''}" style="border-color:${col}">
+    return `<div class="rl-panel${stCls[ti]}" id="rl-panel-${t.id}" style="border-color:${col}">
       <div class="rl-team" style="color:${col}">${esc(t.name)}</div>
       <div class="rl-name" id="rl-name-${t.id}">${rl.spinning&&rl.spinTeams.includes(t.id)?'…':(p?esc(p.name):'―')}</div>
-      <div class="rl-scorebig">${pid?sv:'&nbsp;'}</div>
+      <div class="rl-scorebig" id="rl-score-${t.id}">${pid?sv:'&nbsp;'}</div>
       <div class="rl-act">${act}</div>
     </div>`; }).join('');
   let mainBtn;
