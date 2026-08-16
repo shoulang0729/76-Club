@@ -77,10 +77,10 @@
   .lb th{background:var(--dark);color:#fff;font-weight:700;font-size:11px;letter-spacing:.02em}
   .lb tr:nth-child(2n+1) td{background:#f8fafb}
   .lb .rank td{font-weight:600}
-  .pos{display:inline-flex;align-items:center;justify-content:center;width:24px;height:24px;border-radius:50%;
-    background:#fff;color:var(--dark);border:1.5px solid var(--dark);font-size:12px;font-weight:900;font-variant-numeric:tabular-nums;line-height:1}
-  .pos.p1{background:var(--acc);color:var(--dark);border-color:var(--acc)}   /* 1位＝イエロー地＋濃色文字（§11.4） */
-  .lb.big .pos{width:28px;height:28px;font-size:14px}
+  /* 順位＝プレーンな太字数字（§11.7・丸バッジ全廃）。1位のみ青字で最小限の強調 */
+  .rankno{font-weight:800;font-variant-numeric:tabular-nums;color:var(--ink);font-size:14px;line-height:1}
+  .rankno.r1{color:var(--pri)}
+  .lb.big .rankno{font-size:16px}
   .rank1 td{}
   .hlrow td{background:#eef4fb !important}
   .kanjibadge{display:inline-block;background:var(--blue);color:#fff;border-radius:5px;font-size:10px;padding:1px 6px;margin-left:6px;font-weight:800;letter-spacing:.02em}
@@ -143,7 +143,7 @@
   .rank-wrap .lb{font-size:13px;table-layout:fixed;width:100%}
   .rank-wrap .lb th,.rank-wrap .lb td{padding:6px 6px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;height:34px}
   .rank-wrap .lb .c-eye{width:40px;padding:2px}
-  .rank-wrap .lb .c-pos{width:36px}
+  .rank-wrap .lb .c-pos{width:30px}
   .rank-wrap .lb .c-val{width:66px;text-align:right;padding-right:8px}
   .rank-wrap .lb.big{font-size:15px}
   .rank-wrap .lb.big th,.rank-wrap .lb.big td{height:42px}
@@ -232,8 +232,8 @@
     #view-result .lb{font-size:15px}
     #view-result .lb.big{font-size:19px}
     #view-result .lb.big b{font-size:26px}
-    #view-result .lb .pos{width:28px;height:28px;font-size:14px}
-    #view-result .lb.big .pos{width:32px;height:32px;font-size:16px}
+    #view-result .lb .rankno{font-size:16px}
+    #view-result .lb.big .rankno{font-size:18px}
     #view-result .nmc{font-size:18px}
     #view-result .sc2{font-size:15px}
     #view-result .rank-wrap>.card{flex:1 1 280px;max-width:400px}
@@ -241,7 +241,7 @@
     #view-result .rank-wrap .lb .c-val{width:80px}
     #view-result .rank-wrap .lb.big .c-val{width:100px}
     #view-result .rank-wrap .lb .c-eye{width:48px}
-    #view-result .rank-wrap .lb .c-pos{width:44px}
+    #view-result .rank-wrap .lb .c-pos{width:36px}
     #view-result .payoutcard .lb{font-size:16px}
     #view-result .togbar,#view-result .cardtools{font-size:14px}
     #view-result .tgl{font-size:13px;padding:6px 12px}
@@ -403,7 +403,7 @@ const EVERY_LABEL={none:'なし', every1:'E1(−18)', every2:'E2(−36)'};
 // 最小の線アイコン（目のオン/オフ）と丸数字の順位バッジ
 const EYE='<svg class="ei" viewBox="0 0 24 24"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7z"/><circle cx="12" cy="12" r="3"/></svg>';
 const EYEOFF='<svg class="ei" viewBox="0 0 24 24"><path d="M3 3l18 18M10.6 10.6a3 3 0 004.2 4.2M9.9 5.2A9.7 9.7 0 0112 5c6.5 0 10 7 10 7a17 17 0 01-3.2 3.9M6.1 6.1A17 17 0 002 12s3.5 7 10 7a9.7 9.7 0 003.2-.5"/></svg>';
-const posBadge=(rank,first)=>`<span class="pos ${first?'p1':''}">${rank}</span>`;
+const posBadge=(rank,first)=>`<span class="rankno${first?' r1':''}">${rank}</span>`;
 
 /* ============================ PLAYERS ============================ */
 function renderPlayers(){
