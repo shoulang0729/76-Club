@@ -551,8 +551,14 @@ function setCap(v){ const g=curGame(); g.periaCap = v===''?null:parseFloat(v); s
 function setWE(v){ curGame().womenEvery.enabled=v; save(); }
 function setPar(i,v){ curGame().par[i]=parseInt(v)||0; save(); renderGame(); }
 function toggleHidden(i){ const g=curGame(); g.hidden[i]=!g.hidden[i]; save(); document.getElementById('hidCount').textContent=g.hidden.filter(Boolean).length; }
-function randomHidden(){ const g=curGame(); const idx=[...Array(18).keys()].sort(()=>Math.random()-0.5).slice(0,12);
-  g.hidden=Array(18).fill(false); idx.forEach(i=>g.hidden[i]=true); save(); renderGame(); }
+/* 隠し12H＝ショート(Par3)2・ミドル(Par4)8・ロング(Par5)2（隠しPar合計48の標準新ペリア構成）。
+   非標準コースは各グループ数でクリップし、不足はミドル→ロング→ショート順に補充（§11.1） */
+function randomHidden(){ const g=curGame();
+  const pick=(arr,n)=>arr.slice().sort(()=>Math.random()-0.5).slice(0,Math.max(0,n));
+  const p3=[],p4=[],p5=[]; g.par.forEach((p,i)=>{ (p<=3?p3:p===4?p4:p5).push(i); });
+  const sel=[...pick(p3,Math.min(2,p3.length)), ...pick(p4,Math.min(8,p4.length)), ...pick(p5,Math.min(2,p5.length))];
+  [p4,p5,p3].forEach(grp=>{ pick(grp,grp.length).forEach(i=>{ if(sel.length<12 && !sel.includes(i)) sel.push(i); }); });
+  g.hidden=Array(18).fill(false); sel.forEach(i=>g.hidden[i]=true); save(); renderGame(); }
 function clearHidden(){ curGame().hidden=Array(18).fill(false); save(); renderGame(); }
 function setFmt(k,v){ curGame().formats[k]=v; save(); renderGame(); }
 function setPoints(k,v){ curGame().points[k]=v.split(',').map(x=>parseInt(x.trim())).filter(x=>!isNaN(x)); save(); }
