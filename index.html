@@ -7,7 +7,7 @@
 <title>76-Club COMPE</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;600;700;900&family=Noto+Sans+SC:wght@400;700;900&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;600;700;900&family=Noto+Sans+SC:wght@400;700;900&family=Noto+Serif+JP:wght@600;700&display=swap" rel="stylesheet">
 <style>
   *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
   /* コーポレートトーン（§11.4）：白基調＋ネイビー＋アクセント黄少量＋プライマリ青。勝敗の機能色(緑/橙/赤)は維持 */
@@ -293,6 +293,27 @@
     .rl-main{font-size:27px}
     .sc2.rlsc{font-size:17px}
   }
+  /* ============ テーマB（NTT DATA寄せ・エアリー）＝差分のみ上書き（§11.8）。A=無属性=現行 ============ */
+  /* テーブルヘッダ: 白地＋ネイビー文字＋下ハイライン */
+  html[data-theme="b"] th{background:#fff;color:var(--dark);border-bottom:2px solid var(--dark)}
+  html[data-theme="b"] .lb th{background:#fff;color:var(--dark);font-weight:700;border-bottom:2px solid var(--dark)}
+  html[data-theme="b"] .sc2 th,html[data-theme="b"] .sc2 th.nm,html[data-theme="b"] .sc2 th.sub,html[data-theme="b"] .sc2 th.tot,html[data-theme="b"] .sc2 th.netc{background:#fff;color:var(--dark);border-bottom:2px solid var(--dark)}
+  html[data-theme="b"] .sc2 th.hh{background:#fff7e6;color:#8a6100;border-bottom:2px solid var(--dark)}   /* 白地では黄文字が沈むため淡黄地＋濃金 */
+  html[data-theme="b"] .lb tr:nth-child(2n+1) td{background:#fafbfc}
+  /* 見出し: Noto Serif JP＋ハイライン区切り・余白拡張・フォント軽量化 */
+  html[data-theme="b"] body{font-weight:400}
+  html[data-theme="b"] .card{padding:18px 16px;box-shadow:none}
+  html[data-theme="b"] .card h2{font-family:"Noto Serif JP","Noto Serif",serif;font-weight:700;padding-bottom:8px;border-bottom:1px solid var(--line);margin-bottom:12px}
+  html[data-theme="b"] .card.tight h2{margin-bottom:10px}
+  html[data-theme="b"] header h1{font-family:"Noto Serif JP","Noto Serif",serif;font-weight:700}
+  html[data-theme="b"] .card h3{letter-spacing:.06em}
+  /* 機能色（勝敗の緑/橙・rwin/rtie/adopt/winc）はテーマ共通＝上書きしない */
+  /* 投影(≥820px)はテーマBでも高コントラスト＝テーブルヘッダを濃色復帰（§11.8） */
+  @media(min-width:820px){
+    html[data-theme="b"] .lb th{background:var(--dark);color:#fff;border-bottom:0}
+    html[data-theme="b"] .sc2 th,html[data-theme="b"] .sc2 th.nm,html[data-theme="b"] .sc2 th.sub,html[data-theme="b"] .sc2 th.tot,html[data-theme="b"] .sc2 th.netc{background:var(--dark);color:#fff;border-bottom:0}
+    html[data-theme="b"] .sc2 th.hh{background:var(--dark);color:var(--acc);border-bottom:0}
+  }
 </style>
 </head>
 <body>
@@ -303,6 +324,11 @@
       <div class="gamename" id="hdrGame">— ゲーム未選択 —</div>
     </div>
     <div class="row" style="gap:6px;flex-wrap:nowrap">
+      <select id="themeSel" onchange="setTheme(this.value)" data-i18n-title="theme.label"
+              style="background:rgba(255,255,255,.12);color:#fff;border:0;border-radius:99px;padding:8px 10px;font-weight:700;width:auto;min-height:40px">
+        <option value="a" data-i18n="theme.a">スコアボード</option>
+        <option value="b" data-i18n="theme.b">コーポレート</option>
+      </select>
       <select id="langSel" onchange="setLang(this.value)" aria-label="Language"
               style="background:rgba(255,255,255,.12);color:#fff;border:0;border-radius:99px;padding:8px 10px;font-weight:700;width:auto;min-height:40px">
         <option value="ja">日本語</option>
@@ -435,6 +461,7 @@ const posBadge=(rank,first)=>`<span class="rankno${first?' r1':''}">${rank}</spa
 const I18N = {
 ja: {
   'nav.game':'ゲーム','nav.players':'選手','nav.score':'スコア入力','nav.result':'結果',
+  'theme.label':'テーマ','theme.a':'スコアボード','theme.b':'コーポレート',
   'tab.game':'ゲーム','tab.players':'選手','tab.score':'入力','tab.result':'結果',
   'hdr.noGame':'— ゲーム未選択 —',
   'player.master':'選手マスター','player.phName':'名前','player.male':'男性','player.female':'女性','player.m':'男','player.f':'女',
@@ -523,6 +550,7 @@ ja: {
 },
 zh: {
   'nav.game':'比赛','nav.players':'选手','nav.score':'记分','nav.result':'结果',
+  'theme.label':'主题','theme.a':'记分板','theme.b':'简约',
   'tab.game':'比赛','tab.players':'选手','tab.score':'记分','tab.result':'结果',
   'hdr.noGame':'— 未选择比赛 —',
   'player.master':'选手名册','player.phName':'名字','player.male':'男','player.female':'女','player.m':'男','player.f':'女',
@@ -611,6 +639,7 @@ zh: {
 },
 en: {
   'nav.game':'Game','nav.players':'Players','nav.score':'Scores','nav.result':'Results',
+  'theme.label':'Theme','theme.a':'Scoreboard','theme.b':'Corporate',
   'tab.game':'Game','tab.players':'Players','tab.score':'Scores','tab.result':'Results',
   'hdr.noGame':'— No game selected —',
   'player.master':'Player Roster','player.phName':'Name','player.male':'Male','player.female':'Female','player.m':'M','player.f':'F',
@@ -699,6 +728,10 @@ en: {
 },
 };
 let LANG = localStorage.getItem('golfCompe_lang') || 'ja';   // 既定 ja
+/* 表示テーマ（§11.8）: 'a'=現行スコアボード / 'b'=NTT DATA寄せ（既定）。golfCompe_theme に永続化（データとは分離） */
+let THEME = localStorage.getItem('golfCompe_theme') || 'b';
+function setTheme(th){ if(th!=='a'&&th!=='b')return; THEME=th; localStorage.setItem('golfCompe_theme',th);
+  document.documentElement.setAttribute('data-theme',th); }   // 純CSS＝render()不要で即再スキン
 function t(key, params){
   let s = (I18N[LANG] && I18N[LANG][key]) ?? (I18N.ja[key] ?? key);   // 未定義はjaフォールバック→キー
   if(params) for(const k in params) s = s.split('{'+k+'}').join(params[k]);
@@ -1555,8 +1588,10 @@ function importData(inp){ const f=inp.files[0]; if(!f)return; const r=new FileRe
 
 /* ============================ INIT ============================ */
 document.documentElement.lang = (LANG==='zh' ? 'zh-CN' : LANG);
+document.documentElement.setAttribute('data-theme', THEME);
 applyStaticI18n();
 document.getElementById('langSel').value = LANG;
+document.getElementById('themeSel').value = THEME;
 render();
 </script>
 </body>
