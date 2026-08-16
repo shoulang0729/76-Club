@@ -402,6 +402,9 @@ function migrate(s){
     if(!g.prizes) g.prizes={ niapinHoles:[], draconHoles:[], niapinWinner:{}, draconWinner:{} };
     if(!g.roulette) g.roulette=newRoulette();
     else { const r=newRoulette(); for(const k in r) if(g.roulette[k]===undefined) g.roulette[k]=r[k]; }
+    if(g.formats && g.formats.vegas===undefined) g.formats.vegas=false;   // ラスベガス（§11.11）
+    if(!g.vegas) g.vegas={ flip:true, cap:'doublePar' };
+    else { if(g.vegas.flip===undefined) g.vegas.flip=true; if(!g.vegas.cap) g.vegas.cap='doublePar'; }
   });
 }
 /* changeN/challengeM は「ハーフ9Hあたり」の回数（§11.3・2026-08-16に意味変更。既存ゲームの値もハーフあたりとして解釈） */
@@ -427,8 +430,9 @@ function newGame(){
     scores:{},
     prizes:{ niapinHoles:[], draconHoles:[], niapinWinner:{}, draconWinner:{} },
     points:defaultPoints(), prizePool:0, roulette:newRoulette(),
+    vegas:{ flip:true, cap:'doublePar' },   // ラスベガス設定（§11.11）
     formats:{ gross:true, net:true, teamGross:true, teamNet:true, holeByHole:true,
-      stableford:true, nassau:true, olympic:true, callaway:false, best2ball:false }
+      stableford:true, nassau:true, olympic:true, callaway:false, best2ball:false, vegas:false }
   };
 }
 
@@ -448,8 +452,8 @@ function nsMasked(table,pid){ return (nsMode[table]==='hide') !== nsExcept[table
 function toggleNSAll(table){ nsMode[table]= nsMode[table]==='show'?'hide':'show'; nsExcept[table].clear(); renderResult(); }
 function toggleNSRow(table,pid){ const s=nsExcept[table]; if(s.has(pid))s.delete(pid); else s.add(pid); renderResult(); }
 // チーム対抗の各ゲーム：ゲームごと master ＋チームごと個別ボタン。チーム名＋合計をまとめて表示/非表示
-let tgMode={ teamGross:'show', teamNet:'show', best2ball:'show', holeByHole:'show' };
-let tgExcept={ teamGross:new Set(), teamNet:new Set(), best2ball:new Set(), holeByHole:new Set() };
+let tgMode={ teamGross:'show', teamNet:'show', best2ball:'show', holeByHole:'show', vegas:'show' };
+let tgExcept={ teamGross:new Set(), teamNet:new Set(), best2ball:new Set(), holeByHole:new Set(), vegas:new Set() };
 function tgMasked(key,tid){ return (tgMode[key]==='hide') !== tgExcept[key].has(tid); }
 function toggleTgAll(key){ tgMode[key]= tgMode[key]==='show'?'hide':'show'; tgExcept[key].clear(); renderResult(); }
 function toggleTgRow(key,tid){ const s=tgExcept[key]; if(s.has(tid))s.delete(tid); else s.add(tid); renderResult(); }
@@ -538,6 +542,10 @@ ja: {
   'ind.revealing':'・{h}/18H開封中',
   'term.gross':'グロス','term.net':'ネット','result.grossEvery':'グロス（エブリ反映）','term.stableford':'ステーブルフォード','term.olympic':'オリンピック','term.callaway':'キャロウェイ',
   'term.teamGross':'グロス対抗','term.teamNet':'ネット対抗','term.best2':'ベスト2ボール','term.hbh':'ホールバイホール','term.roulette':'ルーレット対抗',
+  'term.vegas':'ラスベガス','fmt.vegas':'ラスベガス',
+  'vegas.flip':'フリップ（バーディで相手を反転）','vegas.cap':'スコア上限','vegas.capDouble':'ダブルパー止め','vegas.capNone':'上限なし',
+  'vegas.total':'合計点差','vegas.needTeams':'2人組×2チーム以上が必要です',
+  'rule.vegas':'<b>ラスベガス</b>：2人組の2スコアを小さい方を先頭に2桁化（上限=ダブルパー）。対戦で数字の小さいチームが差分を獲得。バーディ以上を出すと相手の数字が反転し大きく開く。合計点差で勝敗。',
   'term.niapin':'ニアピン','term.dracon':'ドラコン','term.organizer':'幹事',
   'rule.summary':'各ゲームのルール解説',
   'rule.net':'<b>ネット</b>：ダブルペリアのハンデ後スコア。総合優勝はこれで決めるのが定番。少ないほど上位。',
@@ -627,6 +635,10 @@ zh: {
   'ind.revealing':'·已揭示{h}/18洞',
   'term.gross':'总杆','term.net':'净杆','result.grossEvery':'总杆（含每洞让杆）','term.stableford':'斯特伯福','term.olympic':'奥林匹克','term.callaway':'卡拉威',
   'term.teamGross':'总杆对抗','term.teamNet':'净杆对抗','term.best2':'最佳两球','term.hbh':'逐洞比洞','term.roulette':'轮盘对抗',
+  'term.vegas':'拉斯维加斯','fmt.vegas':'拉斯维加斯',
+  'vegas.flip':'翻转（小鸟时反转对手）','vegas.cap':'分数上限','vegas.capDouble':'双标准杆封顶','vegas.capNone':'无上限',
+  'vegas.total':'累计分差','vegas.needTeams':'需至少两支2人小队',
+  'rule.vegas':'<b>拉斯维加斯</b>：将2人小队的两杆数以较小者在前组成两位数（上限=双标准杆）。数字较小的队伍赢得差值；打出小鸟及以上会翻转对手数字，差距骤增。以累计分差决胜。',
   'term.niapin':'近旗奖','term.dracon':'远打奖','term.organizer':'干事',
   'rule.summary':'各项规则说明',
   'rule.net':'<b>净杆</b>：双派利亚差点后的成绩，总冠军通常以此决定，越少越靠前。',
@@ -716,6 +728,10 @@ en: {
   'ind.revealing':', {h}/18 revealed',
   'term.gross':'Gross','term.net':'Net','result.grossEvery':'Gross (Every applied)','term.stableford':'Stableford','term.olympic':'Olympic','term.callaway':'Callaway',
   'term.teamGross':'Team gross','term.teamNet':'Team net','term.best2':'Best 2 Ball','term.hbh':'Hole-by-hole','term.roulette':'Roulette',
+  'term.vegas':'Vegas','fmt.vegas':'Vegas',
+  'vegas.flip':'Flip (birdie reverses opponent)','vegas.cap':'Score cap','vegas.capDouble':'Double par','vegas.capNone':'None',
+  'vegas.total':'Total','vegas.needTeams':'Needs at least two 2-player teams',
+  'rule.vegas':'<b>Vegas</b>: a pair\'s two scores form a 2-digit number, lower first (capped at double par). The lower team wins the difference; a birdie-or-better flips the opponent\'s number for a big swing. Ranked by cumulative point difference.',
   'term.niapin':'Nearest the Pin','term.dracon':'Longest Drive','term.organizer':'Org.',
   'rule.summary':'Game rules',
   'rule.net':'<b>Net</b>: score after Double Peria handicap. Usually decides the overall winner. Lower is better.',
@@ -911,7 +927,15 @@ function renderGame(){
     ${fchk('holeByHole',t('fmt.hbh'))}${fchk('stableford',t('fmt.stableford'))}
     ${fchk('nassau',t('fmt.nassau'))}${fchk('olympic',t('fmt.olympic'))}
     ${fchk('callaway',t('fmt.callaway'))}${fchk('best2ball',t('fmt.best2'))}
-  </div></div>`;
+    ${fchk('vegas',t('fmt.vegas'))}
+  </div>${F.vegas?`<div style="margin-top:10px;border-top:1px solid var(--line);padding-top:10px">
+    <label style="display:flex;gap:8px;align-items:center;font-size:13px"><input type="checkbox" ${g.vegas.flip?'checked':''} onchange="setVegas('flip',this.checked)"> ${t('vegas.flip')}</label>
+    <div class="row" style="margin-top:8px;align-items:center"><span style="font-size:13px">${t('vegas.cap')}</span>
+      <select style="flex:1;max-width:220px" onchange="setVegas('cap',this.value)">
+        <option value="doublePar" ${g.vegas.cap!=='none'?'selected':''}>${t('vegas.capDouble')}</option>
+        <option value="none" ${g.vegas.cap==='none'?'selected':''}>${t('vegas.capNone')}</option>
+      </select></div>
+  </div>`:''}</div>`;
 
   html += `<div class="card"><h2>${t('game.rlCard')}</h2>
     <div class="muted">${t('game.rlNote')}</div>
@@ -971,6 +995,7 @@ function setFmt(k,v){ curGame().formats[k]=v; save(); renderGame(); }
 function setPoints(k,v){ curGame().points[k]=v.split(',').map(x=>parseInt(x.trim())).filter(x=>!isNaN(x)); save(); }
 function setPointsNum(k,v){ curGame().points[k]=parseInt(v)||0; save(); }
 function setRoulette(k,v){ curGame().roulette[k]=Math.max(0,parseInt(v)||0); save(); }
+function setVegas(k,v){ curGame().vegas[k]=v; save(); }
 function createGame(){ const g=newGame(); state.games.push(g); state.currentGameId=g.id; save(); render(); toast(t('toast.gameCreated')); }
 function selectGame(id){ state.currentGameId=id||null; save(); render(); }
 function deleteGame(){ if(!confirm(t('confirm.deleteGame')))return;
@@ -1160,6 +1185,31 @@ function holesWon(g){
 }
 function best2(g,t){ const ns=t.memberIds.map(pid=>netScore(g,pid)).sort((a,b)=>a-b); return Math.round((ns[0]+(ns[1]||ns[0]))*10)/10; }
 
+/* ---- ラスベガス（Vegas・§11.11）: 2人組の2桁合体・フリップ・点差累積。独立集計＝payout非干渉 ---- */
+/* 数字は「エブリ適用後×ダブルパー上限」、フリップ発動のバーディ判定は「生スコア」（各々既存慣例に準拠） */
+function vegasPair(g,T){ const m=T.memberIds.filter(pid=>g.participants.includes(pid)); return m.length===2?m:null; }
+function vAdj(g,pid,i){ const v=adjHole(g,pid,i); if(v==null)return null;
+  return (g.vegas&&g.vegas.cap==='none') ? v : Math.min(v, 2*g.par[i]); }
+function vegasBase(g,T,i){ const m=vegasPair(g,T); if(!m)return null;
+  const a=vAdj(g,m[0],i), b=vAdj(g,m[1],i); if(a==null||b==null)return null;
+  const lo=Math.min(a,b), hi=Math.max(a,b);
+  return { base:10*lo+hi, flip:10*hi+lo }; }
+function vegasBirdie(g,T,i){ const m=vegasPair(g,T)||[];
+  return m.some(pid=>{ const v=(g.scores[pid]||[])[i]; return v!=null&&v!==''&&Number(v)-g.par[i]<=-1; }); }
+function vegasHoleNet(g,A,B,i){ const nA0=vegasBase(g,A,i), nB0=vegasBase(g,B,i);
+  if(!nA0||!nB0) return null;
+  const useFlip = !(g.vegas&&g.vegas.flip===false);
+  const nA = (useFlip&&vegasBirdie(g,B,i)) ? nA0.flip : nA0.base;   // 相手がバーディ→自分の数字を反転
+  const nB = (useFlip&&vegasBirdie(g,A,i)) ? nB0.flip : nB0.base;
+  return nB - nA;   // 正=Aが有利
+}
+function vegasStandings(g){ const teams=g.teams.filter(T=>vegasPair(g,T));   // 資格=参加メンバーちょうど2人
+  const tot=teams.map(()=>0);
+  for(let a=0;a<teams.length;a++) for(let b=a+1;b<teams.length;b++)   // 総当たり
+    for(let i=0;i<18;i++){ const n=vegasHoleNet(g,teams[a],teams[b],i); if(n!=null){ tot[a]+=n; tot[b]-=n; } }
+  return { teams, tot };
+}
+
 /* ---- points & payout ---- */
 function computePoints(g){
   const parts=g.participants.filter(pid=>state.players.find(x=>x.id===pid));
@@ -1293,6 +1343,7 @@ function renderIndividual(g, parts){
       <div class="rule">${t('rule.olympic')}</div>
       <div class="rule">${t('rule.callaway')}</div>
       <div class="rule">${t('rule.nassau')}</div>
+      <div class="rule">${t('rule.vegas')}</div>
     </div></details>`;
 }
 
@@ -1374,7 +1425,7 @@ function renderPrizeTab(g){
 // チーム戦タブ（上：チーム別スコア表(ホール勝敗を直接表示) / 下：対抗結果を左→右に並べる）
 function renderTeamTab(g){
   const F=g.formats;
-  const anyTeamFmt = F.teamGross||F.teamNet||F.holeByHole||F.best2ball;
+  const anyTeamFmt = F.teamGross||F.teamNet||F.holeByHole||F.best2ball||F.vegas;
   if(!g.teams.filter(t=>t.memberIds.length).length)
     return `<div class="card"><h2>${t('team.title')}</h2><div class="empty">${t('team.emptyTeams')}</div></div>`;
   if(!anyTeamFmt)
@@ -1595,6 +1646,16 @@ function renderTeams(g){
   if(F.best2ball) out+=card('best2ball',t('term.best2'),tm=>best2(g,tm),'asc',t('team.noteBest2'));
   if(F.holeByHole && teams.length>=2){ const {won}=holesWon(g);
     out+=card('holeByHole',t('term.hbh'),(tm)=>{const i=teams.indexOf(tm);return won[i];},'desc',t('team.noteHbh')); }
+  if(F.vegas){ const vs=vegasStandings(g);
+    if(vs.teams.length<2){ out+=`<div class="card tight"><h2>${t('term.vegas')}</h2><div class="muted">${t('vegas.needTeams')}</div></div>`; }
+    else{ const rows=vs.teams.map((T,i)=>({t:T,v:vs.tot[i]})).sort((a,b)=>b.v-a.v);
+      const on = tgMode.vegas==='show';
+      const tools=`<div class="cardtools"><span class="tgl ${on?'on':'off'}" onclick="toggleTgAll('vegas')">${on?t('ns.allShow'):t('ns.allHide')}</span></div>`;
+      out+=`<div class="card tight"><h2>${t('term.vegas')}</h2>${tools}<table class="lb"><tr><th class="c-eye"></th><th class="c-pos">${t('col.rank')}</th><th>${t('col.team')}</th><th class="c-val">${t('vegas.total')}</th></tr>
+        ${rows.map((r,i)=>{ const m=tgMasked('vegas',r.t.id);
+          const nm = m ? '<span class="mask">？？？</span>' : esc(r.t.name);
+          const val = m ? '<span class="mask">？</span>' : `<b>${r.v>0?'+':''}${r.v}</b>`;
+          return `<tr class="rank"><td class="c-eye"><button class="eyebtn ${m?'off':'on'}" onclick="toggleTgRow('vegas','${r.t.id}')">${m?EYEOFF:EYE}</button></td><td class="c-pos">${posBadge(i+1,i===0)}</td><td class="nmc" style="text-align:left">${nm}</td><td class="c-val">${val}</td></tr>`; }).join('')}</table></div>`; } }
   return out;
 }
 
