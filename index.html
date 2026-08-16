@@ -5,58 +5,63 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <title>76-Club COMPE</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;600;700;900&display=swap" rel="stylesheet">
 <style>
   *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+  /* コーポレートトーン（§11.4）：白基調＋ネイビー＋アクセント黄少量＋プライマリ青。勝敗の機能色(緑/橙/赤)は維持 */
   :root{
-    --bg:#eef1f4; --card:#ffffff; --ink:#12161c; --sub:#8b93a1; --line:#e7eaee;
-    --dark:#141a22; --dark2:#1e2731; --acc:#12b866; --accd:#0e9e57; --warn:#d4a017; --red:#c0392b; --blue:#2c6e9e;
+    --bg:#ffffff; --card:#ffffff; --panel:#f2f3f4; --ink:#2e404d; --sub:#6b7480; --line:#e8e8e8;
+    --dark:#070f26; --dark2:#141b31; --acc:#ffc400; --pri:#0072bc; --prid:#005b96;
+    --accd:#0e9e57; --warn:#d4a017; --red:#e42600; --blue:#0072bc;
     --f-hero:21px; --f-val:20px; --f-name:16px; --f-title:15px; --f-body:13px; --f-small:11px;
   }
   html,body{margin:0}
-  body{font-family:-apple-system,"Hiragino Kaku Gothic ProN","Yu Gothic",Meiryo,sans-serif;
+  body{font-family:"Noto Sans JP","Noto Sans",-apple-system,"Hiragino Kaku Gothic ProN",Meiryo,sans-serif;
     background:var(--bg);color:var(--ink);font-size:var(--f-body);line-height:1.45;padding-bottom:24px}
   /* header (dark scoreboard) */
   header{background:var(--dark);color:#fff;padding:12px 15px;position:sticky;top:0;z-index:20}
   .hdr-row{display:flex;align-items:center;justify-content:space-between;gap:8px}
   header h1{font-size:17px;font-weight:900;letter-spacing:.06em}
-  header h1 span{font-weight:600;opacity:.55;font-size:11px;margin-left:6px;letter-spacing:.12em}
+  header h1 span{font-weight:700;color:var(--acc);font-size:11px;margin-left:6px;letter-spacing:.12em}
   header .gamename{font-size:11px;opacity:.7;margin-top:2px;font-weight:500}
-  .hamb{background:rgba(255,255,255,.12);border:0;color:#fff;font-size:13px;font-weight:800;padding:9px 13px;
-    border-radius:9px;cursor:pointer;white-space:nowrap;letter-spacing:.04em}
+  .hamb{background:rgba(255,255,255,.12);border:0;color:#fff;font-size:13px;font-weight:800;padding:9px 15px;
+    border-radius:99px;cursor:pointer;white-space:nowrap;letter-spacing:.04em}
   .menu-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.3);z-index:35}
   .appmenu{display:none;position:fixed;right:10px;top:60px;background:#fff;border:1px solid var(--line);
     border-radius:12px;box-shadow:0 10px 30px rgba(0,0,0,.25);z-index:40;overflow:hidden;min-width:190px}
   .appmenu button{display:block;width:100%;text-align:left;border:0;background:#fff;padding:13px 18px;
     font-size:15px;color:var(--ink);cursor:pointer;border-bottom:1px solid var(--line);font-weight:600}
   .appmenu button:last-child{border-bottom:0}
-  .appmenu button.on{background:var(--acc);color:#fff;font-weight:800}
+  .appmenu button.on{background:var(--pri);color:#fff;font-weight:800}
   main{padding:12px;max-width:960px;margin:0 auto}
-  /* cards */
-  .card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:14px;margin-bottom:12px;
-    box-shadow:0 1px 2px rgba(20,26,34,.04)}
+  /* cards（小角丸・フラット §11.4） */
+  .card{background:var(--card);border:1px solid var(--line);border-radius:6px;padding:14px;margin-bottom:12px;
+    box-shadow:0 1px 2px rgba(7,15,38,.05)}
   .card.tight{padding:11px}
   .card h2{margin:0 0 10px;font-size:var(--f-title);font-weight:800;color:var(--ink);display:flex;align-items:center;gap:7px;flex-wrap:wrap}
   .card.tight h2{font-size:14px;margin-bottom:8px}
   .card h3{margin:14px 0 6px;font-size:12px;font-weight:800;color:var(--sub);letter-spacing:.02em}
   label.fl{display:block;font-size:12px;color:var(--sub);margin:8px 0 3px;font-weight:700}
-  input,select,textarea{font-family:inherit;font-size:15px;border:1px solid var(--line);border-radius:8px;
+  input,select,textarea{font-family:inherit;font-size:15px;border:1px solid var(--line);border-radius:6px;
     padding:8px 10px;width:100%;background:#fff;color:var(--ink)}
   input[type=checkbox]{width:auto}
-  /* buttons */
-  button.btn{background:var(--acc);color:#fff;border:0;border-radius:8px;padding:9px 14px;font-size:14px;font-weight:800;cursor:pointer;letter-spacing:.02em}
-  button.btn:active{transform:translateY(1px)}
-  button.btn.sec{background:#fff;color:var(--accd);border:1.5px solid var(--acc)}
-  button.btn.gray{background:#eef1f4;color:var(--ink)}
+  /* buttons（ピル形・プライマリ青 §11.4） */
+  button.btn{background:var(--pri);color:#fff;border:0;border-radius:99px;padding:9px 16px;font-size:14px;font-weight:800;cursor:pointer;letter-spacing:.02em}
+  button.btn:active{transform:translateY(1px);background:var(--prid)}
+  button.btn.sec{background:#fff;color:var(--prid);border:1.5px solid var(--pri)}
+  button.btn.gray{background:var(--panel);color:var(--ink)}
   button.btn.danger{background:var(--red)}
   button.btn.gold{background:var(--dark);color:#fff}
-  button.btn.sm{padding:6px 10px;font-size:12px;border-radius:7px}
+  button.btn.sm{padding:6px 12px;font-size:12px}
   button.btn.wide{width:100%;padding:12px}
   button.btn:disabled{opacity:.4;cursor:default}
   .row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
   .row.between{justify-content:space-between}
   .muted{color:var(--sub);font-size:12px}
-  .tag{font-size:10px;padding:1px 6px;border-radius:5px;background:#eef1f4;color:var(--sub);margin-left:4px;font-weight:700}
-  .pill{display:inline-block;background:#e9f7f0;color:var(--accd);border-radius:99px;padding:2px 9px;font-size:11px;font-weight:800}
+  .tag{font-size:10px;padding:1px 6px;border-radius:5px;background:var(--panel);color:var(--sub);margin-left:4px;font-weight:700}
+  .pill{display:inline-block;background:var(--panel);color:var(--ink);border-radius:99px;padding:2px 9px;font-size:11px;font-weight:800}
   .pill.f{background:#fdecea;color:var(--red)}
   .pill.e1{background:#e6eef6;color:var(--blue)}
   .pill.e2{background:#efe7f5;color:#7d3c98}
@@ -65,7 +70,7 @@
   /* generic tables */
   table{border-collapse:collapse;width:100%;font-size:var(--f-body)}
   th,td{border:1px solid var(--line);padding:5px 6px;text-align:center}
-  th{background:#f6f8fa;color:var(--sub);font-weight:800;font-size:11px;letter-spacing:.03em}
+  th{background:var(--panel);color:var(--sub);font-weight:800;font-size:11px;letter-spacing:.03em}
   .scroll{overflow-x:auto;-webkit-overflow-scrolling:touch}
   /* leaderboard tables（3表共通の基礎デザイン＝濃色ヘッダ＋ゼブラ） */
   .lb th,.lb td{white-space:nowrap;vertical-align:middle}
@@ -73,8 +78,8 @@
   .lb tr:nth-child(2n+1) td{background:#f8fafb}
   .lb .rank td{font-weight:600}
   .pos{display:inline-flex;align-items:center;justify-content:center;width:24px;height:24px;border-radius:50%;
-    background:#e7eaee;color:#3a4450;font-size:12px;font-weight:900;font-variant-numeric:tabular-nums;line-height:1}
-  .pos.p1{background:var(--acc);color:#fff}
+    background:#fff;color:var(--dark);border:1.5px solid var(--dark);font-size:12px;font-weight:900;font-variant-numeric:tabular-nums;line-height:1}
+  .pos.p1{background:var(--acc);color:var(--dark);border-color:var(--acc)}   /* 1位＝イエロー地＋濃色文字（§11.4） */
   .lb.big .pos{width:28px;height:28px;font-size:14px}
   .rank1 td{}
   .hlrow td{background:#eef4fb !important}
@@ -84,28 +89,28 @@
   .scoregrid td input{width:38px;padding:5px 2px;text-align:center;border-radius:5px;font-size:14px}
   .scoregrid th,.scoregrid td{padding:3px 3px;min-width:34px}
   .scoregrid td.name{position:sticky;left:0;background:#fff;text-align:left;min-width:96px;font-weight:700;z-index:2;white-space:nowrap}
-  .scoregrid th.name{position:sticky;left:0;background:#f6f8fa;z-index:3;text-align:left;min-width:96px;white-space:nowrap}
-  .scoregrid .sum{background:#f8f9f9;font-weight:800}
+  .scoregrid th.name{position:sticky;left:0;background:var(--panel);z-index:3;text-align:left;min-width:96px;white-space:nowrap}
+  .scoregrid .sum{background:var(--panel);font-weight:800}
   .hidden-h{background:#fff7e6 !important}
   /* game setup */
-  .seg{display:flex;border:1px solid var(--acc);border-radius:8px;overflow:hidden;margin:4px 0}
-  .seg button{flex:1;border:0;background:#fff;color:var(--accd);padding:7px;font-size:13px;font-weight:800;cursor:pointer}
-  .seg button.on{background:var(--acc);color:#fff}
+  .seg{display:flex;border:1px solid var(--pri);border-radius:6px;overflow:hidden;margin:4px 0}
+  .seg button{flex:1;border:0;background:#fff;color:var(--prid);padding:7px;font-size:13px;font-weight:800;cursor:pointer}
+  .seg button.on{background:var(--pri);color:#fff}
   .fmtgrid{display:grid;grid-template-columns:1fr 1fr;gap:6px}
-  .fmtgrid label{display:flex;align-items:center;gap:6px;font-size:13px;background:#f6f8fa;padding:8px;border-radius:8px;cursor:pointer}
-  .holebtn{width:34px;height:34px;border-radius:8px;border:1px solid var(--line);background:#fff;margin:2px;font-size:13px;cursor:pointer;font-weight:700}
+  .fmtgrid label{display:flex;align-items:center;gap:6px;font-size:13px;background:var(--panel);padding:8px;border-radius:6px;cursor:pointer}
+  .holebtn{width:34px;height:34px;border-radius:6px;border:1px solid var(--line);background:#fff;margin:2px;font-size:13px;cursor:pointer;font-weight:700}
   .holebtn.np{background:var(--blue);color:#fff;border-color:var(--blue)}
   .holebtn.dc{background:var(--red);color:#fff;border-color:var(--red)}
   .ptsedit input{width:78px;text-align:center;display:inline-block;padding:5px}
   .ptsrow{display:flex;align-items:center;justify-content:space-between;gap:8px;margin:5px 0}
   .ptsrow span{font-size:13px}
-  details{border:1px solid var(--line);border-radius:10px;margin-bottom:10px;background:#fff}
+  details{border:1px solid var(--line);border-radius:6px;margin-bottom:10px;background:#fff}
   details>summary{padding:11px 12px;font-weight:800;cursor:pointer;color:var(--ink);font-size:14px;list-style:none}
   details>summary::-webkit-details-marker{display:none}
-  details>summary::before{content:"› ";color:var(--acc);font-weight:900}
+  details>summary::before{content:"› ";color:var(--pri);font-weight:900}
   details[open]>summary::before{content:"⌄ ";}
   details .in{padding:0 12px 12px;font-size:13px}
-  .rule{background:#f6f8fa;border:1px solid var(--line);border-left:3px solid var(--acc);border-radius:6px;padding:8px 10px;font-size:12px;color:var(--ink);margin:6px 0}
+  .rule{background:var(--panel);border:1px solid var(--line);border-left:3px solid var(--acc);border-radius:6px;padding:8px 10px;font-size:12px;color:var(--ink);margin:6px 0}
   .prizewin{background:#fff;border:1px solid var(--line);border-top:3px solid var(--acc)}
   .payoutcard{background:#fff;border:1px solid var(--line);border-top:3px solid var(--acc)}
   .kanjicard{background:#fff;border:1px solid var(--line);border-top:3px solid var(--blue)}
@@ -116,18 +121,18 @@
   /* result sub-nav (pill tabs) */
   .result-sticky{position:sticky;top:50px;z-index:15;background:var(--bg);padding:8px 0 8px;margin:-4px 0 10px;box-shadow:0 8px 8px -8px rgba(0,0,0,.15)}
   .subtab4{display:flex;gap:6px}
-  .subtab4 button{flex:1;border:0;background:var(--dark2);color:#9aa3b0;padding:9px 2px;border-radius:9px;font-size:12.5px;font-weight:800;cursor:pointer;letter-spacing:.02em}
-  .subtab4 button.on{background:var(--acc);color:#fff}
+  .subtab4 button{flex:1;border:1px solid var(--line);background:#fff;color:var(--ink);padding:9px 2px;border-radius:99px;font-size:12.5px;font-weight:800;cursor:pointer;letter-spacing:.02em}
+  .subtab4 button.on{background:var(--dark);color:#fff;border-color:var(--dark)}
   /* reveal bar */
-  .reveal-bar{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:6px;background:#f6f8fa;border:1px solid var(--line);border-radius:9px;padding:7px 9px}
-  .reveal-bar .hole{font-weight:900;color:var(--accd);font-size:15px}
+  .reveal-bar{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:6px;background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:7px 9px}
+  .reveal-bar .hole{font-weight:900;color:var(--prid);font-size:15px}
   /* toggle chips + eye buttons */
   .cardtools{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin-bottom:7px}
-  .tgl{display:inline-flex;align-items:center;gap:5px;border:1px solid var(--line);border-radius:8px;padding:5px 10px;font-size:12px;cursor:pointer;background:#fff;font-weight:800}
-  .tgl.on{background:var(--acc);color:#fff;border-color:var(--acc)}
+  .tgl{display:inline-flex;align-items:center;gap:5px;border:1px solid var(--line);border-radius:99px;padding:5px 11px;font-size:12px;cursor:pointer;background:#fff;font-weight:800}
+  .tgl.on{background:var(--pri);color:#fff;border-color:var(--pri)}
   .tgl.off{background:#fdecea;color:var(--red);border-color:#f0c0ba}
-  .eyebtn{border:1px solid var(--line);background:#fff;border-radius:7px;padding:3px 6px;cursor:pointer;line-height:0;color:var(--sub)}
-  .eyebtn.on{background:#e9f7f0;border-color:var(--acc);color:var(--accd)}
+  .eyebtn{border:1px solid var(--line);background:#fff;border-radius:6px;padding:3px 6px;cursor:pointer;line-height:0;color:var(--sub)}
+  .eyebtn.on{background:#e8f2fa;border-color:var(--pri);color:var(--prid)}
   .eyebtn.off{background:#fdecea;border-color:#f0c0ba;color:var(--red)}
   .ei{width:15px;height:15px;stroke:currentColor;stroke-width:2;fill:none;stroke-linecap:round;stroke-linejoin:round;display:block}
   .ic{width:15px;height:15px;stroke:var(--acc);stroke-width:2;fill:none;stroke-linecap:round;stroke-linejoin:round;vertical-align:-2px}
@@ -163,7 +168,7 @@
   .sc2 td.netc{background:#dff2e8;font-weight:900;color:#06522f}
   .sc2 th.sub,.sc2 th.tot,.sc2 th.netc{background:var(--dark);color:#fff}   /* ヘッダは一律濃色＋白文字（薄背景で消えない） */
   .sc2 .hh{background:#fff7e6}
-  .sc2 th.hh{background:var(--dark);color:#ffd24d}   /* 隠しホールのヘッダ番号：濃背景＋金色で常に読める */
+  .sc2 th.hh{background:var(--dark);color:var(--acc)}   /* 隠しホールのヘッダ番号：濃紺背景＋アクセント黄で常に読める */
   .sc2 .parr td{color:#4a5560;font-size:10px;font-weight:700}
   .sc2 .tsum td{font-size:11px;background:#fbfcfc}
   .sc2 .winc{background:#d5f5e3 !important;font-weight:900;color:var(--accd)}
@@ -173,7 +178,7 @@
   .ind-left{flex:1 1 46%;min-width:0}
   .ind-right{flex:1 1 46%;min-width:0}
   .chip{display:inline-flex;align-items:center;gap:4px;border:1px solid var(--line);border-radius:99px;padding:3px 9px;font-size:12px;margin:3px 4px 0 0;background:#fff;cursor:pointer;font-weight:700}
-  .chip.on{background:var(--acc);color:#fff;border-color:var(--acc)}
+  .chip.on{background:var(--pri);color:#fff;border-color:var(--pri)}
   @media(max-width:760px){ .ind-split{flex-direction:column} .ind-left,.ind-right{flex:1 1 auto;width:100%} }
   /* ルーレット対抗（9:16大画面投影前提・大きめ/省スペース） */
   .rlwrap .card{margin-bottom:10px;padding:12px}
@@ -242,6 +247,34 @@
     #view-result .tgl{font-size:13px;padding:6px 12px}
     #view-result .eyebtn{padding:4px 8px}
     #view-result .ei{width:18px;height:18px}
+  }
+  /* iPad Pro 13" 縦持ち(幅1032pt)〜（§11.5）：タッチターゲット44pt＋中間フォントスケール＋main拡張 */
+  @media(min-width:1024px){
+    main{max-width:1200px}
+    :root{--f-hero:23px;--f-val:22px;--f-name:17px;--f-title:16px;--f-body:14px;--f-small:12px}
+    input,select{min-height:44px}
+    button.btn{min-height:44px}
+    button.btn.sm{min-height:44px;padding:8px 14px;font-size:13px}
+    .hamb{min-height:44px}
+    .tgl{min-height:44px;padding:9px 14px;font-size:13px}
+    .eyebtn{min-width:44px;min-height:44px;display:inline-flex;align-items:center;justify-content:center;padding:0}
+    .chip{min-height:44px;padding:9px 14px;font-size:14px}
+    .subtab4 button{min-height:48px;font-size:15px}
+    .holebtn{width:46px;height:46px;font-size:15px}
+    .appmenu button{padding:15px 20px}
+    .scoregrid th,.scoregrid td{min-width:46px}
+    .scoregrid td input{width:52px;min-height:44px;font-size:17px;padding:9px 2px}
+    .scoregrid td input:focus{outline:2px solid var(--pri);outline-offset:-1px}
+  }
+  /* iPad Pro 13" 横持ち(幅1376pt)：1376ptを活かして全幅拡張（§11.5） */
+  @media(min-width:1366px){
+    main{max-width:1320px}
+    .sc2 col.cnm{width:100px} .sc2 col.cs{width:48px}
+    #view-result .sc2{font-size:17px}
+    #view-result .rank-wrap>.card{flex:1 1 300px;max-width:440px}
+    #view-result .rank-wrap>.card.wide{flex:1 1 440px;max-width:620px}
+    .rlwrap{max-width:1100px}
+    .rl-hole{font-size:72px}
   }
 </style>
 </head>
