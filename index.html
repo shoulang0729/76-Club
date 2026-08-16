@@ -73,6 +73,12 @@
   button.btn:disabled{opacity:.4;cursor:default}
   .row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
   .row.between{justify-content:space-between}
+  /* 頻出inline styleのクラス化（§11.10④）: 余白/伸縮/整列ユーティリティ */
+  .mt6{margin-top:6px}.mt8{margin-top:8px}.mt10{margin-top:10px}
+  .fx1{flex:1}
+  .tal{text-align:left}
+  .tagtie{background:var(--tie);color:#fff}
+  .hdrsel{background:rgba(255,255,255,.12);color:#fff;border:0;border-radius:var(--r-pill);padding:8px 10px;font-weight:var(--w-bold);width:auto;min-height:40px}
   .muted{color:var(--sub);font-size:var(--f-small)}
   .tag{font-size:var(--f-small);padding:1px 6px;border-radius:var(--r-sm);background:var(--surface-2);color:var(--sub);margin-left:4px;font-weight:var(--w-bold)}
   .pill{display:inline-block;background:var(--surface-2);color:var(--ink);border-radius:var(--r-pill);padding:2px 9px;font-size:var(--f-small);font-weight:var(--w-bold)}
@@ -165,6 +171,7 @@
   .rank-wrap .lb.big .nmc{font-size:var(--f-name);font-weight:var(--w-bold)}
   .rank-wrap .lb.big b{font-size:18px;font-weight:var(--w-bold);font-variant-numeric:tabular-nums}
   .rank-wrap .lb .nmc{font-size:var(--f-name);font-weight:var(--w-bold)}
+  .lb td.nmc{text-align:left}
   .rank-wrap .lb b{font-variant-numeric:tabular-nums}
   h2.lbh{display:flex;justify-content:space-between;align-items:baseline;gap:8px;white-space:nowrap;overflow:hidden}
   h2.lbh>span:first-child{flex:0 0 auto}
@@ -339,13 +346,11 @@
       <div class="gamename" id="hdrGame">— ゲーム未選択 —</div>
     </div>
     <div class="row" style="gap:6px;flex-wrap:nowrap">
-      <select id="themeSel" onchange="setTheme(this.value)" data-i18n-title="theme.label"
-              style="background:rgba(255,255,255,.12);color:#fff;border:0;border-radius:var(--r-pill);padding:8px 10px;font-weight:var(--w-bold);width:auto;min-height:40px">
+      <select id="themeSel" onchange="setTheme(this.value)" data-i18n-title="theme.label" class="hdrsel">
         <option value="a" data-i18n="theme.a">スコアボード</option>
         <option value="b" data-i18n="theme.b">コーポレート</option>
       </select>
-      <select id="langSel" onchange="setLang(this.value)" aria-label="Language"
-              style="background:rgba(255,255,255,.12);color:#fff;border:0;border-radius:var(--r-pill);padding:8px 10px;font-weight:var(--w-bold);width:auto;min-height:40px">
+      <select id="langSel" onchange="setLang(this.value)" aria-label="Language" class="hdrsel">
         <option value="ja">日本語</option>
         <option value="zh">中文</option>
         <option value="en">EN</option>
@@ -775,15 +780,15 @@ function renderPlayers(){
         <input id="pName" placeholder="${t('player.phName')}" style="flex:2;min-width:140px">
         <div style="flex:1;min-width:90px"><select id="pGender"><option value="M">${t('player.male')}</option><option value="F">${t('player.female')}</option></select></div>
       </div>
-      <div class="row" style="margin-top:8px">
+      <div class="row" class="mt8">
         <div style="flex:1;min-width:150px"><label class="fl">${t('player.hdcpType')}</label><select id="pEvery"><option value="none">${t('every.none')}</option><option value="every1">${t('term.every1')}</option><option value="every2">${t('term.every2')}</option></select></div>
         <div style="flex:1;min-width:150px"><label class="fl">${t('player.birth')}</label><input type="date" id="pBirth"></div>
       </div>
-      <div class="row" style="margin-top:8px">
+      <div class="row" class="mt8">
         <label style="display:flex;align-items:center;gap:6px;font-size:13px"><input type="checkbox" id="pKanji"> ${t('player.kanjiChk')}</label>
       </div>
-      <button class="btn wide" style="margin-top:10px" onclick="addPlayer()">${t('player.addBtn')}</button>
-      <div class="muted" style="margin-top:6px">${t('player.note')}</div>
+      <button class="btn wide" class="mt10" onclick="addPlayer()">${t('player.addBtn')}</button>
+      <div class="muted" class="mt6">${t('player.note')}</div>
     </div>
     <div class="card">
       <h2>${t('player.registered',{n:state.players.length})}</h2>
@@ -804,7 +809,7 @@ function renderPlayers(){
     <div class="card">
       <h2>${t('backup.title')}</h2>
       <div class="muted">${t('backup.note')}</div>
-      <div class="row" style="margin-top:8px">
+      <div class="row" class="mt8">
         <button class="btn sec" onclick="exportData()">${t('backup.export')}</button>
         <label class="btn sec" style="cursor:pointer">${t('backup.import')}<input type="file" accept="application/json" style="display:none" onchange="importData(this)"></label>
       </div>
@@ -834,7 +839,7 @@ function renderGame(){
   const el=document.getElementById('view-game');
   let html = `<div class="card"><h2>${t('game.title')}</h2>
     <div class="row between">
-      <select id="gameSel" onchange="selectGame(this.value)" style="flex:1">
+      <select id="gameSel" onchange="selectGame(this.value)" class="fx1">
         <option value="">${t('game.selectPh')}</option>
         ${state.games.map(g=>`<option value="${g.id}" ${g.id===state.currentGameId?'selected':''}>${esc(g.name)} (${g.date})</option>`).join('')}
       </select>
@@ -846,9 +851,9 @@ function renderGame(){
 
   html += `<div class="card"><h2>${t('game.basic')}</h2>
     <label class="fl">${t('game.compeName')}</label><input value="${esc(g.name)}" onchange="setG('name',this.value)">
-    <div class="row"><div style="flex:1"><label class="fl">${t('game.date')}</label><input type="date" value="${g.date}" onchange="setG('date',this.value)"></div>
-    <div style="flex:1"><label class="fl">${t('game.course')}</label><input value="${esc(g.course)}" placeholder="${t('game.coursePh')}" onchange="setG('course',this.value)"></div></div>
-    <div class="row" style="margin-top:10px">
+    <div class="row"><div class="fx1"><label class="fl">${t('game.date')}</label><input type="date" value="${g.date}" onchange="setG('date',this.value)"></div>
+    <div class="fx1"><label class="fl">${t('game.course')}</label><input value="${esc(g.course)}" placeholder="${t('game.coursePh')}" onchange="setG('course',this.value)"></div></div>
+    <div class="row" class="mt10">
       <button class="btn danger sm" onclick="deleteGame()">${t('game.deleteBtn')}</button>
       <button class="btn gray sm" onclick="dupGame()">${t('btn.dup')}</button>
     </div>
@@ -866,13 +871,13 @@ function renderGame(){
   html += `<div class="card"><h2>${t('game.periaCard')}</h2>
     <div class="muted">${t('game.periaFormula')}</div>
     <div class="row">
-      <div style="flex:1"><label class="fl">${t('game.coef')}</label><input type="number" step="0.05" value="${g.periaCoef}" onchange="setG('periaCoef',parseFloat(this.value))"></div>
-      <div style="flex:1"><label class="fl">${t('game.cap')}</label><input type="number" step="1" value="${g.periaCap??''}" placeholder="${t('game.capPh')}" onchange="setCap(this.value)"></div>
+      <div class="fx1"><label class="fl">${t('game.coef')}</label><input type="number" step="0.05" value="${g.periaCoef}" onchange="setG('periaCoef',parseFloat(this.value))"></div>
+      <div class="fx1"><label class="fl">${t('game.cap')}</label><input type="number" step="1" value="${g.periaCap??''}" placeholder="${t('game.capPh')}" onchange="setCap(this.value)"></div>
     </div></div>`;
 
   html += `<div class="card"><h2>${t('game.everyCard')}</h2>
     <label style="display:flex;gap:8px;align-items:center;font-size:14px"><input type="checkbox" ${g.womenEvery.enabled?'checked':''} onchange="setWE(this.checked)"> ${t('game.everyApply')}</label>
-    <div class="muted" style="margin-top:6px">${t('game.everyNote')}</div></div>`;
+    <div class="muted" class="mt6">${t('game.everyNote')}</div></div>`;
 
   html += `<div class="card"><h2>${t('game.partsCard')}</h2>
     ${state.players.length? state.players.map(p=>`<span class="chip ${g.participants.includes(p.id)?'on':''}" onclick="toggleParticipant('${p.id}')">${esc(p.name)}${p.everyType!=='none'?' '+everyLabel(p.everyType):''}</span>`).join('')
@@ -886,17 +891,17 @@ function renderGame(){
     ${g.teams.map(t=>`<div style="border:1px solid var(--line);border-radius:var(--r-md);padding:10px;margin-top:8px">
       <div class="row between"><input value="${esc(t.name)}" onchange="setTeamName('${t.id}',this.value)" style="flex:1;font-weight:var(--w-bold)">
         <button class="btn sm danger" onclick="delTeam('${t.id}')">×</button></div>
-      <div style="margin-top:6px">${g.participants.map(pid=>{const p=state.players.find(x=>x.id===pid);if(!p)return'';
+      <div class="mt6">${g.participants.map(pid=>{const p=state.players.find(x=>x.id===pid);if(!p)return'';
         return `<span class="chip ${t.memberIds.includes(pid)?'on':''}" onclick="toggleTeamMember('${t.id}','${pid}')">${esc(p.name)}</span>`}).join('')}</div>
     </div>`).join('') || `<div class="muted">${t('game.teamEmpty')}</div>`}
   </div>`;
 
   html += `<div class="card"><h2>${t('game.npdcCard')}</h2>
     <div class="muted">${t('game.npdcNote')}</div>
-    <div style="margin-top:6px">${g.par.map((_,i)=>{
+    <div class="mt6">${g.par.map((_,i)=>{
       const np=g.prizes.niapinHoles.includes(i), dc=g.prizes.draconHoles.includes(i);
       return `<button class="holebtn ${np?'np':''} ${dc?'dc':''}" onclick="cyclePrize(${i})">${i+1}</button>`}).join('')}</div>
-    <div class="muted" style="margin-top:6px">${t('game.npdcLocal')}</div></div>`;
+    <div class="muted" class="mt6">${t('game.npdcLocal')}</div></div>`;
 
   const F=g.formats;
   const fchk=(k,label)=>`<label><input type="checkbox" ${F[k]?'checked':''} onchange="setFmt('${k}',this.checked)"> ${label}</label>`;
@@ -910,9 +915,9 @@ function renderGame(){
 
   html += `<div class="card"><h2>${t('game.rlCard')}</h2>
     <div class="muted">${t('game.rlNote')}</div>
-    <div class="row" style="margin-top:8px">
-      <div style="flex:1"><label class="fl">${t('game.rlChangeN')}</label><input type="number" min="0" max="9" value="${g.roulette.changeN}" onchange="setRoulette('changeN',this.value)"></div>
-      <div style="flex:1"><label class="fl">${t('game.rlChallengeM')}</label><input type="number" min="0" max="9" value="${g.roulette.challengeM}" onchange="setRoulette('challengeM',this.value)"></div>
+    <div class="row" class="mt8">
+      <div class="fx1"><label class="fl">${t('game.rlChangeN')}</label><input type="number" min="0" max="9" value="${g.roulette.changeN}" onchange="setRoulette('changeN',this.value)"></div>
+      <div class="fx1"><label class="fl">${t('game.rlChallengeM')}</label><input type="number" min="0" max="9" value="${g.roulette.challengeM}" onchange="setRoulette('challengeM',this.value)"></div>
     </div></div>`;
 
   // Points / prize pool
@@ -934,7 +939,7 @@ function renderGame(){
     <hr>
     <label class="fl">${t('game.pool')}</label>
     <input type="number" value="${g.prizePool||0}" placeholder="${t('game.poolPh')}" onchange="setG('prizePool',parseInt(this.value)||0)">
-    <div class="muted" style="margin-top:6px">${t('game.poolNote')}</div>
+    <div class="muted" class="mt6">${t('game.poolNote')}</div>
   </div>`;
 
   html += hostMenuCard();
@@ -945,7 +950,7 @@ function hostMenuCard(){
   return `<details><summary>${t('host.summary')}</summary><div class="in">
     <div class="muted" style="margin-bottom:8px">${t('host.note')}</div>
     <button class="btn gold sm" onclick="seedTestData()">${t('host.seedBtn')}</button>
-    <div class="muted" style="margin-top:6px">${t('host.seedNote')}</div>
+    <div class="muted" class="mt6">${t('host.seedNote')}</div>
   </div></details>`;
 }
 function setG(k,v){ const g=curGame(); g[k]=v; save(); if(k==='name'||k==='date'||k==='course')render(); }
@@ -998,7 +1003,7 @@ function renderScore(){
   if(!g.participants.length){ el.innerHTML=`<div class="empty">${t('score.pickParts')}</div>`; return; }
   let html=`<div class="card"><h2>${t('score.title')}</h2>
     <div class="muted">${t('score.note')}</div>
-    <div class="row" style="margin-top:8px"><button class="btn sec sm" onclick="fillRandomScores()">${t('score.fillRandom')}</button>
+    <div class="row" class="mt8"><button class="btn sec sm" onclick="fillRandomScores()">${t('score.fillRandom')}</button>
       <button class="btn gray sm" onclick="clearScores()">${t('score.clearBtn')}</button></div>
   </div>`;
   html+=`<div class="card"><div class="scroll"><table class="scoregrid">
@@ -1033,7 +1038,7 @@ function allComplete(g){ const parts=g.participants.filter(pid=>state.players.fi
   return parts.length>0 && parts.every(pid=>complete(g,pid)); }
 function statusBadge(g){ return allComplete(g)
   ? `<span class="tag" style="background:var(--win-ink);color:#fff">${t('status.fixed')}</span>`
-  : `<span class="tag" style="background:var(--tie);color:#fff">${t('status.prov')}</span>`; }
+  : `<span class="tag tagtie">${t('status.prov')}</span>`; }
 
 /* ============================ TEST DATA ============================ */
 function seedTestData(){
@@ -1230,7 +1235,7 @@ function renderResult(){
   const parts=g0.participants.filter(pid=>state.players.find(x=>x.id===pid));
   if(!parts.length){ el.innerHTML=`<div class="empty">${t('result.noParts')}</div>`; return; }
   const g=viewGame(g0);   // 開封済みホールのみ反映
-  const partial = revealHoles<18 ? `<span class="tag" style="background:var(--tie);color:#fff">${revealHoles}/18H</span>` : '';
+  const partial = revealHoles<18 ? `<span class="tag tagtie">${revealHoles}/18H</span>` : '';
   let sticky=`<div class="result-sticky"><div class="subtab4">
       <button class="${resultSub==='prize'?'on':''}" onclick="setResultSub('prize')">${t('result.sub.prize')}</button>
       <button class="${resultSub==='ind'?'on':''}" onclick="setResultSub('ind')">${t('result.sub.ind')}</button>
@@ -1253,9 +1258,9 @@ function renderStanding(g, parts){
   const prows=parts.map(pid=>({pid,pt:pts[pid]||0,yen:payout[pid]||0})).sort((a,b)=>b.pt-a.pt);
   return `<div class="card payoutcard"><h2>${t('standing.title')} ${statusBadge(g)}</h2>
     <div class="muted">${t('standing.total',{t:total})}${pool?t('standing.poolNote',{p:pool.toLocaleString()}):t('standing.noPool')}。${revealHoles<18?t('standing.revealNote',{n:revealHoles}):t('standing.autoNote')}</div>
-    <table class="lb" style="margin-top:6px"><tr><th>${t('col.rank')}</th><th>${t('col.player')}</th><th>${t('col.points')}</th>${pool?`<th>${t('col.payout')}</th>`:''}</tr>
+    <table class="lb" class="mt6"><tr><th>${t('col.rank')}</th><th>${t('col.player')}</th><th>${t('col.points')}</th>${pool?`<th>${t('col.payout')}</th>`:''}</tr>
     ${prows.map((r,i)=>{const p=state.players.find(x=>x.id===r.pid);
-      return `<tr class="rank ${i===0&&r.pt>0?'rank1':''}"><td>${r.pt>0?(i+1):'-'}</td><td style="text-align:left">${esc(p.name)}</td><td><b>${r.pt}</b>pt</td>${pool?`<td><b>¥${r.yen.toLocaleString()}</b></td>`:''}</tr>`}).join('')}
+      return `<tr class="rank ${i===0&&r.pt>0?'rank1':''}"><td>${r.pt>0?(i+1):'-'}</td><td class="tal">${esc(p.name)}</td><td><b>${r.pt}</b>pt</td>${pool?`<td><b>¥${r.yen.toLocaleString()}</b></td>`:''}</tr>`}).join('')}
     </table></div>`;
 }
 
@@ -1281,7 +1286,7 @@ function renderIndividual(g, parts){
 
   const scorecard = renderScorecard(g,parts,null);
   return banner + scorecard + `<div class="rank-wrap">${cards}</div>
-    <details style="margin-top:10px"><summary>${t('rule.summary')}</summary><div class="in">
+    <details class="mt10"><summary>${t('rule.summary')}</summary><div class="in">
       <div class="rule">${t('rule.net')}</div>
       <div class="rule">${t('rule.gross')}</div>
       <div class="rule">${t('rule.stableford')}</div>
@@ -1330,7 +1335,7 @@ function renderScorecard(g, parts, teams){
     body=parts.map(pid=>pRow(pid)).join('');
     note=t('sc.noteHidden');
   }
-  return `<div class="card"><h2 class="lbh"><span>${t('sc.title')}${teams?t('sc.teamSuffix'):''} <span class="tag" style="background:var(--tie);color:#fff">${n>=18?t('sc.allHoles'):n+'/18H'}</span></span>
+  return `<div class="card"><h2 class="lbh"><span>${t('sc.title')}${teams?t('sc.teamSuffix'):''} <span class="tag tagtie">${n>=18?t('sc.allHoles'):n+'/18H'}</span></span>
       <span class="tgl ${show.totals?'on':'off'}" onclick="toggleShow('totals')">${t('sc.totalsTgl')} ${show.totals?t('btn.show'):t('btn.hide')}</span></h2>
     <div class="reveal-bar">
       <button class="btn gray sm" onclick="resetHoles()" ${n<=0?'disabled':''}>${t('btn.reset')}</button>
@@ -1338,8 +1343,8 @@ function renderScorecard(g, parts, teams){
       <button class="btn gold sm" onclick="openNextHole()" ${n>=18?'disabled':''}>${t('sc.next')}</button>
       <button class="btn gray sm" onclick="openAllHoles()" ${n>=18?'disabled':''}>${t('btn.all')}</button>
     </div>
-    <table class="sc2" style="margin-top:8px">${SC_COLGROUP}${head}${parRow}${body}</table>
-    <div class="muted" style="margin-top:6px">${note} ${t('sc.noteCols')}${n<18?t('sc.noteOpen'):''}</div>
+    <table class="sc2" class="mt8">${SC_COLGROUP}${head}${parRow}${body}</table>
+    <div class="muted" class="mt6">${note} ${t('sc.noteCols')}${n<18?t('sc.noteOpen'):''}</div>
   </div>`;
 }
 
@@ -1354,7 +1359,7 @@ function rankCardNS(title, pids, valFn, dir, fmt, table, hlMap){
     ${rows.map(r=>{ const hb=hlMap&&hlMap[r.pid]; const m=nsMasked(table,r.pid);
       const nm = m ? '<span class="mask">※※※</span>' : nameOf(r.pid);
       const sv = m ? '<span class="mask">？</span>' : `<b>${fmt(r.v)}</b>`;
-      return `<tr class="rank ${hb?'hlrow':''}"><td class="c-eye"><button class="eyebtn ${m?'off':'on'}" onclick="toggleNSRow('${table}','${r.pid}')">${m?EYEOFF:EYE}</button></td><td class="c-pos">${posBadge(r.rank,r.rank===1)}</td><td class="nmc" style="text-align:left">${nm}${hb?`<span class="kanjibadge">${hb}</span>`:''}</td><td class="c-val">${sv}</td></tr>`; }).join('')}</table>`;
+      return `<tr class="rank ${hb?'hlrow':''}"><td class="c-eye"><button class="eyebtn ${m?'off':'on'}" onclick="toggleNSRow('${table}','${r.pid}')">${m?EYEOFF:EYE}</button></td><td class="c-pos">${posBadge(r.rank,r.rank===1)}</td><td class="nmc">${nm}${hb?`<span class="kanjibadge">${hb}</span>`:''}</td><td class="c-val">${sv}</td></tr>`; }).join('')}</table>`;
   return `<div class="card tight wide"><h2 class="lbh"><span>${title}</span></h2>${tools}${body}</div>`;
 }
 
@@ -1548,7 +1553,7 @@ function leaderboard(title, pids, valFn, dir, fmt, note, key, hlMap, big){
   const nameOf=pid=>{const p=state.players.find(x=>x.id===pid);return esc(p&&p.name);};
   const body=`<table class="lb ${big?'big':''}"><tr><th class="c-pos">${t('col.rank')}</th><th>${t('col.player')}</th><th class="c-val">${dir==='asc'?t('col.score'):t('col.pts')}</th></tr>
     ${rows.map(r=>{ const hb=hlMap&&hlMap[r.pid];
-      return `<tr class="rank ${hb?'hlrow':''}"><td class="c-pos">${posBadge(r.rank,r.rank===1)}</td><td class="nmc" style="text-align:left">${nameOf(r.pid)}${hb?`<span class="kanjibadge">${hb}</span>`:''}</td><td class="c-val"><b>${fmt(r.v)}</b></td></tr>`; }).join('')}</table>`;
+      return `<tr class="rank ${hb?'hlrow':''}"><td class="c-pos">${posBadge(r.rank,r.rank===1)}</td><td class="nmc">${nameOf(r.pid)}${hb?`<span class="kanjibadge">${hb}</span>`:''}</td><td class="c-val"><b>${fmt(r.v)}</b></td></tr>`; }).join('')}</table>`;
   return `<div class="card tight ${big?'wide':''}"><h2 class="lbh"><span>${title}</span>${note?`<span class="lbnote">${note}</span>`:''}</h2>${body}</div>`;
 }
 
@@ -1583,7 +1588,7 @@ function renderTeams(g){
       ${rows.map((r,i)=>{ const m=tgMasked(key,r.t.id);
         const nm = m ? '<span class="mask">？？？</span>' : esc(r.t.name);
         const val = m ? '<span class="mask">？</span>' : `<b>${Math.round(r.v*10)/10}</b>`;
-        return `<tr class="rank"><td class="c-eye"><button class="eyebtn ${m?'off':'on'}" onclick="toggleTgRow('${key}','${r.t.id}')">${m?EYEOFF:EYE}</button></td><td class="c-pos">${posBadge(i+1,i===0)}</td><td class="nmc" style="text-align:left">${nm}</td><td class="c-val">${val}</td></tr>`; }).join('')}</table></div>`; };
+        return `<tr class="rank"><td class="c-eye"><button class="eyebtn ${m?'off':'on'}" onclick="toggleTgRow('${key}','${r.t.id}')">${m?EYEOFF:EYE}</button></td><td class="c-pos">${posBadge(i+1,i===0)}</td><td class="nmc">${nm}</td><td class="c-val">${val}</td></tr>`; }).join('')}</table></div>`; };
   let out='';
   if(F.teamGross) out+=card('teamGross',t('term.teamGross'),teamGross,'asc',t('team.noteLow'));
   if(F.teamNet) out+=card('teamNet',t('term.teamNet'),teamNet,'asc',t('team.noteLow'));
