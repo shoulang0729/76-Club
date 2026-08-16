@@ -186,7 +186,15 @@
   .rl-par{font-size:15px;color:var(--sub);font-weight:800}
   .rl-panels{display:flex;flex-wrap:wrap;gap:10px}
   .rl-panel{flex:1 1 150px;min-width:140px;border:3px solid var(--line);border-radius:14px;padding:14px 10px;text-align:center;background:#fff}
-  .rl-panel.win{background:#eafaf1;box-shadow:0 0 0 3px var(--acc) inset}
+  /* 確定時の勝敗背景（#6）。機能色は緑/赤/橙固定（デザイントークンに依存させない） */
+  .rl-panel.win{background:#eafaf1;box-shadow:0 0 0 3px #12b866 inset}
+  .rl-panel.lose{background:#fdecea;box-shadow:0 0 0 3px #c0392b inset}
+  .rl-panel.tie{background:#fdf3d7;box-shadow:0 0 0 3px #d4a017 inset}
+  /* 回転中のフラッシュ（#6）：今の候補で止まったら勝ち/負け/引分かをピカピカ予告 */
+  @keyframes rlblink{from{filter:brightness(1)}to{filter:brightness(1.14)}}
+  .rl-panel.fwin{background:#c9f2dd;box-shadow:0 0 0 4px #12b866 inset;animation:rlblink .22s infinite alternate}
+  .rl-panel.flose{background:#fbd9d3;box-shadow:0 0 0 4px #c0392b inset;animation:rlblink .22s infinite alternate}
+  .rl-panel.ftie{background:#fdeec4;box-shadow:0 0 0 4px #d4a017 inset;animation:rlblink .22s infinite alternate}
   .rl-team{font-size:14px;font-weight:800;letter-spacing:.03em}
   .rl-name{font-size:30px;font-weight:900;margin:6px 0 2px;min-height:38px;line-height:1.1}
   .rl-scorebig{font-size:44px;font-weight:900;color:var(--accd);line-height:1;min-height:46px;font-variant-numeric:tabular-nums}
@@ -992,13 +1000,24 @@ function rlDraw(g, teamId, excludePid){
   return cand[Math.floor(Math.random()*cand.length)];
 }
 function rlTick(){ const g=curGame(); if(!g)return; const h=g.roulette.cur;
+  const pick=Object.assign({}, g.roulette.reps[h]||{});   // 非回転チームは確定代表で比較（#6）
   rl.spinTeams.forEach(tid=>{ const t=g.teams.find(x=>x.id===tid); if(!t||!t.memberIds.length)return;
-    const pid=t.memberIds[Math.floor(Math.random()*t.memberIds.length)]; const p=state.players.find(x=>x.id===pid);
+    const pid=t.memberIds[Math.floor(Math.random()*t.memberIds.length)]; pick[tid]=pid;
+    const p=state.players.find(x=>x.id===pid);
     const el=document.getElementById('rl-name-'+tid);
     if(el) el.textContent=p?p.name:'';
     // 名前とセットで候補のスコア（エブリ適用後）も回す（#5）
     const es=document.getElementById('rl-score-'+tid);
-    if(es){ const av=adjHole(g,pid,h); es.textContent = av==null?'—':av; } }); }
+    if(es){ const av=adjHole(g,pid,h); es.textContent = av==null?'—':av; } });
+  rlFlash(g,h,pick); }
+/* 回転中の勝敗予告（#6）：今表示中の候補どうしを比較し、勝ち=緑/負け=赤/引分=橙で点滅。未入力が混じれば消灯 */
+function rlFlash(g,h,pick){ const teams=rTeams(g);
+  const sc=teams.map(t=>{ const pid=pick[t.id]; return pid?adjHole(g,pid,h):null; });
+  const ok=!sc.some(s=>s==null); const mn=ok?Math.min(...sc):null;
+  const allTie=ok && sc.every(s=>s===mn);
+  teams.forEach((t,i)=>{ const el=document.getElementById('rl-panel-'+t.id); if(!el)return;
+    el.classList.remove('fwin','flose','ftie');
+    if(ok) el.classList.add(allTie?'ftie':(sc[i]===mn?'fwin':'flose')); }); }
 function rlBeginSpin(teamIds){ if(rl.timer)clearInterval(rl.timer); rl.spinning=true; rl.spinTeams=teamIds.slice(); rl.challengeFrom=null; renderResult(); rl.timer=setInterval(rlTick,75); }
 function rlStop(){ rlStopTimer(); const g=curGame(); const R=g.roulette; const h=R.cur; R.reps[h]=R.reps[h]||{};
   rl.spinTeams.forEach(tid=>{ const prev=R.reps[h][tid]; R.reps[h][tid]=rlDraw(g,tid, rl.spinTeams.length===1?prev:null); });
@@ -1084,16 +1103,20 @@ function renderRouletteTab(g){
     if(sc.some(s=>s==null)) holeInfo='<span class="muted">代表のスコア未入力</span>';
     else{ const mn=Math.min(...sc); const wi=sc.map((s,i)=>s===mn?i:-1).filter(i=>i>=0);
       holeInfo = wi.length===teams.length?'引き分け（各0.5H）':('WIN: <b>'+wi.map(i=>esc(teams[i].name)).join('・')+'</b>'); } }
-  const winSet=(()=>{ if(!drawn)return new Set(); const sc=holeScores(); if(sc.some(s=>s==null))return new Set(); const mn=Math.min(...sc); return new Set(sc.map((s,i)=>s===mn?i:-1).filter(i=>i>=0)); })();
+  // 確定時の勝敗クラス（#6）：勝ち=win/負け=lose/全チーム同点=tie。スコア未入力が混じれば無色
+  const stCls=(()=>{ const none=teams.map(()=>''); if(!drawn||rl.spinning)return none;
+    const sc=holeScores(); if(sc.some(s=>s==null))return none;
+    const mn=Math.min(...sc); if(sc.every(s=>s===mn))return teams.map(()=>' tie');
+    return sc.map(s=>s===mn?' win':' lose'); })();
   const panels=teams.map((t,ti)=>{ const pid=reps[t.id]; const p=pid?state.players.find(x=>x.id===pid):null;
     const av=pid?adjHole(g,pid,h):null; const sv=pid?(av==null?'—':av):'';
-    const col=rColor(t.name); const win=winSet.has(ti);
+    const col=rColor(t.name);
     // 固定高さのアクション欄（ボタンが動かないように）
     let act='';
     if(rl.spinning) act='';
     else if(rl.challengeFrom) act = (rl.challengeFrom!==t.id)?`<button class="btn sm" onclick="rlChallengeDo('${rl.challengeFrom}','${t.id}')">このチームを回す</button>`:`<span class="muted" style="font-size:11px">相手を選択中</span>`;
     else if(drawn) act=`<button class="btn sec sm" ${(R.remChange[t.id]||0)<=0?'disabled':''} onclick="rlChange('${t.id}')">チェンジ ${R.remChange[t.id]||0}</button><button class="btn gray sm" ${(R.remChallenge[t.id]||0)<=0?'disabled':''} onclick="rlChallengeStart('${t.id}')">チャレンジ ${R.remChallenge[t.id]||0}</button>`;
-    return `<div class="rl-panel${win?' win':''}" style="border-color:${col}">
+    return `<div class="rl-panel${stCls[ti]}" id="rl-panel-${t.id}" style="border-color:${col}">
       <div class="rl-team" style="color:${col}">${esc(t.name)}</div>
       <div class="rl-name" id="rl-name-${t.id}">${rl.spinning&&rl.spinTeams.includes(t.id)?'…':(p?esc(p.name):'―')}</div>
       <div class="rl-scorebig" id="rl-score-${t.id}">${pid?sv:'&nbsp;'}</div>
