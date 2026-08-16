@@ -7,7 +7,7 @@
 <title>76-Club COMPE</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;600;700;900&family=Noto+Sans+SC:wght@400;700;900&family=Noto+Serif+JP:wght@600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;600;700;800&family=Noto+Sans+SC:wght@400;600;700;800&family=Noto+Serif+JP:wght@600;700&display=swap" rel="stylesheet">
 <style>
   *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
   /* ============ デザイントークン（§11.10）：色/角丸/太さ/サイズはここで一元管理。テーマA/B共通の唯一の定義元 ============ */
@@ -37,115 +37,115 @@
   /* header (dark scoreboard) */
   header{background:var(--dark);color:#fff;padding:12px 15px;position:sticky;top:0;z-index:20}
   .hdr-row{display:flex;align-items:center;justify-content:space-between;gap:8px}
-  header h1{font-size:17px;font-weight:900;letter-spacing:.06em}
-  header h1 span{font-weight:700;color:var(--acc);font-size:11px;margin-left:6px;letter-spacing:.12em}
-  header .gamename{font-size:11px;opacity:.7;margin-top:2px;font-weight:500}
-  .hamb{background:rgba(255,255,255,.12);border:0;color:#fff;font-size:13px;font-weight:800;padding:9px 15px;
-    border-radius:99px;cursor:pointer;white-space:nowrap;letter-spacing:.04em}
+  header h1{font-size:var(--f-name);font-weight:var(--w-bold);letter-spacing:.06em}
+  header h1 span{font-weight:var(--w-bold);color:var(--acc);font-size:var(--f-small);margin-left:6px;letter-spacing:.12em}
+  header .gamename{font-size:var(--f-small);opacity:.7;margin-top:2px;font-weight:var(--w-med)}
+  .hamb{background:rgba(255,255,255,.12);border:0;color:#fff;font-size:var(--f-body);font-weight:var(--w-bold);padding:9px 15px;
+    border-radius:var(--r-pill);cursor:pointer;white-space:nowrap;letter-spacing:.04em}
   .menu-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.3);z-index:35}
-  .appmenu{display:none;position:fixed;right:10px;top:60px;background:#fff;border:1px solid var(--line);
-    border-radius:12px;box-shadow:0 10px 30px rgba(0,0,0,.25);z-index:40;overflow:hidden;min-width:190px}
-  .appmenu button{display:block;width:100%;text-align:left;border:0;background:#fff;padding:13px 18px;
-    font-size:15px;color:var(--ink);cursor:pointer;border-bottom:1px solid var(--line);font-weight:600}
+  .appmenu{display:none;position:fixed;right:10px;top:60px;background:var(--card);border:1px solid var(--line);
+    border-radius:var(--r-md);box-shadow:0 10px 30px rgba(0,0,0,.25);z-index:40;overflow:hidden;min-width:190px}
+  .appmenu button{display:block;width:100%;text-align:left;border:0;background:var(--card);padding:13px 18px;
+    font-size:var(--f-title);color:var(--ink);cursor:pointer;border-bottom:1px solid var(--line);font-weight:var(--w-med)}
   .appmenu button:last-child{border-bottom:0}
-  .appmenu button.on{background:var(--pri);color:#fff;font-weight:800}
+  .appmenu button.on{background:var(--pri);color:#fff;font-weight:var(--w-bold)}
   main{padding:12px;max-width:960px;margin:0 auto}
   /* cards（小角丸・フラット §11.4） */
-  .card{background:var(--card);border:1px solid var(--line);border-radius:6px;padding:14px;margin-bottom:12px;
+  .card{background:var(--card);border:1px solid var(--line);border-radius:var(--r-sm);padding:14px;margin-bottom:12px;
     box-shadow:0 1px 2px rgba(7,15,38,.05)}
   .card.tight{padding:11px}
-  .card h2{margin:0 0 10px;font-size:var(--f-title);font-weight:800;color:var(--ink);display:flex;align-items:center;gap:7px;flex-wrap:wrap}
-  .card.tight h2{font-size:14px;margin-bottom:8px}
-  .card h3{margin:14px 0 6px;font-size:12px;font-weight:800;color:var(--sub);letter-spacing:.02em}
-  label.fl{display:block;font-size:12px;color:var(--sub);margin:8px 0 3px;font-weight:700}
-  input,select,textarea{font-family:inherit;font-size:15px;border:1px solid var(--line);border-radius:6px;
-    padding:8px 10px;width:100%;background:#fff;color:var(--ink)}
+  .card h2{margin:0 0 10px;font-size:var(--f-title);font-weight:var(--w-bold);color:var(--ink);display:flex;align-items:center;gap:7px;flex-wrap:wrap}
+  .card.tight h2{font-size:var(--f-body);margin-bottom:8px}
+  .card h3{margin:14px 0 6px;font-size:var(--f-small);font-weight:var(--w-bold);color:var(--sub);letter-spacing:.02em}
+  label.fl{display:block;font-size:var(--f-small);color:var(--sub);margin:8px 0 3px;font-weight:var(--w-bold)}
+  input,select,textarea{font-family:inherit;font-size:var(--f-title);border:1px solid var(--line);border-radius:var(--r-sm);
+    padding:8px 10px;width:100%;background:var(--card);color:var(--ink)}
   input[type=checkbox]{width:auto}
   /* buttons（ピル形・プライマリ青 §11.4） */
-  button.btn{background:var(--pri);color:#fff;border:0;border-radius:99px;padding:9px 16px;font-size:14px;font-weight:800;cursor:pointer;letter-spacing:.02em}
+  button.btn{background:var(--pri);color:#fff;border:0;border-radius:var(--r-pill);padding:9px 16px;font-size:var(--f-body);font-weight:var(--w-bold);cursor:pointer;letter-spacing:.02em}
   button.btn:active{transform:translateY(1px)}
-  button.btn.sec{background:#fff;color:var(--prid);border:1.5px solid var(--pri)}
+  button.btn.sec{background:var(--card);color:var(--prid);border:1.5px solid var(--pri)}
   button.btn.gray{background:var(--surface-2);color:var(--ink)}
   button.btn.danger{background:var(--red)}
   button.btn.gold{background:var(--dark);color:#fff}
-  button.btn.sm{padding:6px 12px;font-size:12px}
+  button.btn.sm{padding:6px 12px;font-size:var(--f-small)}
   button.btn.wide{width:100%;padding:12px}
   button.btn:disabled{opacity:.4;cursor:default}
   .row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
   .row.between{justify-content:space-between}
-  .muted{color:var(--sub);font-size:12px}
-  .tag{font-size:10px;padding:1px 6px;border-radius:5px;background:var(--surface-2);color:var(--sub);margin-left:4px;font-weight:700}
-  .pill{display:inline-block;background:var(--surface-2);color:var(--ink);border-radius:99px;padding:2px 9px;font-size:11px;font-weight:800}
+  .muted{color:var(--sub);font-size:var(--f-small)}
+  .tag{font-size:var(--f-small);padding:1px 6px;border-radius:var(--r-sm);background:var(--surface-2);color:var(--sub);margin-left:4px;font-weight:var(--w-bold)}
+  .pill{display:inline-block;background:var(--surface-2);color:var(--ink);border-radius:var(--r-pill);padding:2px 9px;font-size:var(--f-small);font-weight:var(--w-bold)}
   .pill.f{background:var(--danger-bg);color:var(--red)}
   .pill.e1{background:var(--info-bg);color:var(--pri)}
   .pill.e2{background:#efe7f5;color:#7d3c98}
-  .empty{text-align:center;color:var(--sub);padding:30px 10px;font-size:13px}
+  .empty{text-align:center;color:var(--sub);padding:30px 10px;font-size:var(--f-body)}
   hr{border:0;border-top:1px solid var(--line);margin:12px 0}
   /* generic tables */
   table{border-collapse:collapse;width:100%;font-size:var(--f-body)}
   th,td{border:1px solid var(--line);padding:5px 6px;text-align:center}
-  th{background:var(--surface-2);color:var(--sub);font-weight:800;font-size:11px;letter-spacing:.03em}
+  th{background:var(--surface-2);color:var(--sub);font-weight:var(--w-bold);font-size:var(--f-small);letter-spacing:.03em}
   .scroll{overflow-x:auto;-webkit-overflow-scrolling:touch}
   /* leaderboard tables（3表共通の基礎デザイン＝濃色ヘッダ＋ゼブラ） */
   .lb th,.lb td{white-space:nowrap;vertical-align:middle}
-  .lb th{background:var(--dark);color:#fff;font-weight:700;font-size:11px;letter-spacing:.02em}
+  .lb th{background:var(--dark);color:#fff;font-weight:var(--w-bold);font-size:var(--f-small);letter-spacing:.02em}
   .lb tr:nth-child(2n+1) td{background:var(--surface-1)}
-  .lb .rank td{font-weight:600}
+  .lb .rank td{font-weight:var(--w-med)}
   /* 順位＝プレーンな太字数字（§11.7・丸バッジ全廃）。1位のみ青字で最小限の強調 */
-  .rankno{font-weight:800;font-variant-numeric:tabular-nums;color:var(--ink);font-size:14px;line-height:1}
+  .rankno{font-weight:var(--w-bold);font-variant-numeric:tabular-nums;color:var(--ink);font-size:var(--f-body);line-height:1}
   .rankno.r1{color:var(--pri)}
-  .lb.big .rankno{font-size:16px}
+  .lb.big .rankno{font-size:var(--f-name)}
   .rank1 td{}
   .hlrow td{background:var(--hl-bg) !important}
-  .kanjibadge{display:inline-block;background:var(--pri);color:#fff;border-radius:5px;font-size:10px;padding:1px 6px;margin-left:6px;font-weight:800;letter-spacing:.02em}
+  .kanjibadge{display:inline-block;background:var(--pri);color:#fff;border-radius:var(--r-sm);font-size:var(--f-small);padding:1px 6px;margin-left:6px;font-weight:var(--w-bold);letter-spacing:.02em}
   .mask{color:#c3c9cf;letter-spacing:1px}
   /* score input grid (入力タブ) */
-  .scoregrid td input{width:38px;padding:5px 2px;text-align:center;border-radius:5px;font-size:14px}
+  .scoregrid td input{width:38px;padding:5px 2px;text-align:center;border-radius:var(--r-sm);font-size:var(--f-body)}
   .scoregrid th,.scoregrid td{padding:3px 3px;min-width:34px}
-  .scoregrid td.name{position:sticky;left:0;background:#fff;text-align:left;min-width:96px;font-weight:700;z-index:2;white-space:nowrap}
+  .scoregrid td.name{position:sticky;left:0;background:var(--card);text-align:left;min-width:96px;font-weight:var(--w-bold);z-index:2;white-space:nowrap}
   .scoregrid th.name{position:sticky;left:0;background:var(--surface-2);z-index:3;text-align:left;min-width:96px;white-space:nowrap}
-  .scoregrid .sum{background:var(--surface-2);font-weight:800}
+  .scoregrid .sum{background:var(--surface-2);font-weight:var(--w-bold)}
   .hidden-h{background:var(--acc-bg) !important}
   /* game setup */
-  .seg{display:flex;border:1px solid var(--pri);border-radius:6px;overflow:hidden;margin:4px 0}
-  .seg button{flex:1;border:0;background:#fff;color:var(--prid);padding:7px;font-size:13px;font-weight:800;cursor:pointer}
+  .seg{display:flex;border:1px solid var(--pri);border-radius:var(--r-sm);overflow:hidden;margin:4px 0}
+  .seg button{flex:1;border:0;background:var(--card);color:var(--prid);padding:7px;font-size:var(--f-body);font-weight:var(--w-bold);cursor:pointer}
   .seg button.on{background:var(--pri);color:#fff}
   .fmtgrid{display:grid;grid-template-columns:1fr 1fr;gap:6px}
-  .fmtgrid label{display:flex;align-items:center;gap:6px;font-size:13px;background:var(--surface-2);padding:8px;border-radius:6px;cursor:pointer}
-  .holebtn{width:34px;height:34px;border-radius:6px;border:1px solid var(--line);background:#fff;margin:2px;font-size:13px;cursor:pointer;font-weight:700}
+  .fmtgrid label{display:flex;align-items:center;gap:6px;font-size:var(--f-body);background:var(--surface-2);padding:8px;border-radius:var(--r-sm);cursor:pointer}
+  .holebtn{width:34px;height:34px;border-radius:var(--r-sm);border:1px solid var(--line);background:var(--card);margin:2px;font-size:var(--f-body);cursor:pointer;font-weight:var(--w-bold)}
   .holebtn.np{background:var(--pri);color:#fff;border-color:var(--pri)}
   .holebtn.dc{background:var(--red);color:#fff;border-color:var(--red)}
   .ptsedit input{width:78px;text-align:center;display:inline-block;padding:5px}
   .ptsrow{display:flex;align-items:center;justify-content:space-between;gap:8px;margin:5px 0}
-  .ptsrow span{font-size:13px}
-  details{border:1px solid var(--line);border-radius:6px;margin-bottom:10px;background:#fff}
-  details>summary{padding:11px 12px;font-weight:800;cursor:pointer;color:var(--ink);font-size:14px;list-style:none}
+  .ptsrow span{font-size:var(--f-body)}
+  details{border:1px solid var(--line);border-radius:var(--r-sm);margin-bottom:10px;background:var(--card)}
+  details>summary{padding:11px 12px;font-weight:var(--w-bold);cursor:pointer;color:var(--ink);font-size:var(--f-body);list-style:none}
   details>summary::-webkit-details-marker{display:none}
-  details>summary::before{content:"› ";color:var(--pri);font-weight:900}
+  details>summary::before{content:"› ";color:var(--pri);font-weight:var(--w-bold)}
   details[open]>summary::before{content:"⌄ ";}
-  details .in{padding:0 12px 12px;font-size:13px}
-  .rule{background:var(--surface-2);border:1px solid var(--line);border-left:3px solid var(--acc);border-radius:6px;padding:8px 10px;font-size:12px;color:var(--ink);margin:6px 0}
-  .prizewin{background:#fff;border:1px solid var(--line);border-top:3px solid var(--acc)}
-  .payoutcard{background:#fff;border:1px solid var(--line);border-top:3px solid var(--acc)}
-  .kanjicard{background:#fff;border:1px solid var(--line);border-top:3px solid var(--pri)}
-  .big{font-size:var(--f-hero);font-weight:900}
+  details .in{padding:0 12px 12px;font-size:var(--f-body)}
+  .rule{background:var(--surface-2);border:1px solid var(--line);border-left:3px solid var(--acc);border-radius:var(--r-sm);padding:8px 10px;font-size:var(--f-small);color:var(--ink);margin:6px 0}
+  .prizewin{background:var(--card);border:1px solid var(--line);border-top:3px solid var(--acc)}
+  .payoutcard{background:var(--card);border:1px solid var(--line);border-top:3px solid var(--acc)}
+  .kanjicard{background:var(--card);border:1px solid var(--line);border-top:3px solid var(--pri)}
+  .big{font-size:var(--f-hero);font-weight:var(--w-bold)}
   .toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:var(--dark);color:#fff;
-    padding:10px 18px;border-radius:99px;font-size:13px;z-index:50;opacity:0;transition:.3s;pointer-events:none}
+    padding:10px 18px;border-radius:var(--r-pill);font-size:var(--f-body);z-index:50;opacity:0;transition:.3s;pointer-events:none}
   .toast.show{opacity:.96}
   /* result sub-nav (pill tabs) */
   .result-sticky{position:sticky;top:50px;z-index:15;background:var(--bg);padding:8px 0 8px;margin:-4px 0 10px;box-shadow:0 8px 8px -8px rgba(0,0,0,.15)}
   .subtab4{display:flex;gap:6px}
-  .subtab4 button{flex:1;border:1px solid var(--line);background:#fff;color:var(--ink);padding:9px 2px;border-radius:99px;font-size:12.5px;font-weight:800;cursor:pointer;letter-spacing:.02em}
+  .subtab4 button{flex:1;border:1px solid var(--line);background:var(--card);color:var(--ink);padding:9px 2px;border-radius:var(--r-pill);font-size:var(--f-body);font-weight:var(--w-bold);cursor:pointer;letter-spacing:.02em}
   .subtab4 button.on{background:var(--dark);color:#fff;border-color:var(--dark)}
   /* reveal bar */
-  .reveal-bar{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:6px;background:var(--surface-2);border:1px solid var(--line);border-radius:6px;padding:7px 9px}
-  .reveal-bar .hole{font-weight:900;color:var(--prid);font-size:15px}
+  .reveal-bar{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:6px;background:var(--surface-2);border:1px solid var(--line);border-radius:var(--r-sm);padding:7px 9px}
+  .reveal-bar .hole{font-weight:var(--w-bold);color:var(--prid);font-size:var(--f-title)}
   /* toggle chips + eye buttons */
   .cardtools{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin-bottom:7px}
-  .tgl{display:inline-flex;align-items:center;gap:5px;border:1px solid var(--line);border-radius:99px;padding:5px 11px;font-size:12px;cursor:pointer;background:#fff;font-weight:800}
+  .tgl{display:inline-flex;align-items:center;gap:5px;border:1px solid var(--line);border-radius:var(--r-pill);padding:5px 11px;font-size:var(--f-small);cursor:pointer;background:var(--card);font-weight:var(--w-bold)}
   .tgl.on{background:var(--pri);color:#fff;border-color:var(--pri)}
   .tgl.off{background:var(--danger-bg);color:var(--red);border-color:var(--danger-line)}
-  .eyebtn{border:1px solid var(--line);background:#fff;border-radius:6px;padding:3px 6px;cursor:pointer;line-height:0;color:var(--sub)}
+  .eyebtn{border:1px solid var(--line);background:var(--card);border-radius:var(--r-sm);padding:3px 6px;cursor:pointer;line-height:0;color:var(--sub)}
   .eyebtn.on{background:var(--info-bg);border-color:var(--pri);color:var(--prid)}
   .eyebtn.off{background:var(--danger-bg);border-color:var(--danger-line);color:var(--red)}
   .ei{width:15px;height:15px;stroke:currentColor;stroke-width:2;fill:none;stroke-linecap:round;stroke-linejoin:round;display:block}
@@ -154,57 +154,57 @@
   .rank-wrap{display:flex;flex-wrap:wrap;gap:10px;align-items:flex-start;margin-bottom:12px}
   .rank-wrap>.card{flex:1 1 210px;min-width:190px;max-width:320px;margin-bottom:0}
   .rank-wrap>.card.wide{flex:1 1 320px;min-width:270px;max-width:480px}
-  .rank-wrap .lb{font-size:13px;table-layout:fixed;width:100%}
+  .rank-wrap .lb{font-size:var(--f-body);table-layout:fixed;width:100%}
   .rank-wrap .lb th,.rank-wrap .lb td{padding:6px 6px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;height:34px}
   .rank-wrap .lb .c-eye{width:40px;padding:2px}
   .rank-wrap .lb .c-pos{width:30px}
   .rank-wrap .lb .c-val{width:66px;text-align:right;padding-right:8px}
-  .rank-wrap .lb.big{font-size:15px}
+  .rank-wrap .lb.big{font-size:var(--f-title)}
   .rank-wrap .lb.big th,.rank-wrap .lb.big td{height:42px}
   .rank-wrap .lb.big .c-val{width:86px}
-  .rank-wrap .lb.big .nmc{font-size:var(--f-name);font-weight:800}
-  .rank-wrap .lb.big b{font-size:18px;font-weight:900;font-variant-numeric:tabular-nums}
-  .rank-wrap .lb .nmc{font-size:var(--f-name);font-weight:700}
+  .rank-wrap .lb.big .nmc{font-size:var(--f-name);font-weight:var(--w-bold)}
+  .rank-wrap .lb.big b{font-size:18px;font-weight:var(--w-bold);font-variant-numeric:tabular-nums}
+  .rank-wrap .lb .nmc{font-size:var(--f-name);font-weight:var(--w-bold)}
   .rank-wrap .lb b{font-variant-numeric:tabular-nums}
   h2.lbh{display:flex;justify-content:space-between;align-items:baseline;gap:8px;white-space:nowrap;overflow:hidden}
   h2.lbh>span:first-child{flex:0 0 auto}
-  .lbnote{font-size:11px;font-weight:700;color:var(--sub);overflow:hidden;text-overflow:ellipsis;min-width:0;white-space:nowrap}
+  .lbnote{font-size:var(--f-small);font-weight:var(--w-bold);color:var(--sub);overflow:hidden;text-overflow:ellipsis;min-width:0;white-space:nowrap}
   /* score card (共通スコア表) */
   .sc2{table-layout:fixed;width:100%;font-size:12px;border-collapse:collapse}
   .sc2 col.cnm{width:64px}
   .sc2 col.cs{width:34px}
-  .sc2 th,.sc2 td{padding:4px 0;border:1px solid var(--line);text-align:center;overflow:hidden;line-height:1.2;color:var(--ink);font-weight:600;height:24px}
-  .sc2 th{background:var(--dark);color:#fff;font-size:11px;font-weight:700}
-  .sc2 td.nm,.sc2 th.nm{text-align:left;font-weight:700;font-size:11.5px;white-space:nowrap;padding-left:5px;text-overflow:ellipsis}
+  .sc2 th,.sc2 td{padding:4px 0;border:1px solid var(--line);text-align:center;overflow:hidden;line-height:1.2;color:var(--ink);font-weight:var(--w-med);height:24px}
+  .sc2 th{background:var(--dark);color:#fff;font-size:11px;font-weight:var(--w-bold)}
+  .sc2 td.nm,.sc2 th.nm{text-align:left;font-weight:var(--w-bold);font-size:11.5px;white-space:nowrap;padding-left:5px;text-overflow:ellipsis}
   .sc2 th.nm{background:var(--dark);color:#fff}
-  .sc2 td.sub{background:var(--win-bg);font-weight:800}
-  .sc2 td.tot{background:var(--surface-1);font-weight:800}
-  .sc2 td.netc{background:var(--win-bg);font-weight:900;color:var(--win-ink)}
+  .sc2 td.sub{background:var(--win-bg);font-weight:var(--w-bold)}
+  .sc2 td.tot{background:var(--surface-1);font-weight:var(--w-bold)}
+  .sc2 td.netc{background:var(--win-bg);font-weight:var(--w-bold);color:var(--win-ink)}
   .sc2 th.sub,.sc2 th.tot,.sc2 th.netc{background:var(--dark);color:#fff}   /* ヘッダは一律濃色＋白文字（薄背景で消えない） */
   .sc2 .hh{background:var(--acc-bg)}
   .sc2 th.hh{background:var(--dark);color:var(--acc)}   /* 隠しホールのヘッダ番号：濃紺背景＋アクセント黄で常に読める */
-  .sc2 .parr td{color:var(--ink);font-size:10px;font-weight:700}
+  .sc2 .parr td{color:var(--ink);font-size:10px;font-weight:var(--w-bold)}
   .sc2 .tsum td{font-size:11px;background:var(--surface-1)}
-  .sc2 .winc{background:var(--win-bg) !important;font-weight:900;color:var(--win-ink)}
+  .sc2 .winc{background:var(--win-bg) !important;font-weight:var(--w-bold);color:var(--win-ink)}
   @media(min-width:560px){ .sc2{font-size:14px} .sc2 col.cnm{width:82px} .sc2 col.cs{width:42px} .sc2 td.nm,.sc2 th.nm{font-size:13px} .sc2 th,.sc2 td{height:28px} }
   /* two-column (未使用でも保持) */
   .ind-split{display:flex;gap:12px;align-items:flex-start}
   .ind-left{flex:1 1 46%;min-width:0}
   .ind-right{flex:1 1 46%;min-width:0}
-  .chip{display:inline-flex;align-items:center;gap:4px;border:1px solid var(--line);border-radius:99px;padding:3px 9px;font-size:12px;margin:3px 4px 0 0;background:#fff;cursor:pointer;font-weight:700}
+  .chip{display:inline-flex;align-items:center;gap:4px;border:1px solid var(--line);border-radius:var(--r-pill);padding:3px 9px;font-size:12px;margin:3px 4px 0 0;background:var(--card);cursor:pointer;font-weight:var(--w-bold)}
   .chip.on{background:var(--pri);color:#fff;border-color:var(--pri)}
   @media(max-width:760px){ .ind-split{flex-direction:column} .ind-left,.ind-right{flex:1 1 auto;width:100%} }
   /* ルーレット対抗（9:16大画面投影前提・大きめ/省スペース） */
   .rlwrap .card{margin-bottom:10px;padding:12px}
-  .rl-stand{display:flex;align-items:center;gap:8px;flex-wrap:wrap;background:var(--dark);color:#fff;border-radius:10px;padding:8px 12px;margin-bottom:10px}
-  .rl-chip{border:2px solid var(--line);border-radius:99px;padding:3px 12px;font-size:15px;font-weight:800;background:#fff;color:var(--ink)}
-  .rl-prog{font-size:13px;font-weight:800;opacity:.8;margin-left:4px}
+  .rl-stand{display:flex;align-items:center;gap:8px;flex-wrap:wrap;background:var(--dark);color:#fff;border-radius:var(--r-md);padding:8px 12px;margin-bottom:10px}
+  .rl-chip{border:2px solid var(--line);border-radius:var(--r-pill);padding:3px 12px;font-size:var(--f-title);font-weight:var(--w-bold);background:var(--card);color:var(--ink)}
+  .rl-prog{font-size:var(--f-body);font-weight:var(--w-bold);opacity:.8;margin-left:4px}
   .rl-head{display:flex;align-items:baseline;gap:14px;margin-bottom:10px}
-  .rl-hole{font-size:48px;font-weight:900;line-height:1;color:var(--ink)}
-  .rl-hole small{font-size:16px;font-weight:800;color:var(--sub);margin-left:2px}
-  .rl-par{font-size:15px;color:var(--sub);font-weight:800}
+  .rl-hole{font-size:var(--f-rl-hole);font-weight:var(--w-bold);line-height:1;color:var(--ink)}
+  .rl-hole small{font-size:var(--f-name);font-weight:var(--w-bold);color:var(--sub);margin-left:2px}
+  .rl-par{font-size:var(--f-title);color:var(--sub);font-weight:var(--w-bold)}
   .rl-panels{display:flex;flex-wrap:wrap;gap:10px}
-  .rl-panel{flex:1 1 150px;min-width:140px;border:3px solid var(--line);border-radius:14px;padding:14px 10px;text-align:center;background:#fff}
+  .rl-panel{flex:1 1 150px;min-width:140px;border:3px solid var(--line);border-radius:var(--r-md);padding:14px 10px;text-align:center;background:var(--card)}
   /* 確定時の勝敗背景（#6）。機能色トークン（--win/--red/--tie）から導出＝意味は固定 */
   .rl-panel.win{background:var(--win-bg);box-shadow:0 0 0 3px var(--win) inset}
   .rl-panel.lose{background:var(--danger-bg);box-shadow:0 0 0 3px var(--red) inset}
@@ -214,25 +214,26 @@
   .rl-panel.fwin{background:var(--win-bg-strong);box-shadow:0 0 0 4px var(--win) inset;animation:rlblink .22s infinite alternate}
   .rl-panel.flose{background:var(--danger-bg);box-shadow:0 0 0 4px var(--red) inset;animation:rlblink .22s infinite alternate}
   .rl-panel.ftie{background:var(--tie-bg);box-shadow:0 0 0 4px var(--tie) inset;animation:rlblink .22s infinite alternate}
-  .rl-team{font-size:14px;font-weight:800;letter-spacing:.03em}
-  .rl-name{font-size:30px;font-weight:900;margin:6px 0 2px;min-height:38px;line-height:1.1}
-  .rl-scorebig{font-size:var(--f-rl-score);font-weight:900;color:var(--win);line-height:1;min-height:46px;font-variant-numeric:tabular-nums}
-  .rl-ev{font-size:12px;color:var(--win);font-weight:800;min-height:16px;margin-top:2px}
+  .rl-team{font-size:var(--f-body);font-weight:var(--w-bold);letter-spacing:.03em}
+  .rl-name{font-size:var(--f-rl-name);font-weight:var(--w-bold);margin:6px 0 2px;min-height:38px;line-height:1.1}
+  .rl-scorebig{font-size:var(--f-rl-score);font-weight:var(--w-bold);color:var(--win);line-height:1;min-height:46px;font-variant-numeric:tabular-nums}
+  .rl-ev{font-size:var(--f-small);color:var(--win);font-weight:var(--w-bold);min-height:16px;margin-top:2px}
   .rl-act{min-height:40px;display:flex;gap:6px;justify-content:center;align-items:center;flex-wrap:wrap;margin-top:6px}
-  .rl-act .btn{padding:7px 10px;font-size:12px}
+  .rl-act .btn{padding:7px 10px;font-size:var(--f-small)}
   .rl-ctrl{margin-top:12px}
-  .rl-info{text-align:center;font-weight:800;font-size:17px;min-height:24px;margin-bottom:8px}
-  .rl-main{font-size:20px;padding:16px}
+  .rl-info{text-align:center;font-weight:var(--w-bold);font-size:var(--f-name);min-height:24px;margin-bottom:8px}
+  .rl-main{font-size:var(--f-val);padding:16px}
   .rl-dev{margin-bottom:10px}
   .sc2 .cur{background:var(--acc-bg) !important;color:var(--dark) !important}   /* 現在ホール列：黄背景でも文字は黒に */
   .sc2 th.cur{background:var(--acc-bg-strong) !important;color:var(--dark) !important}
-  .sc2 .adopt{outline:2px solid var(--sub);outline-offset:-2px;font-weight:900;color:var(--dark) !important}
-  .sc2 .rwin{background:var(--win-bg-strong) !important;font-weight:900;color:var(--win-ink) !important}   /* 勝ち：濃緑文字で高コントラスト */
-  .sc2 .rtie{background:var(--tie-bg) !important;font-weight:900;color:var(--tie-ink) !important}   /* 引分：濃橙文字 */
+  .sc2 .adopt{outline:2px solid var(--sub);outline-offset:-2px;font-weight:var(--w-bold);color:var(--dark) !important}
+  .sc2 .rwin{background:var(--win-bg-strong) !important;font-weight:var(--w-bold);color:var(--win-ink) !important}   /* 勝ち：濃緑文字で高コントラスト */
+  .sc2 .rtie{background:var(--tie-bg) !important;font-weight:var(--w-bold);color:var(--tie-ink) !important}   /* 引分：濃橙文字 */
   .rlsc td.nm,.rlsc th.nm{width:72px}
   @media(min-width:820px){
+    :root{--f-rl-hole:66px;--f-rl-name:40px;--f-rl-score:64px}
     .rlwrap{max-width:900px;margin:0 auto}
-    .rl-hole{font-size:66px} .rl-name{font-size:40px;min-height:50px} .rl-scorebig{font-size:64px;min-height:66px}
+    .rl-name{min-height:50px} .rl-scorebig{min-height:66px}
     .rl-panel{flex:1 1 200px;padding:20px 14px} .rl-main{font-size:24px;padding:20px} .rl-chip{font-size:18px}
     .sc2.rlsc{font-size:15px}
   }
@@ -265,7 +266,8 @@
   /* iPad Pro 13" 縦持ち(幅1032pt)〜（§11.5）：タッチターゲット44pt＋中間フォントスケール＋main拡張 */
   @media(min-width:1024px){
     main{max-width:1200px}
-    :root{--f-hero:23px;--f-val:22px;--f-name:17px;--f-title:16px;--f-body:14px;--f-small:12px}
+    :root{--f-hero:23px;--f-val:22px;--f-name:17px;--f-title:16px;--f-body:14px;--f-small:12px;
+      --f-rl-hole:70px;--f-rl-name:44px;--f-rl-score:68px}
     input,select{min-height:44px}
     button.btn{min-height:44px}
     button.btn.sm{min-height:44px;padding:8px 14px;font-size:13px}
@@ -279,12 +281,11 @@
     .scoregrid th,.scoregrid td{min-width:46px}
     .scoregrid td input{width:52px;min-height:44px;font-size:17px;padding:9px 2px}
     .scoregrid td input:focus{outline:2px solid var(--pri);outline-offset:-1px}
-    /* ルーレットのiPad中間スケール＋タッチ44pt（§11.9） */
+    /* ルーレットのiPad中間スケール＋タッチ44pt（§11.9）: --f-rl-*は上の:rootで再定義 */
     .rlwrap{max-width:1100px}
-    .rl-hole{font-size:70px}
     .rl-panel{flex:1 1 220px;padding:22px 16px}
-    .rl-name{font-size:44px;min-height:54px}
-    .rl-scorebig{font-size:68px;min-height:72px}
+    .rl-name{min-height:54px}
+    .rl-scorebig{min-height:72px}
     .rl-chip{font-size:19px;min-height:44px;display:inline-flex;align-items:center}
     .rl-main{min-height:56px;font-size:25px;padding:16px}
     .rl-act .btn{min-height:44px;padding:9px 14px;font-size:13px}
@@ -299,26 +300,27 @@
     #view-result .rank-wrap>.card{flex:1 1 300px;max-width:440px}
     #view-result .rank-wrap>.card.wide{flex:1 1 440px;max-width:620px}
     /* ルーレット横持ち一段拡大（§11.9） */
+    :root{--f-rl-hole:76px;--f-rl-name:48px;--f-rl-score:76px}
     .rlwrap{max-width:1280px}
-    .rl-hole{font-size:76px}
-    .rl-name{font-size:48px;min-height:58px}
-    .rl-scorebig{font-size:76px;min-height:80px}
+    .rl-name{min-height:58px}
+    .rl-scorebig{min-height:80px}
     .rl-main{font-size:27px}
     .sc2.rlsc{font-size:17px}
   }
   /* ============ テーマB（NTT DATA寄せ・エアリー）＝差分のみ上書き（§11.8）。A=無属性=現行 ============ */
+  html[data-theme="b"]{--w-bold:700}   /* Bはボールドを1段軽く（フォントは400/600/700/800を読込済） */
   /* テーブルヘッダ: 白地＋ネイビー文字＋下ハイライン */
-  html[data-theme="b"] th{background:#fff;color:var(--dark);border-bottom:2px solid var(--dark)}
-  html[data-theme="b"] .lb th{background:#fff;color:var(--dark);font-weight:700;border-bottom:2px solid var(--dark)}
-  html[data-theme="b"] .sc2 th,html[data-theme="b"] .sc2 th.nm,html[data-theme="b"] .sc2 th.sub,html[data-theme="b"] .sc2 th.tot,html[data-theme="b"] .sc2 th.netc{background:#fff;color:var(--dark);border-bottom:2px solid var(--dark)}
+  html[data-theme="b"] th{background:var(--card);color:var(--dark);border-bottom:2px solid var(--dark)}
+  html[data-theme="b"] .lb th{background:var(--card);color:var(--dark);font-weight:var(--w-bold);border-bottom:2px solid var(--dark)}
+  html[data-theme="b"] .sc2 th,html[data-theme="b"] .sc2 th.nm,html[data-theme="b"] .sc2 th.sub,html[data-theme="b"] .sc2 th.tot,html[data-theme="b"] .sc2 th.netc{background:var(--card);color:var(--dark);border-bottom:2px solid var(--dark)}
   html[data-theme="b"] .sc2 th.hh{background:var(--acc-bg);color:var(--acc-ink);border-bottom:2px solid var(--dark)}   /* 白地では黄文字が沈むため淡黄地＋濃金 */
   html[data-theme="b"] .lb tr:nth-child(2n+1) td{background:var(--surface-1)}
   /* 見出し: Noto Serif JP＋ハイライン区切り・余白拡張・フォント軽量化 */
-  html[data-theme="b"] body{font-weight:400}
+  html[data-theme="b"] body{font-weight:var(--w-reg)}
   html[data-theme="b"] .card{padding:18px 16px;box-shadow:none}
-  html[data-theme="b"] .card h2{font-family:"Noto Serif JP","Noto Serif",serif;font-weight:700;padding-bottom:8px;border-bottom:1px solid var(--line);margin-bottom:12px}
+  html[data-theme="b"] .card h2{font-family:"Noto Serif JP","Noto Serif",serif;font-weight:var(--w-bold);padding-bottom:8px;border-bottom:1px solid var(--line);margin-bottom:12px}
   html[data-theme="b"] .card.tight h2{margin-bottom:10px}
-  html[data-theme="b"] header h1{font-family:"Noto Serif JP","Noto Serif",serif;font-weight:700}
+  html[data-theme="b"] header h1{font-family:"Noto Serif JP","Noto Serif",serif;font-weight:var(--w-bold)}
   html[data-theme="b"] .card h3{letter-spacing:.06em}
   /* 機能色（勝敗の緑/橙・rwin/rtie/adopt/winc）はテーマ共通＝上書きしない */
   /* 投影(≥820px)はテーマBでも高コントラスト＝テーブルヘッダを濃色復帰（§11.8） */
@@ -338,12 +340,12 @@
     </div>
     <div class="row" style="gap:6px;flex-wrap:nowrap">
       <select id="themeSel" onchange="setTheme(this.value)" data-i18n-title="theme.label"
-              style="background:rgba(255,255,255,.12);color:#fff;border:0;border-radius:99px;padding:8px 10px;font-weight:700;width:auto;min-height:40px">
+              style="background:rgba(255,255,255,.12);color:#fff;border:0;border-radius:var(--r-pill);padding:8px 10px;font-weight:var(--w-bold);width:auto;min-height:40px">
         <option value="a" data-i18n="theme.a">スコアボード</option>
         <option value="b" data-i18n="theme.b">コーポレート</option>
       </select>
       <select id="langSel" onchange="setLang(this.value)" aria-label="Language"
-              style="background:rgba(255,255,255,.12);color:#fff;border:0;border-radius:99px;padding:8px 10px;font-weight:700;width:auto;min-height:40px">
+              style="background:rgba(255,255,255,.12);color:#fff;border:0;border-radius:var(--r-pill);padding:8px 10px;font-weight:var(--w-bold);width:auto;min-height:40px">
         <option value="ja">日本語</option>
         <option value="zh">中文</option>
         <option value="en">EN</option>
@@ -881,8 +883,8 @@ function renderGame(){
     <div class="row"><button class="btn sec sm" onclick="addTeam()">${t('game.addTeam')}</button>
       <button class="btn gray sm" onclick="autoTeams(2)">${t('game.auto2')}</button>
       <button class="btn gray sm" onclick="autoTeams(3)">${t('game.auto3')}</button></div>
-    ${g.teams.map(t=>`<div style="border:1px solid var(--line);border-radius:10px;padding:10px;margin-top:8px">
-      <div class="row between"><input value="${esc(t.name)}" onchange="setTeamName('${t.id}',this.value)" style="flex:1;font-weight:700">
+    ${g.teams.map(t=>`<div style="border:1px solid var(--line);border-radius:var(--r-md);padding:10px;margin-top:8px">
+      <div class="row between"><input value="${esc(t.name)}" onchange="setTeamName('${t.id}',this.value)" style="flex:1;font-weight:var(--w-bold)">
         <button class="btn sm danger" onclick="delTeam('${t.id}')">×</button></div>
       <div style="margin-top:6px">${g.participants.map(pid=>{const p=state.players.find(x=>x.id===pid);if(!p)return'';
         return `<span class="chip ${t.memberIds.includes(pid)?'on':''}" onclick="toggleTeamMember('${t.id}','${pid}')">${esc(p.name)}</span>`}).join('')}</div>
@@ -1313,7 +1315,7 @@ function renderScorecard(g, parts, teams){
     const winAt=[]; for(let i=0;i<18;i++){const tot=teams.map(t=>tAt(t,i));const val=tot.filter(v=>v!=null);winAt.push(val.length?tot.map((v,ti)=>v===Math.min(...val)?ti:-1).filter(x=>x>=0):[]);}
     const won=teams.map((_,ti)=>{let w=0;winAt.forEach(ws=>{if(ws.includes(ti))w+=1/ws.length;});return w;});
     teams.forEach((tm,ti)=>{ const col=colorOf(tm.name);
-      body+=`<tr><td class="nm" colspan="24" style="background:${col};color:#fff;font-weight:800;text-align:left">${esc(tm.name)}</td></tr>`;
+      body+=`<tr><td class="nm" colspan="24" style="background:${col};color:#fff;font-weight:var(--w-bold);text-align:left">${esc(tm.name)}</td></tr>`;
       tm.memberIds.forEach(pid=>{ if(state.players.find(x=>x.id===pid)) body+=pRow(pid); });
       const tCell=(i)=>{ if(!show.totals) return '<td><span class="mask">·</span></td>';   // 合計値OFFなら値も色も隠す
         const s=tm.memberIds.reduce((a,pid)=>a+(adjHole(g,pid,i)||0),0); return `<td class="${winAt[i].includes(ti)?'winc':''}">${s||''}</td>`;};
@@ -1321,7 +1323,7 @@ function renderScorecard(g, parts, teams){
       const tNet=Math.round(tm.memberIds.reduce((a,pid)=>a+netScore(g,pid),0)*10)/10;
       const tOut=tm.memberIds.reduce((a,pid)=>a+sum(adjArr(g,pid),0,9),0);
       const tIn=tm.memberIds.reduce((a,pid)=>a+sum(adjArr(g,pid),9,18),0);
-      body+=`<tr class="parr tsum"><td class="nm" style="color:${col};font-weight:800">${t('col.total')}</td>${F9.map(i=>tCell(i)).join('')}<td class="sub">${MT(tOut||'')}</td>${B9.map(i=>tCell(i)).join('')}<td class="sub">${MT(tIn||'')}</td><td class="tot">${MT(tGross||'')}</td><td class="tot">-</td><td class="netc">${MT(tNet||'')}</td></tr>`;
+      body+=`<tr class="parr tsum"><td class="nm" style="color:${col};font-weight:var(--w-bold)">${t('col.total')}</td>${F9.map(i=>tCell(i)).join('')}<td class="sub">${MT(tOut||'')}</td>${B9.map(i=>tCell(i)).join('')}<td class="sub">${MT(tIn||'')}</td><td class="tot">${MT(tGross||'')}</td><td class="tot">-</td><td class="netc">${MT(tNet||'')}</td></tr>`;
     });
     note=t('sc.noteTeam');
   } else {
@@ -1467,10 +1469,10 @@ function rlScorecard(g){
   const parRow=`<tr class="parr"><td class="nm">Par</td>${cols.map(i=>`<td class="${i===h?'cur':''} ${g.hidden[i]?'hh':''}">${g.par[i]}</td>`).join('')}</tr>`;
   let body='';
   teams.forEach(t=>{ const col=rColor(t.name);
-    body+=`<tr><td class="nm" colspan="19" style="background:${col};color:#fff;text-align:left;font-weight:800">${esc(t.name)}</td></tr>`;
+    body+=`<tr><td class="nm" colspan="19" style="background:${col};color:#fff;text-align:left;font-weight:var(--w-bold)">${esc(t.name)}</td></tr>`;
     t.memberIds.forEach(pid=>{ const p=state.players.find(x=>x.id===pid); if(!p)return; const av=adjArr(g,pid); const mm=mark[pid]||{};
       body+=`<tr><td class="nm">${esc(p.name)}</td>${cols.map(i=>`<td class="${i===h?'cur':''} ${g.hidden[i]?'hh':''} ${mm[i]||''}">${av[i]??''}</td>`).join('')}</tr>`; }); });
-  return `<div class="card"><h2>${t('sc.title')} <span class="muted" style="font-weight:600;font-size:11px">${t('rl.legend')}</span></h2>
+  return `<div class="card"><h2>${t('sc.title')} <span class="muted" style="font-weight:var(--w-med);font-size:11px">${t('rl.legend')}</span></h2>
     <div class="scroll"><table class="sc2 rlsc">${cg}${head}${parRow}${body}</table></div></div>`;
 }
 
@@ -1518,7 +1520,7 @@ function renderRouletteTab(g){
   else if(!drawn) mainBtn=`<button class="btn wide rl-main" onclick="rlStartInitial()">${t('rl.start')}</button>`;
   else mainBtn=`<button class="btn wide rl-main" ${rlCanAdvance(g)?'':'disabled'} onclick="rlNextHole()">${t('rl.confirmNext')}</button>`;
   const devMenu=`<details class="rl-dev"><summary>${t('rl.dev')}</summary><div class="in">
-    ${teams.map(tm=>`<div class="row between" style="margin:3px 0"><span style="color:${rColor(tm.name)};font-weight:800;min-width:64px">${esc(tm.name)}</span>
+    ${teams.map(tm=>`<div class="row between" style="margin:3px 0"><span style="color:${rColor(tm.name)};font-weight:var(--w-bold);min-width:64px">${esc(tm.name)}</span>
       <select style="flex:1;max-width:52%" onchange="rlForceRep('${tm.id}',this.value)"><option value="">${t('rl.pickRep')}</option>${tm.memberIds.map(pid=>{const p=state.players.find(x=>x.id===pid);return `<option value="${pid}" ${reps[tm.id]===pid?'selected':''}>${esc(p&&p.name)}</option>`}).join('')}</select></div>`).join('')}
     <hr>${teams.map(tm=>`<div class="row between" style="margin:2px 0"><span style="color:${rColor(tm.name)};min-width:64px">${esc(tm.name)}</span><span><button class="btn gray sm" onclick="rlRefund('${tm.id}','change')">${t('rl.refundChange',{n:R.remChange[tm.id]||0})}</button> <button class="btn gray sm" onclick="rlRefund('${tm.id}','challenge')">${t('rl.refundChallenge',{n:R.remChallenge[tm.id]||0})}</button></span></div>`).join('')}
   </div></details>`;
