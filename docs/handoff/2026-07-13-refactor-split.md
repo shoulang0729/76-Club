@@ -114,3 +114,46 @@ src/main.js           # 末尾の init（render() 呼び出し）だけ。最後
 
 ## 7. 完了後（任意・別タスク）
 - さらに整えるなら「ESM化（各ハンドラを `data-action` 委譲へ）」だが**別Issue**。今回はスコープ外。
+
+---
+
+## ★2026-08-18 更新（#2〜#22 反映・分割マップ刷新）
+起票(2026-07-13)後に #2〜#22 が全て実装され、`index.html` は **1690行**（`<style>` 332／`<script>` 1308）に成長。**分割"方式"は不変**（通常 `<script src>` 順次読込・グローバルスコープ維持・**ESM化しない**＝inline onclick 依存）。以下の**現状に即したモジュール構成**で分割すること。§2 の旧テーブルは本節で上書き。
+
+### 追加で織り込む要素（旧handoffに無かったもの）
+- **デザイントークン**（`:root` ライト＋`html[data-theme="dark"]` ダーク上書き・#18/#22）→ **CSSファイルへ**。
+- **i18n 辞書**（`const I18N` ＝ ja/zh/en 各228キーの巨大オブジェクト）＋ `LANG/t/setLang/applyStaticI18n`（#10）→ **独立モジュール `i18n.js`** に隔離（最大の塊・変更頻度も高い）。
+- **表示テーマ**（`THEMES/THEME/setTheme`・#22）→ i18n と同じ「表示状態」モジュール、または `nav` に。
+- **ラスベガス**（`vegasPair/vAdj/vegasBase/vegasBirdie/vegasHoleNet/vegasStandings`・#20）→ **calc** に。表示カードは results、設定トグルは game に。
+- **チーム識別色の集約 `tmColor()`**（#23）→ 参照する results/roulette より前に読む位置（nav か calc 冒頭）。
+
+### 推奨ファイル構成（読込順＝依存順）
+```
+index.html         … <head>のフォント<link>＋<link rel=stylesheet href=styles.css>＋<body>マークアップ＋末尾に<script src>を順番に列挙
+styles.css         … 旧<style>全部（リセット / ★トークン :root＋[data-theme=dark] / コンポーネント / @media 560・820・1024・1366）
+js/state.js        … LS_KEY, state, load/migrate/save/uid/toast/curGame/newGame/newRoulette/defaultPoints
+js/i18n.js         … const I18N（ja/zh/en）, LANG, t, setLang, applyStaticI18n ／ THEMES,THEME,setTheme（表示状態をまとめる）
+js/nav.js          … グローバル(views/resultSub/revealHoles/rl/show/nsMode/tgMode 等), toggleMenu/go/render/esc/EYE/EYEOFF/posBadge, tmColor
+js/players.js      … renderPlayers/addPlayer/setPlayerField/editPlayer/setPlayerEvery/setPlayerKanji/delPlayer
+js/game.js         … renderGame/hostMenuCard/setG/setCap/setWE/setPar/formats(vegas含む)/setRoulette/setVegas/createGame/チーム/prizes/points
+js/score.js        … renderScore/sum/setScore/updateRowSums/fillRandomScores/clearScores
+js/testdata.js     … allComplete/statusBadge/seedTestData
+js/calc.js         … parTotal/gross/complete/periaHdcp/enteredCount/womenEvery/effGross/evPer/adjArr/adjHole/netScore/net9/stableford/olympic/callaway/nassau/ranked/tieBreak/teamRanked/holesWon/best2/computePoints/computePayout/nextKanji ／ ★vegas* 一式
+js/results.js      … viewGame/renderResult/renderStanding/renderIndividual/renderTeamTab/rankCardNS/leaderboard/renderPrizeTab/renderScorecard/renderPrizes/renderTeams(★vegasカード)/setPrize/reveal系/toggleShow/ns系/tg系
+js/roulette.js     … rTeams/rColor/rlEvery/rlHoleScore/rlDraw/rlTick/rlBeginSpin/rlStop/rlStart系/rlChange/rlChallenge系/rlNextHole/rlReset/rlStandings/rlForceRep/rlRefund/rlMarks/rlScorecard/renderRouletteTab
+js/backup.js       … exportData/importData
+js/init.js         … 末尾のINIT（documentElement.lang＝LANG, setAttribute('data-theme',…), applyStaticI18n(), langSel/themeSel の初期値, render()）
+```
+読込順は **state → i18n → nav → players → game → score → testdata → calc → results → roulette → backup → init**（相互参照は関数呼び出し時点で解決されるので、定義順は上記でよい。`init.js` は必ず最後）。
+
+### 変わらない制約（再掲・厳守）
+- **ESM化しない**（`type="module"` にしない）。全部 **通常 `<script src>`**＝グローバルスコープ共有のまま。inline `onclick`（`rlStop()`/`setLang()`/`setTheme()`/`toggleShow()` 等）が壊れない。
+- **出力完全一致**：画面・数値・保存データを1ミリも変えない。`golfCompe_v1`（データ）／`golfCompe_lang`／`golfCompe_theme`（表示状態）の各キーと形式は不変。
+- 純粋な切り貼り。ロジック・文言・CSS値の改変は禁止（トークンや i18n も**移動のみ**、値は触らない）。
+
+### 受け入れ条件（追加）
+- 分割後、**ライト/ダーク × ja/zh/en × 全タブ（ゲーム/選手/スコア/結果=個人・チーム・ニアドラ・配分・ルーレット）** が分割前と同一表示。
+- テストデータ投入→各ゲーム（ペリア/エブリ/ステーブル/オリンピック/キャロウェイ/握り/ベスト2/HBH/ルーレット/**ラスベガス**）の数値が分割前と一致。
+- 言語切替・テーマ切替・リビール・目隠し・書き出し/読み込みが従来どおり動作。
+- GitHub Pages（ルート配信）で `styles.css`/`js/*.js` が相対パスで読める（`index.html` はルート維持）。`file://` 直開きでも動く相対パス。
+- 1PR（`refactor/split-modules`）。着手前に本節を最新正本とする。
