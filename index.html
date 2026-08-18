@@ -10,37 +10,60 @@
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;600;700;800&family=Noto+Sans+SC:wght@400;600;700;800&family=Noto+Serif+JP:wght@600;700&display=swap" rel="stylesheet">
 <style>
   *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
-  /* ============ デザイントークン（§11.10）：色/角丸/太さ/サイズはここで一元管理。テーマA/B共通の唯一の定義元 ============ */
+  /* ============ デザイントークン（§11.10 / §11.8）：色/角丸/太さ/サイズはここで一元管理 ============
+     :root＝ライト（既定）。html[data-theme="dark"] は色トークンの"値だけ"を上書き＝
+     余白/罫線/レイアウトは完全に同一のまま全画面が反転する（§11.8）。
+     黒/濃紺（--strong）は「文字・罫線」専用。面（背景）には --bg/--card/--surface-* だけを使う。 */
   :root{
-    /* サーフェス */
-    --bg:#ffffff; --card:#ffffff; --surface-1:#f8fafb; --surface-2:#f2f3f4; --line:#e8e8e8;
-    /* インク */
-    --dark:#070f26; --ink:#2e404d; --sub:#6b7480;
+    color-scheme:light;
+    /* サーフェス（面） */
+    --bg:#ffffff; --card:#ffffff; --surface-1:#f6f8fa; --surface-2:#f2f3f4; --line:#e6e9ec;
+    /* インク（文字・罫線）。--strong=見出し/ハイラインの最濃色（旧 --dark） */
+    --strong:#070f26; --ink:#2e404d; --sub:#6b7480;
+    --on-fill:#ffffff;   /* 彩度の高い塗り（pri/red/win/tie）の上に乗せる文字色 */
     /* プライマリ(青) */
-    --pri:#0072bc; --prid:#005b96; --info-bg:#e8f2fa; --hl-bg:#eef4fb;
+    --pri:#0072bc; --prid:#005b96; --info-bg:#eaf3fa; --info-line:#d3e6f4; --hl-bg:#eef4fb;
     /* アクセント(黄) */
     --acc:#ffc400; --acc-ink:#8a6100; --acc-bg:#fff7e6; --acc-bg-strong:#f2d98a;
     /* 機能色: 勝ち=緑 / 引分=橙 / 危険=赤（意味は固定・値はここだけで定義） */
     --win:#0e9e57; --win-ink:#186a3b; --win-bg:#d5f5e3; --win-bg-strong:#8fe0ad;
     --tie:#d4a017; --tie-ink:#5a3d00; --tie-bg:#fdeec4;
     --red:#e42600; --danger-bg:#fdecea; --danger-line:#f0c0ba;
+    --e2-bg:#efe7f5; --e2-ink:#7d3c98;   /* エブリE2バッジ（紫） */
+    /* チーム識別色（塗りの上の文字は --bg。文字/枠にもそのまま使う） */
+    --tm-red:#c0392b; --tm-blue:#2471a3; --tm-green:#186a3b; --tm-yellow:#b9770e; --tm-gray:#5d6d7e;
     /* 角丸3段 / 太さ3段 / サイズ */
     --r-sm:6px; --r-md:10px; --r-pill:99px;
     --w-reg:400; --w-med:600; --w-bold:800;
     --f-hero:21px; --f-val:20px; --f-name:16px; --f-title:15px; --f-body:13px; --f-small:11px;
     --f-rl-hole:48px; --f-rl-name:30px; --f-rl-score:44px;   /* ルーレット投影用大型（§11.10別枠） */
   }
+  /* ダーク（§11.8）: 色トークンの値のみ上書き。構造・余白・角丸・サイズは :root と共通 */
+  html[data-theme="dark"]{
+    color-scheme:dark;
+    --bg:#0f1622; --card:#16202f; --surface-1:#131c2b; --surface-2:#1c2739; --line:#26324a;
+    --strong:#ffffff; --ink:#dfe6f0; --sub:#94a2b8;
+    --on-fill:#0b1220;
+    --pri:#4ea3e8; --prid:#8fcbf5; --info-bg:#16304a; --info-line:#274a6b; --hl-bg:#1b3a57;
+    --acc:#ffcf3a; --acc-ink:#ffd970; --acc-bg:#3a2f10; --acc-bg-strong:#5a4715;
+    --win:#2fbd77; --win-ink:#7ee0ab; --win-bg:#123a28; --win-bg-strong:#1d5c3d;
+    --tie:#e0a92e; --tie-ink:#ffd89a; --tie-bg:#3d2f10;
+    --red:#ff6a4d; --danger-bg:#3d1a16; --danger-line:#6b2f27;
+    --e2-bg:#2e2440; --e2-ink:#d3b8ee;
+    --tm-red:#ff8b7a; --tm-blue:#62b0e8; --tm-green:#4fcf8c; --tm-yellow:#e0b04a; --tm-gray:#9fb0c4;
+  }
   html,body{margin:0}
   body{font-family:"Noto Sans JP","Noto Sans",-apple-system,"Hiragino Kaku Gothic ProN",Meiryo,sans-serif;
     background:var(--bg);color:var(--ink);font-size:var(--f-body);line-height:1.45;padding-bottom:24px}
   html[lang="zh-CN"] body{font-family:"Noto Sans SC","Noto Sans",system-ui,sans-serif}   /* 簡体字の字形最適化（i18n §3.5） */
-  /* header (dark scoreboard) */
-  header{background:var(--dark);color:#fff;padding:12px 15px;position:sticky;top:0;z-index:20}
+  /* header（§11.8）: 面は --card（白）＋下罫線。濃色ベタ塗りは廃止。ワードマークは濃色文字＋"COMPE"に黄下線を少量 */
+  header{background:var(--card);color:var(--strong);padding:12px 15px;position:sticky;top:0;z-index:20;border-bottom:1px solid var(--line)}
   .hdr-row{display:flex;align-items:center;justify-content:space-between;gap:8px}
-  header h1{font-size:var(--f-name);font-weight:var(--w-bold);letter-spacing:.06em}
-  header h1 span{font-weight:var(--w-bold);color:var(--acc);font-size:var(--f-small);margin-left:6px;letter-spacing:.12em}
-  header .gamename{font-size:var(--f-small);opacity:.7;margin-top:2px;font-weight:var(--w-med)}
-  .hamb{background:rgba(255,255,255,.12);border:0;color:#fff;font-size:var(--f-body);font-weight:var(--w-bold);padding:9px 15px;
+  header h1{font-family:"Noto Serif JP","Noto Serif",serif;font-size:var(--f-name);font-weight:700;letter-spacing:.06em;color:var(--strong)}
+  header h1 span{font-weight:var(--w-bold);color:var(--strong);font-size:var(--f-small);margin-left:6px;letter-spacing:.12em;
+    border-bottom:2px solid var(--acc);padding-bottom:1px}
+  header .gamename{font-size:var(--f-small);color:var(--sub);margin-top:2px;font-weight:var(--w-med)}
+  .hamb{background:var(--surface-1);border:1px solid var(--line);color:var(--strong);font-size:var(--f-body);font-weight:var(--w-bold);padding:9px 15px;
     border-radius:var(--r-pill);cursor:pointer;white-space:nowrap;letter-spacing:.04em}
   .menu-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.3);z-index:35}
   .appmenu{display:none;position:fixed;right:10px;top:60px;background:var(--card);border:1px solid var(--line);
@@ -48,26 +71,26 @@
   .appmenu button{display:block;width:100%;text-align:left;border:0;background:var(--card);padding:13px 18px;
     font-size:var(--f-title);color:var(--ink);cursor:pointer;border-bottom:1px solid var(--line);font-weight:var(--w-med)}
   .appmenu button:last-child{border-bottom:0}
-  .appmenu button.on{background:var(--pri);color:#fff;font-weight:var(--w-bold)}
+  .appmenu button.on{background:var(--pri);color:var(--on-fill);font-weight:var(--w-bold)}
   main{padding:12px;max-width:960px;margin:0 auto}
-  /* cards（小角丸・フラット §11.4） */
-  .card{background:var(--card);border:1px solid var(--line);border-radius:var(--r-sm);padding:14px;margin-bottom:12px;
-    box-shadow:0 1px 2px rgba(7,15,38,.05)}
+  /* cards（小角丸・フラット §11.4／見出しはSerif＋ハイライン区切り・余白拡張 §11.8） */
+  .card{background:var(--card);border:1px solid var(--line);border-radius:var(--r-sm);padding:18px 16px;margin-bottom:12px}
   .card.tight{padding:11px}
-  .card h2{margin:0 0 10px;font-size:var(--f-title);font-weight:var(--w-bold);color:var(--ink);display:flex;align-items:center;gap:7px;flex-wrap:wrap}
-  .card.tight h2{font-size:var(--f-body);margin-bottom:8px}
-  .card h3{margin:14px 0 6px;font-size:var(--f-small);font-weight:var(--w-bold);color:var(--sub);letter-spacing:.02em}
+  .card h2{margin:0 0 12px;font-family:"Noto Serif JP","Noto Serif",serif;font-size:var(--f-title);font-weight:700;color:var(--strong);
+    display:flex;align-items:center;gap:7px;flex-wrap:wrap;padding-bottom:8px;border-bottom:1px solid var(--line)}
+  .card.tight h2{font-size:var(--f-body);margin-bottom:10px}
+  .card h3{margin:14px 0 6px;font-size:var(--f-small);font-weight:var(--w-bold);color:var(--sub);letter-spacing:.06em}
   label.fl{display:block;font-size:var(--f-small);color:var(--sub);margin:8px 0 3px;font-weight:var(--w-bold)}
   input,select,textarea{font-family:inherit;font-size:var(--f-title);border:1px solid var(--line);border-radius:var(--r-sm);
     padding:8px 10px;width:100%;background:var(--card);color:var(--ink)}
   input[type=checkbox]{width:auto}
   /* buttons（ピル形・プライマリ青 §11.4） */
-  button.btn{background:var(--pri);color:#fff;border:0;border-radius:var(--r-pill);padding:9px 16px;font-size:var(--f-body);font-weight:var(--w-bold);cursor:pointer;letter-spacing:.02em}
+  button.btn{background:var(--pri);color:var(--on-fill);border:0;border-radius:var(--r-pill);padding:9px 16px;font-size:var(--f-body);font-weight:var(--w-bold);cursor:pointer;letter-spacing:.02em}
   button.btn:active{transform:translateY(1px)}
   button.btn.sec{background:var(--card);color:var(--prid);border:1.5px solid var(--pri)}
   button.btn.gray{background:var(--surface-2);color:var(--ink)}
-  button.btn.danger{background:var(--red)}
-  button.btn.gold{background:var(--dark);color:#fff}
+  button.btn.danger{background:var(--red);color:var(--on-fill)}
+  button.btn.gold{background:var(--strong);color:var(--bg)}
   button.btn.sm{padding:6px 12px;font-size:var(--f-small)}
   button.btn.wide{width:100%;padding:12px}
   button.btn:disabled{opacity:.4;cursor:default}
@@ -77,14 +100,14 @@
   .mt6{margin-top:6px}.mt8{margin-top:8px}.mt10{margin-top:10px}
   .fx1{flex:1}
   .tal{text-align:left}
-  .tagtie{background:var(--tie);color:#fff}
-  .hdrsel{background:rgba(255,255,255,.12);color:#fff;border:0;border-radius:var(--r-pill);padding:8px 10px;font-weight:var(--w-bold);width:auto;min-height:40px}
+  .tagtie{background:var(--tie);color:var(--on-fill)}
+  .hdrsel{background:var(--card);color:var(--ink);border:1px solid var(--line);border-radius:var(--r-pill);padding:8px 10px;font-weight:var(--w-bold);width:auto;min-height:40px}
   .muted{color:var(--sub);font-size:var(--f-small)}
   .tag{font-size:var(--f-small);padding:1px 6px;border-radius:var(--r-sm);background:var(--surface-2);color:var(--sub);margin-left:4px;font-weight:var(--w-bold)}
   .pill{display:inline-block;background:var(--surface-2);color:var(--ink);border-radius:var(--r-pill);padding:2px 9px;font-size:var(--f-small);font-weight:var(--w-bold)}
   .pill.f{background:var(--danger-bg);color:var(--red)}
   .pill.e1{background:var(--info-bg);color:var(--pri)}
-  .pill.e2{background:#efe7f5;color:#7d3c98}
+  .pill.e2{background:var(--e2-bg);color:var(--e2-ink)}
   .empty{text-align:center;color:var(--sub);padding:30px 10px;font-size:var(--f-body)}
   hr{border:0;border-top:1px solid var(--line);margin:12px 0}
   /* generic tables */
@@ -92,9 +115,9 @@
   th,td{border:1px solid var(--line);padding:5px 6px;text-align:center}
   th{background:var(--surface-2);color:var(--sub);font-weight:var(--w-bold);font-size:var(--f-small);letter-spacing:.03em}
   .scroll{overflow-x:auto;-webkit-overflow-scrolling:touch}
-  /* leaderboard tables（3表共通の基礎デザイン＝濃色ヘッダ＋ゼブラ） */
+  /* leaderboard tables（3表共通の基礎デザイン＝白地ヘッダ＋下ハイライン＋ゼブラ §11.8） */
   .lb th,.lb td{white-space:nowrap;vertical-align:middle}
-  .lb th{background:var(--dark);color:#fff;font-weight:var(--w-bold);font-size:var(--f-small);letter-spacing:.02em}
+  .lb th{background:var(--card);color:var(--strong);font-weight:var(--w-bold);font-size:var(--f-small);letter-spacing:.02em;border-bottom:2px solid var(--strong)}
   .lb tr:nth-child(2n+1) td{background:var(--surface-1)}
   .lb .rank td{font-weight:var(--w-med)}
   /* 順位＝プレーンな太字数字（§11.7・丸バッジ全廃）。1位のみ青字で最小限の強調 */
@@ -103,8 +126,8 @@
   .lb.big .rankno{font-size:var(--f-name)}
   .rank1 td{}
   .hlrow td{background:var(--hl-bg) !important}
-  .kanjibadge{display:inline-block;background:var(--pri);color:#fff;border-radius:var(--r-sm);font-size:var(--f-small);padding:1px 6px;margin-left:6px;font-weight:var(--w-bold);letter-spacing:.02em}
-  .mask{color:#c3c9cf;letter-spacing:1px}
+  .kanjibadge{display:inline-block;background:var(--pri);color:var(--on-fill);border-radius:var(--r-sm);font-size:var(--f-small);padding:1px 6px;margin-left:6px;font-weight:var(--w-bold);letter-spacing:.02em}
+  .mask{color:var(--sub);opacity:.55;letter-spacing:1px}
   /* score input grid (入力タブ) */
   .scoregrid td input{width:38px;padding:5px 2px;text-align:center;border-radius:var(--r-sm);font-size:var(--f-body)}
   .scoregrid th,.scoregrid td{padding:3px 3px;min-width:34px}
@@ -115,12 +138,12 @@
   /* game setup */
   .seg{display:flex;border:1px solid var(--pri);border-radius:var(--r-sm);overflow:hidden;margin:4px 0}
   .seg button{flex:1;border:0;background:var(--card);color:var(--prid);padding:7px;font-size:var(--f-body);font-weight:var(--w-bold);cursor:pointer}
-  .seg button.on{background:var(--pri);color:#fff}
+  .seg button.on{background:var(--pri);color:var(--on-fill)}
   .fmtgrid{display:grid;grid-template-columns:1fr 1fr;gap:6px}
   .fmtgrid label{display:flex;align-items:center;gap:6px;font-size:var(--f-body);background:var(--surface-2);padding:8px;border-radius:var(--r-sm);cursor:pointer}
   .holebtn{width:34px;height:34px;border-radius:var(--r-sm);border:1px solid var(--line);background:var(--card);margin:2px;font-size:var(--f-body);cursor:pointer;font-weight:var(--w-bold)}
-  .holebtn.np{background:var(--pri);color:#fff;border-color:var(--pri)}
-  .holebtn.dc{background:var(--red);color:#fff;border-color:var(--red)}
+  .holebtn.np{background:var(--pri);color:var(--on-fill);border-color:var(--pri)}
+  .holebtn.dc{background:var(--red);color:var(--on-fill);border-color:var(--red)}
   .ptsedit input{width:78px;text-align:center;display:inline-block;padding:5px}
   .ptsrow{display:flex;align-items:center;justify-content:space-between;gap:8px;margin:5px 0}
   .ptsrow span{font-size:var(--f-body)}
@@ -135,24 +158,24 @@
   .payoutcard{background:var(--card);border:1px solid var(--line);border-top:3px solid var(--acc)}
   .kanjicard{background:var(--card);border:1px solid var(--line);border-top:3px solid var(--pri)}
   .big{font-size:var(--f-hero);font-weight:var(--w-bold)}
-  .toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:var(--dark);color:#fff;
+  .toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:var(--strong);color:var(--bg);
     padding:10px 18px;border-radius:var(--r-pill);font-size:var(--f-body);z-index:50;opacity:0;transition:.3s;pointer-events:none}
   .toast.show{opacity:.96}
-  /* result sub-nav (pill tabs) */
+  /* result sub-nav（§11.8: ベタ塗りピル → 下線アクティブ。地は --card） */
   .result-sticky{position:sticky;top:50px;z-index:15;background:var(--bg);padding:8px 0 8px;margin:-4px 0 10px;box-shadow:0 8px 8px -8px rgba(0,0,0,.15)}
-  .subtab4{display:flex;gap:6px}
-  .subtab4 button{flex:1;border:1px solid var(--line);background:var(--card);color:var(--ink);padding:9px 2px;border-radius:var(--r-pill);font-size:var(--f-body);font-weight:var(--w-bold);cursor:pointer;letter-spacing:.02em}
-  .subtab4 button.on{background:var(--dark);color:#fff;border-color:var(--dark)}
+  .subtab4{display:flex;gap:6px;border-bottom:1px solid var(--line)}
+  .subtab4 button{flex:1;border:0;border-bottom:2px solid transparent;margin-bottom:-1px;background:var(--card);color:var(--sub);padding:9px 2px;border-radius:0;font-size:var(--f-body);font-weight:var(--w-bold);cursor:pointer;letter-spacing:.02em}
+  .subtab4 button.on{color:var(--strong);border-bottom-color:var(--pri)}
   /* reveal bar */
   .reveal-bar{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:6px;background:var(--surface-2);border:1px solid var(--line);border-radius:var(--r-sm);padding:7px 9px}
   .reveal-bar .hole{font-weight:var(--w-bold);color:var(--prid);font-size:var(--f-title)}
   /* toggle chips + eye buttons */
   .cardtools{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin-bottom:7px}
   .tgl{display:inline-flex;align-items:center;gap:5px;border:1px solid var(--line);border-radius:var(--r-pill);padding:5px 11px;font-size:var(--f-small);cursor:pointer;background:var(--card);font-weight:var(--w-bold)}
-  .tgl.on{background:var(--pri);color:#fff;border-color:var(--pri)}
+  .tgl.on{background:var(--pri);color:var(--on-fill);border-color:var(--pri)}
   .tgl.off{background:var(--danger-bg);color:var(--red);border-color:var(--danger-line)}
   .eyebtn{border:1px solid var(--line);background:var(--card);border-radius:var(--r-sm);padding:3px 6px;cursor:pointer;line-height:0;color:var(--sub)}
-  .eyebtn.on{background:var(--info-bg);border-color:var(--pri);color:var(--prid)}
+  .eyebtn.on{background:var(--info-bg);border-color:var(--info-line);color:var(--prid)}
   .eyebtn.off{background:var(--danger-bg);border-color:var(--danger-line);color:var(--red)}
   .ei{width:15px;height:15px;stroke:currentColor;stroke-width:2;fill:none;stroke-linecap:round;stroke-linejoin:round;display:block}
   .ic{width:15px;height:15px;stroke:var(--acc);stroke-width:2;fill:none;stroke-linecap:round;stroke-linejoin:round;vertical-align:-2px}
@@ -181,15 +204,15 @@
   .sc2 col.cnm{width:64px}
   .sc2 col.cs{width:34px}
   .sc2 th,.sc2 td{padding:4px 0;border:1px solid var(--line);text-align:center;overflow:hidden;line-height:1.2;color:var(--ink);font-weight:var(--w-med);height:24px}
-  .sc2 th{background:var(--dark);color:#fff;font-size:11px;font-weight:var(--w-bold)}
+  .sc2 th{background:var(--card);color:var(--strong);font-size:11px;font-weight:var(--w-bold);border-bottom:2px solid var(--strong)}
   .sc2 td.nm,.sc2 th.nm{text-align:left;font-weight:var(--w-bold);font-size:11.5px;white-space:nowrap;padding-left:5px;text-overflow:ellipsis}
-  .sc2 th.nm{background:var(--dark);color:#fff}
+  .sc2 th.nm{background:var(--card);color:var(--strong)}
   .sc2 td.sub{background:var(--win-bg);font-weight:var(--w-bold)}
   .sc2 td.tot{background:var(--surface-1);font-weight:var(--w-bold)}
   .sc2 td.netc{background:var(--win-bg);font-weight:var(--w-bold);color:var(--win-ink)}
-  .sc2 th.sub,.sc2 th.tot,.sc2 th.netc{background:var(--dark);color:#fff}   /* ヘッダは一律濃色＋白文字（薄背景で消えない） */
+  .sc2 th.sub,.sc2 th.tot,.sc2 th.netc{background:var(--card);color:var(--strong)}   /* ヘッダは一律 白地＋濃色文字＋下ハイライン */
   .sc2 .hh{background:var(--acc-bg)}
-  .sc2 th.hh{background:var(--dark);color:var(--acc)}   /* 隠しホールのヘッダ番号：濃紺背景＋アクセント黄で常に読める */
+  .sc2 th.hh{background:var(--acc-bg);color:var(--acc-ink)}   /* 隠しホールのヘッダ番号：淡黄地＋濃金（両モードで判別可） */
   .sc2 .parr td{color:var(--ink);font-size:10px;font-weight:var(--w-bold)}
   .sc2 .tsum td{font-size:11px;background:var(--surface-1)}
   .sc2 .winc{background:var(--win-bg) !important;font-weight:var(--w-bold);color:var(--win-ink)}
@@ -199,11 +222,11 @@
   .ind-left{flex:1 1 46%;min-width:0}
   .ind-right{flex:1 1 46%;min-width:0}
   .chip{display:inline-flex;align-items:center;gap:4px;border:1px solid var(--line);border-radius:var(--r-pill);padding:3px 9px;font-size:12px;margin:3px 4px 0 0;background:var(--card);cursor:pointer;font-weight:var(--w-bold)}
-  .chip.on{background:var(--pri);color:#fff;border-color:var(--pri)}
+  .chip.on{background:var(--pri);color:var(--on-fill);border-color:var(--pri)}
   @media(max-width:760px){ .ind-split{flex-direction:column} .ind-left,.ind-right{flex:1 1 auto;width:100%} }
   /* ルーレット対抗（9:16大画面投影前提・大きめ/省スペース） */
   .rlwrap .card{margin-bottom:10px;padding:12px}
-  .rl-stand{display:flex;align-items:center;gap:8px;flex-wrap:wrap;background:var(--dark);color:#fff;border-radius:var(--r-md);padding:8px 12px;margin-bottom:10px}
+  .rl-stand{display:flex;align-items:center;gap:8px;flex-wrap:wrap;background:var(--surface-1);color:var(--strong);border:1px solid var(--line);border-radius:var(--r-md);padding:8px 12px;margin-bottom:10px}
   .rl-chip{border:2px solid var(--line);border-radius:var(--r-pill);padding:3px 12px;font-size:var(--f-title);font-weight:var(--w-bold);background:var(--card);color:var(--ink)}
   .rl-prog{font-size:var(--f-body);font-weight:var(--w-bold);opacity:.8;margin-left:4px}
   .rl-head{display:flex;align-items:baseline;gap:14px;margin-bottom:10px}
@@ -231,9 +254,9 @@
   .rl-info{text-align:center;font-weight:var(--w-bold);font-size:var(--f-name);min-height:24px;margin-bottom:8px}
   .rl-main{font-size:var(--f-val);padding:16px}
   .rl-dev{margin-bottom:10px}
-  .sc2 .cur{background:var(--acc-bg) !important;color:var(--dark) !important}   /* 現在ホール列：黄背景でも文字は黒に */
-  .sc2 th.cur{background:var(--acc-bg-strong) !important;color:var(--dark) !important}
-  .sc2 .adopt{outline:2px solid var(--sub);outline-offset:-2px;font-weight:var(--w-bold);color:var(--dark) !important}
+  .sc2 .cur{background:var(--acc-bg) !important;color:var(--strong) !important}   /* 現在ホール列：黄地でも文字は最濃色に */
+  .sc2 th.cur{background:var(--acc-bg-strong) !important;color:var(--strong) !important}
+  .sc2 .adopt{outline:2px solid var(--sub);outline-offset:-2px;font-weight:var(--w-bold);color:var(--strong) !important}
   .sc2 .rwin{background:var(--win-bg-strong) !important;font-weight:var(--w-bold);color:var(--win-ink) !important}   /* 勝ち：濃緑文字で高コントラスト */
   .sc2 .rtie{background:var(--tie-bg) !important;font-weight:var(--w-bold);color:var(--tie-ink) !important}   /* 引分：濃橙文字 */
   .rlsc td.nm,.rlsc th.nm{width:72px}
@@ -314,28 +337,8 @@
     .rl-main{font-size:27px}
     .sc2.rlsc{font-size:17px}
   }
-  /* ============ テーマB（NTT DATA寄せ・エアリー）＝差分のみ上書き（§11.8）。A=無属性=現行 ============ */
-  html[data-theme="b"]{--w-bold:700}   /* Bはボールドを1段軽く（フォントは400/600/700/800を読込済） */
-  /* テーブルヘッダ: 白地＋ネイビー文字＋下ハイライン */
-  html[data-theme="b"] th{background:var(--card);color:var(--dark);border-bottom:2px solid var(--dark)}
-  html[data-theme="b"] .lb th{background:var(--card);color:var(--dark);font-weight:var(--w-bold);border-bottom:2px solid var(--dark)}
-  html[data-theme="b"] .sc2 th,html[data-theme="b"] .sc2 th.nm,html[data-theme="b"] .sc2 th.sub,html[data-theme="b"] .sc2 th.tot,html[data-theme="b"] .sc2 th.netc{background:var(--card);color:var(--dark);border-bottom:2px solid var(--dark)}
-  html[data-theme="b"] .sc2 th.hh{background:var(--acc-bg);color:var(--acc-ink);border-bottom:2px solid var(--dark)}   /* 白地では黄文字が沈むため淡黄地＋濃金 */
-  html[data-theme="b"] .lb tr:nth-child(2n+1) td{background:var(--surface-1)}
-  /* 見出し: Noto Serif JP＋ハイライン区切り・余白拡張・フォント軽量化 */
-  html[data-theme="b"] body{font-weight:var(--w-reg)}
-  html[data-theme="b"] .card{padding:18px 16px;box-shadow:none}
-  html[data-theme="b"] .card h2{font-family:"Noto Serif JP","Noto Serif",serif;font-weight:var(--w-bold);padding-bottom:8px;border-bottom:1px solid var(--line);margin-bottom:12px}
-  html[data-theme="b"] .card.tight h2{margin-bottom:10px}
-  html[data-theme="b"] header h1{font-family:"Noto Serif JP","Noto Serif",serif;font-weight:var(--w-bold)}
-  html[data-theme="b"] .card h3{letter-spacing:.06em}
-  /* 機能色（勝敗の緑/橙・rwin/rtie/adopt/winc）はテーマ共通＝上書きしない */
-  /* 投影(≥820px)はテーマBでも高コントラスト＝テーブルヘッダを濃色復帰（§11.8） */
-  @media(min-width:820px){
-    html[data-theme="b"] .lb th{background:var(--dark);color:#fff;border-bottom:0}
-    html[data-theme="b"] .sc2 th,html[data-theme="b"] .sc2 th.nm,html[data-theme="b"] .sc2 th.sub,html[data-theme="b"] .sc2 th.tot,html[data-theme="b"] .sc2 th.netc{background:var(--dark);color:#fff;border-bottom:0}
-    html[data-theme="b"] .sc2 th.hh{background:var(--dark);color:var(--acc);border-bottom:0}
-  }
+  /* ライト/ダークはトークン値の差し替えのみ（:root / html[data-theme="dark"]）。
+     旧テーマB差分と、投影(≥820px)の濃色ヘッダ復帰は廃止＝投影は部屋に合わせてライト/ダークを選ぶ（§11.8）。 */
 </style>
 </head>
 <body>
@@ -347,8 +350,8 @@
     </div>
     <div class="row" style="gap:6px;flex-wrap:nowrap">
       <select id="themeSel" onchange="setTheme(this.value)" data-i18n-title="theme.label" class="hdrsel">
-        <option value="a" data-i18n="theme.a">スコアボード</option>
-        <option value="b" data-i18n="theme.b">コーポレート</option>
+        <option value="light" data-i18n="theme.light">ライト</option>
+        <option value="dark" data-i18n="theme.dark">ダーク</option>
       </select>
       <select id="langSel" onchange="setLang(this.value)" aria-label="Language" class="hdrsel">
         <option value="ja">日本語</option>
@@ -479,13 +482,16 @@ const everyLabel=k=> k==='none'?t('every.s.none'):k==='every1'?'E1(−18)':'E2(�
 const EYE='<svg class="ei" viewBox="0 0 24 24"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7z"/><circle cx="12" cy="12" r="3"/></svg>';
 const EYEOFF='<svg class="ei" viewBox="0 0 24 24"><path d="M3 3l18 18M10.6 10.6a3 3 0 004.2 4.2M9.9 5.2A9.7 9.7 0 0112 5c6.5 0 10 7 10 7a17 17 0 01-3.2 3.9M6.1 6.1A17 17 0 002 12s3.5 7 10 7a9.7 9.7 0 003.2-.5"/></svg>';
 const posBadge=(rank,first)=>`<span class="rankno${first?' r1':''}">${rank}</span>`;
+/* チーム名から識別色を引く（値はトークン＝ライト/ダークで自動反転 §11.8）。塗りに使う場合の文字色は var(--bg) */
+function tmColor(name){ return /レッド|赤/.test(name)?'var(--tm-red)':/ブルー|青/.test(name)?'var(--tm-blue)'
+  :/グリーン|緑/.test(name)?'var(--tm-green)':/イエロー|黄/.test(name)?'var(--tm-yellow)':'var(--tm-gray)'; }
 
 /* ============================ I18N（表示言語レイヤ・docs/handoff/2026-08-16-i18n.md） ============================ */
 /* 言語は golfCompe_lang に永続化（golfCompe_v1 とは分離）。計算・データモデルには一切介入しない。 */
 const I18N = {
 ja: {
   'nav.game':'ゲーム','nav.players':'選手','nav.score':'スコア入力','nav.result':'結果',
-  'theme.label':'テーマ','theme.a':'スコアボード','theme.b':'コーポレート',
+  'theme.label':'テーマ','theme.light':'ライト','theme.dark':'ダーク',
   'tab.game':'ゲーム','tab.players':'選手','tab.score':'入力','tab.result':'結果',
   'hdr.noGame':'— ゲーム未選択 —',
   'player.master':'選手マスター','player.phName':'名前','player.male':'男性','player.female':'女性','player.m':'男','player.f':'女',
@@ -578,7 +584,7 @@ ja: {
 },
 zh: {
   'nav.game':'比赛','nav.players':'选手','nav.score':'记分','nav.result':'结果',
-  'theme.label':'主题','theme.a':'记分板','theme.b':'简约',
+  'theme.label':'主题','theme.light':'浅色','theme.dark':'深色',
   'tab.game':'比赛','tab.players':'选手','tab.score':'记分','tab.result':'结果',
   'hdr.noGame':'— 未选择比赛 —',
   'player.master':'选手名册','player.phName':'名字','player.male':'男','player.female':'女','player.m':'男','player.f':'女',
@@ -671,7 +677,7 @@ zh: {
 },
 en: {
   'nav.game':'Game','nav.players':'Players','nav.score':'Scores','nav.result':'Results',
-  'theme.label':'Theme','theme.a':'Scoreboard','theme.b':'Corporate',
+  'theme.label':'Theme','theme.light':'Light','theme.dark':'Dark',
   'tab.game':'Game','tab.players':'Players','tab.score':'Scores','tab.result':'Results',
   'hdr.noGame':'— No game selected —',
   'player.master':'Player Roster','player.phName':'Name','player.male':'Male','player.female':'Female','player.m':'M','player.f':'F',
@@ -764,10 +770,15 @@ en: {
 },
 };
 let LANG = localStorage.getItem('golfCompe_lang') || 'ja';   // 既定 ja
-/* 表示テーマ（§11.8）: 'a'=現行スコアボード / 'b'=NTT DATA寄せ（既定）。golfCompe_theme に永続化（データとは分離） */
-let THEME = localStorage.getItem('golfCompe_theme') || 'b';
-function setTheme(th){ if(th!=='a'&&th!=='b')return; THEME=th; localStorage.setItem('golfCompe_theme',th);
-  document.documentElement.setAttribute('data-theme',th); }   // 純CSS＝render()不要で即再スキン
+/* 表示モード（§11.8）: 'light'（既定）/'dark'。golfCompe_theme に永続化（golfCompe_v1 とは分離＝データ非干渉）。
+   旧値 'a'/'b'（未設定含む）は light にソフトリセット。 */
+const THEMES=['light','dark'];
+let THEME = THEMES.includes(localStorage.getItem('golfCompe_theme')) ? localStorage.getItem('golfCompe_theme') : 'light';
+function setTheme(th){ if(!THEMES.includes(th))return; THEME=th; localStorage.setItem('golfCompe_theme',th);
+  // dark のみ属性を付け、light は属性を外す（:root のトークン値がそのまま効く）。純CSS＝render()不要で即反転
+  if(th==='dark') document.documentElement.setAttribute('data-theme','dark');
+  else document.documentElement.removeAttribute('data-theme');
+  const sel=document.getElementById('themeSel'); if(sel) sel.value=th; }   // セレクタ初期値・旧値リセット時の同期
 function t(key, params){
   let s = (I18N[LANG] && I18N[LANG][key]) ?? (I18N.ja[key] ?? key);   // 未定義はjaフォールバック→キー
   if(params) for(const k in params) s = s.split('{'+k+'}').join(params[k]);
@@ -1062,7 +1073,7 @@ function clearScores(){ const g=curGame(); if(!g)return; if(!confirm(t('confirm.
 function allComplete(g){ const parts=g.participants.filter(pid=>state.players.find(x=>x.id===pid));
   return parts.length>0 && parts.every(pid=>complete(g,pid)); }
 function statusBadge(g){ return allComplete(g)
-  ? `<span class="tag" style="background:var(--win-ink);color:#fff">${t('status.fixed')}</span>`
+  ? `<span class="tag" style="background:var(--win);color:var(--on-fill)">${t('status.fixed')}</span>`
   : `<span class="tag tagtie">${t('status.prov')}</span>`; }
 
 /* ============================ TEST DATA ============================ */
@@ -1366,12 +1377,12 @@ function renderScorecard(g, parts, teams){
     return `<tr><td class="nm">${esc(p.name)}</td>${F9.map(cell).join('')}<td class="sub">${MT(sum(av,0,9)||'')}</td>${B9.map(cell).join('')}<td class="sub">${MT(sum(av,9,18)||'')}</td><td class="tot">${MT(effGross(g,pid)||'')}</td><td class="tot">${MT(periaHdcp(g,pid))}</td><td class="netc">${MT(netScore(g,pid))}</td></tr>`; };
   let body='', note='';
   if(teams && teams.length){
-    const colorOf=name=>/レッド|赤/.test(name)?'#c0392b':/ブルー|青/.test(name)?'#2471a3':/グリーン|緑/.test(name)?'#186a3b':/イエロー|黄/.test(name)?'#b9770e':'#5d6d7e';
+    const colorOf=name=>tmColor(name);
     const tAt=(t,i)=>{let s=0,c=0;t.memberIds.forEach(pid=>{const v=adjHole(g,pid,i);if(v!=null){s+=v;c++;}});return c?s:null;};
     const winAt=[]; for(let i=0;i<18;i++){const tot=teams.map(t=>tAt(t,i));const val=tot.filter(v=>v!=null);winAt.push(val.length?tot.map((v,ti)=>v===Math.min(...val)?ti:-1).filter(x=>x>=0):[]);}
     const won=teams.map((_,ti)=>{let w=0;winAt.forEach(ws=>{if(ws.includes(ti))w+=1/ws.length;});return w;});
     teams.forEach((tm,ti)=>{ const col=colorOf(tm.name);
-      body+=`<tr><td class="nm" colspan="24" style="background:${col};color:#fff;font-weight:var(--w-bold);text-align:left">${esc(tm.name)}</td></tr>`;
+      body+=`<tr><td class="nm" colspan="24" style="background:${col};color:var(--bg);font-weight:var(--w-bold);text-align:left">${esc(tm.name)}</td></tr>`;
       tm.memberIds.forEach(pid=>{ if(state.players.find(x=>x.id===pid)) body+=pRow(pid); });
       const tCell=(i)=>{ if(!show.totals) return '<td><span class="mask">·</span></td>';   // 合計値OFFなら値も色も隠す
         const s=tm.memberIds.reduce((a,pid)=>a+(adjHole(g,pid,i)||0),0); return `<td class="${winAt[i].includes(ti)?'winc':''}">${s||''}</td>`;};
@@ -1436,7 +1447,7 @@ function renderTeamTab(g){
 
 /* ============================ ルーレット対抗 ============================ */
 function rTeams(g){ return g.teams.filter(t=>t.memberIds.length); }
-function rColor(name){ return /レッド|赤/.test(name)?'#c0392b':/ブルー|青/.test(name)?'#2c6e9e':/グリーン|緑/.test(name)?'#0e9e57':/イエロー|黄/.test(name)?'#d4a017':'#3a4450'; }
+function rColor(name){ return tmColor(name); }
 // エブリ支給（各ホール）：エブリワン=−1・エブリツー=−2（ゲームでエブリ適用ON時）。ルーレットの1ホール勝負に反映
 function rlEvery(g,pid){ if(!g.womenEvery.enabled)return 0; const p=state.players.find(x=>x.id===pid); return p?(p.everyType==='every1'?1:p.everyType==='every2'?2:0):0; }
 function rlRaw(g,pid,h){ const v=(g.scores[pid]||[])[h]; return (v!=null&&v!=='')?Number(v):null; }
@@ -1525,7 +1536,7 @@ function rlScorecard(g){
   const parRow=`<tr class="parr"><td class="nm">Par</td>${cols.map(i=>`<td class="${i===h?'cur':''} ${g.hidden[i]?'hh':''}">${g.par[i]}</td>`).join('')}</tr>`;
   let body='';
   teams.forEach(t=>{ const col=rColor(t.name);
-    body+=`<tr><td class="nm" colspan="19" style="background:${col};color:#fff;text-align:left;font-weight:var(--w-bold)">${esc(t.name)}</td></tr>`;
+    body+=`<tr><td class="nm" colspan="19" style="background:${col};color:var(--bg);text-align:left;font-weight:var(--w-bold)">${esc(t.name)}</td></tr>`;
     t.memberIds.forEach(pid=>{ const p=state.players.find(x=>x.id===pid); if(!p)return; const av=adjArr(g,pid); const mm=mark[pid]||{};
       body+=`<tr><td class="nm">${esc(p.name)}</td>${cols.map(i=>`<td class="${i===h?'cur':''} ${g.hidden[i]?'hh':''} ${mm[i]||''}">${av[i]??''}</td>`).join('')}</tr>`; }); });
   return `<div class="card"><h2>${t('sc.title')} <span class="muted" style="font-weight:var(--w-med);font-size:11px">${t('rl.legend')}</span></h2>
@@ -1669,7 +1680,7 @@ function importData(inp){ const f=inp.files[0]; if(!f)return; const r=new FileRe
 
 /* ============================ INIT ============================ */
 document.documentElement.lang = (LANG==='zh' ? 'zh-CN' : LANG);
-document.documentElement.setAttribute('data-theme', THEME);
+setTheme(THEME);   // 属性セット＋旧 'a'/'b' の永続値を light に置き換え
 applyStaticI18n();
 document.getElementById('langSel').value = LANG;
 document.getElementById('themeSel').value = THEME;
