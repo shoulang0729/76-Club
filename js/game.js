@@ -69,14 +69,16 @@ function renderGame(){
 
   const F=g.formats;
   const fchk=(k,label)=>`<label><input type="checkbox" ${F[k]?'checked':''} onchange="setFmt('${k}',this.checked)"> ${label}</label>`;
-  html += `<div class="card"><h2>${t('game.fmtCard')}</h2><div class="fmtgrid">
+  // β系フォーマットのトグルは β版でだけ表示・選択可（§11.12 C）。α版でも g.formats の値自体は保持する
+  const bchk=(k,label)=> CHANNEL==='b' ? fchk(k,label) : '';
+  html += `<div class="card"><h2>${t('game.fmtCard')} ${CHANNEL==='b'?`<span class="tag tagbeta">${t('ch.b')}</span>`:''}</h2><div class="fmtgrid">
     ${fchk('gross',t('fmt.gross'))}${fchk('net',t('fmt.net'))}
     ${fchk('teamGross',t('fmt.teamGross'))}${fchk('teamNet',t('fmt.teamNet'))}
-    ${fchk('holeByHole',t('fmt.hbh'))}${fchk('stableford',t('fmt.stableford'))}
-    ${fchk('nassau',t('fmt.nassau'))}${fchk('olympic',t('fmt.olympic'))}
-    ${fchk('callaway',t('fmt.callaway'))}${fchk('best2ball',t('fmt.best2'))}
-    ${fchk('vegas',t('fmt.vegas'))}
-  </div>${F.vegas?`<div style="margin-top:10px;border-top:1px solid var(--line);padding-top:10px">
+    ${fchk('holeByHole',t('fmt.hbh'))}${bchk('stableford',t('fmt.stableford'))}
+    ${bchk('nassau',t('fmt.nassau'))}${bchk('olympic',t('fmt.olympic'))}
+    ${bchk('callaway',t('fmt.callaway'))}${bchk('best2ball',t('fmt.best2'))}
+    ${bchk('vegas',t('fmt.vegas'))}
+  </div>${(CHANNEL==='b'&&F.vegas)?`<div style="margin-top:10px;border-top:1px solid var(--line);padding-top:10px">
     <label style="display:flex;gap:8px;align-items:center;font-size:13px"><input type="checkbox" ${g.vegas.flip?'checked':''} onchange="setVegas('flip',this.checked)"> ${t('vegas.flip')}</label>
     <div class="row" style="margin-top:8px;align-items:center"><span style="font-size:13px">${t('vegas.cap')}</span>
       <select style="flex:1;max-width:220px" onchange="setVegas('cap',this.value)">

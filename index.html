@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<title>76-Club COMPE</title>
+<title>Golf Competition</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;600;700;800&family=Noto+Sans+SC:wght@400;600;700;800&family=Noto+Serif+JP:wght@600;700&display=swap" rel="stylesheet">
@@ -14,7 +14,7 @@
 <header>
   <div class="hdr-row">
     <div>
-      <h1>76-CLUB <span>COMPE</span></h1>
+      <h1>Golf <span>Competition</span></h1>
       <div class="gamename" id="hdrGame">— ゲーム未選択 —</div>
     </div>
     <div class="row" style="gap:6px;flex-wrap:nowrap">
@@ -35,11 +35,16 @@
 <nav id="appMenu" class="appmenu">
   <button data-tab="game" onclick="go('game')" data-i18n="nav.game">ゲーム</button>
   <button data-tab="players" onclick="go('players')" data-i18n="nav.players">選手</button>
+</nav>
+<nav id="mainNav" class="mainnav">
+  <button data-tab="home" onclick="go('home')" data-i18n="nav.home">ホーム</button>
   <button data-tab="score" onclick="go('score')" data-i18n="nav.score">スコア入力</button>
   <button data-tab="result" onclick="go('result')" data-i18n="nav.result">結果</button>
+  <button id="chBadge" class="chbadge" onclick="toggleChannel()" data-i18n-title="ch.switch">α版</button>
 </nav>
 <main>
-  <div id="view-game"></div>
+  <div id="view-home"></div>
+  <div id="view-game" style="display:none"></div>
   <div id="view-players" style="display:none"></div>
   <div id="view-score" style="display:none"></div>
   <div id="view-result" style="display:none"></div>
@@ -50,6 +55,7 @@
 <script src="js/state.js"></script>
 <script src="js/i18n.js"></script>
 <script src="js/nav.js"></script>
+<script src="js/home.js"></script>
 <script src="js/players.js"></script>
 <script src="js/game.js"></script>
 <script src="js/score.js"></script>

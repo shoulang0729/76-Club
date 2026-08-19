@@ -1,6 +1,6 @@
 /* ============================ TAB NAV ============================ */
-const views = { game:'view-game', players:'view-players', score:'view-score', result:'view-result' };
-let activeTab='game';
+const views = { home:'view-home', game:'view-game', players:'view-players', score:'view-score', result:'view-result' };
+let activeTab='home';   // 起動時はトップ（§11.12 B）。init.js で golfCompe_seenTop を見て上書き
 let revealHoles=18;            // 個人戦で開封済みのホール数(0-18)。18=全開（既定）
 let rl={ spinning:false, spinTeams:[], timer:null, challengeFrom:null };  // ルーレットの実行時状態（非保存）
 function rlStopTimer(){ if(rl.timer){clearInterval(rl.timer);rl.timer=null;} rl.spinning=false; }
@@ -20,6 +20,18 @@ function tgMasked(key,tid){ return (tgMode[key]==='hide') !== tgExcept[key].has(
 function toggleTgAll(key){ tgMode[key]= tgMode[key]==='show'?'hide':'show'; tgExcept[key].clear(); renderResult(); }
 function toggleTgRow(key,tid){ const s=tgExcept[key]; if(s.has(tid))s.delete(tid); else s.add(tid); renderResult(); }
 let resultSub='ind';   // 'pts' | 'ind' | 'prize' | 'team'
+/* α/β チャネル（§11.12 C）: 表示状態のみ。golfCompe_channel に永続化（golfCompe_v1 とは分離＝データ非干渉）。
+   α='a'（検証済みの安定版・既定） / β='b'（テスト中の新機能）。βゲームは β でだけ選択・集計・表示する。 */
+const CHANNELS=['a','b'];
+const BETA_FMT=['stableford','olympic','callaway','nassau','best2ball','vegas'];   // β版のゲーム（残りは全てα）
+let CHANNEL = CHANNELS.includes(localStorage.getItem('golfCompe_channel')) ? localStorage.getItem('golfCompe_channel') : 'a';
+function setChannel(c){ if(!CHANNELS.includes(c))return; CHANNEL=c; localStorage.setItem('golfCompe_channel',c); render(); }
+function toggleChannel(){ setChannel(CHANNEL==='a'?'b':'a'); toast(t('ch.switched',{v:t('ch.'+CHANNEL)})); }
+/* 現チャネルで有効なフォーマット。αではβゲームを一律 false（＝集計・表示しない）。g.formats 自体は書き換えない＝データは保持 */
+function chFormats(g){ const F=Object.assign({}, g.formats||{});
+  if(CHANNEL!=='b') BETA_FMT.forEach(k=>{ F[k]=false; });
+  return F; }
+const isBetaFmt=k=>BETA_FMT.includes(k);
 const tabLabel=k=>t('tab.'+k);
 function toggleMenu(force){ const m=document.getElementById('appMenu'), o=document.getElementById('menuOverlay');
   const open = (force!==undefined)? force : (m.style.display!=='block');
@@ -29,8 +41,10 @@ function render(){
   Object.entries(views).forEach(([k,id])=> document.getElementById(id).style.display = k===activeTab?'':'none');
   const g=curGame();
   document.getElementById('hdrGame').textContent = g? `${g.name}　${g.date}${g.course?'　@'+g.course:''}` : t('hdr.noGame');
-  document.getElementById('hambBtn').innerHTML = '☰ '+tabLabel(activeTab);
-  document.querySelectorAll('#appMenu button').forEach(b=>b.classList.toggle('on', b.dataset.tab===activeTab));
+  document.getElementById('hambBtn').innerHTML = '☰ <span class="hamb-t">'+t('nav.menu')+'</span>';   // ☰＝マスター系(ゲーム/選手)固定（§11.12 E）。狭幅ではラベルをCSSで隠す
+  document.querySelectorAll('#appMenu button,#mainNav button').forEach(b=>b.classList.toggle('on', b.dataset.tab===activeTab));
+  const cb=document.getElementById('chBadge'); if(cb){ cb.textContent=t('ch.'+CHANNEL); cb.classList.toggle('beta', CHANNEL==='b'); }
+  if(activeTab==='home') renderHome();
   if(activeTab==='game') renderGame();
   if(activeTab==='players') renderPlayers();
   if(activeTab==='score') renderScore();

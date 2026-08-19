@@ -111,7 +111,7 @@ function vegasStandings(g){ const teams=g.teams.filter(T=>vegasPair(g,T));   // 
 function computePoints(g){
   const parts=g.participants.filter(pid=>state.players.find(x=>x.id===pid));
   const pts={}; parts.forEach(pid=>pts[pid]=0);
-  const F=g.formats, P=g.points;
+  const F=chFormats(g), P=g.points;   // αではβゲームを集計しない（§11.12 C）。g.formats は保持
   const entered=pid=>(g.scores[pid]||[]).some(v=>v!=null&&v!=='');   // 1H以上入力済み（表彰式では開封済みのみ）
   const iv=fn=>pid=> entered(pid)? fn(pid) : null;                    // 未入力＝ランキング対象外＝配点なし
   const awardInd=(cond,order,arr)=>{ if(!cond||!arr||!arr.length)return; order.forEach(o=>{ pts[o.pid]=(pts[o.pid]||0)+(arr[o.rank-1]||0); }); };
