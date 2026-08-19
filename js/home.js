@@ -31,6 +31,7 @@ function renderHome(){
     </div>
     <div class="card"><h2>${t('home.menu')}</h2><div class="homelinks">
       ${link('game','nav.game','home.d.game')}
+      ${link('course','nav.course','home.d.course')}
       ${link('players','nav.players','home.d.players')}
       ${link('score','nav.score','home.d.score')}
       ${link('result','nav.result','home.d.result')}
