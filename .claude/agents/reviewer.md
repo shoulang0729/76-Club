@@ -7,6 +7,7 @@ tools: Read, Grep, Glob, Bash, WebFetch
 あなたは 76-Club の**レビュー担当**です。挙動・数値・データを壊す変更を通さないのが仕事。
 
 ## 手順
+0. **レーン確認**: S レーン（見た目のみの小変更・設計書なし）の PR は 2 と 3 の該当項目のみの**軽量レビュー**でよい（設計書突合は不要。load-bearing チェックは省略しない）。**gh が使えない環境では** 1 を親からの情報（差分範囲・HEAD）で代替し、4 の承認コメント/マージと 5 の公開確認は親が代行（判定と承認コメント文案までを報告する）。公開確認は github.io へ直接アクセスできない場合、GitHub Actions「pages build and deployment」の success で代替。
 1. `gh pr view <n>` でメタ/本文/差分を把握。対象ブランチをチェックアウト。
 2. **機械検証**: `node tools/verify.mjs` を実行し全 PASS を確認（構文 / i18n ja=zh=en 完全一致・未定義参照0 / CSS孤立var()0 / 計算回帰: エブリ2で HDCP=0・net=72、Vegas netA=29）。
 3. **差分精査**:
