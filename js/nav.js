@@ -20,6 +20,12 @@ function tgMasked(key,tid){ return (tgMode[key]==='hide') !== tgExcept[key].has(
 function toggleTgAll(key){ tgMode[key]= tgMode[key]==='show'?'hide':'show'; tgExcept[key].clear(); renderResult(); }
 function toggleTgRow(key,tid){ const s=tgExcept[key]; if(s.has(tid))s.delete(tid); else s.add(tid); renderResult(); }
 let resultSub='ind';   // 'pts' | 'ind' | 'prize' | 'team'
+/* スコア表の並べ替え指標（§11.12 I）。表示状態のみ＝計算には介入しない。既定はどちらもネット。
+   個人=グロス/ネットの2択、チーム=グロス/ネット/ホールバイホールの3択。 */
+let scSortInd='net';    // 'gross' | 'net'
+let scSortTeam='net';   // 'gross' | 'net' | 'hbh'
+function setScSortInd(v){ scSortInd=v; renderResult(); }
+function setScSortTeam(v){ scSortTeam=v; renderResult(); }
 /* α/β チャネル（§11.12 C）: 表示状態のみ。golfCompe_channel に永続化（golfCompe_v1 とは分離＝データ非干渉）。
    α='a'（検証済みの安定版・既定） / β='b'（テスト中の新機能）。βゲームは β でだけ選択・集計・表示する。 */
 const CHANNELS=['a','b'];

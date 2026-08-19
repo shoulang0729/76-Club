@@ -97,15 +97,35 @@ function renderScorecard(g, parts, teams){
   const pRow=(pid)=>{ const p=state.players.find(x=>x.id===pid); const av=adjArr(g,pid);
     const cell=i=>`<td class="${hh(i)}">${av[i]??''}</td>`;
     return `<tr><td class="nm">${esc(p.name)}</td>${F9.map(cell).join('')}<td class="sub">${MT(sum(av,0,9)||'')}</td>${B9.map(cell).join('')}<td class="sub">${MT(sum(av,9,18)||'')}</td><td class="tot">${MT(effGross(g,pid)||'')}</td><td class="tot">${MT(periaHdcp(g,pid))}</td><td class="netc">${MT(netScore(g,pid))}</td></tr>`; };
+  /* §11.12 I: 選択指標での並べ替え。ranked()＋tieBreak を流用＝順位カードと同じ並び。
+     値が無い（未入力）選手は ranked() から落ちるので、元の順序のまま末尾に付ける。 */
+  const sortPids=(pids,metric)=>{
+    const val = metric==='gross' ? (pid=>effGross(g,pid)) : (pid=>netScore(g,pid));
+    const ord = ranked(pids, pid=>(enteredCount(g,pid)? val(pid) : null), 'asc').map(o=>o.pid);
+    return ord.concat(pids.filter(pid=>!ord.includes(pid)));
+  };
+  const swBtn=(cur,v,label,fn)=>`<button class="${cur===v?'on':''}" onclick="${fn}('${v}')">${label}</button>`;
+  const sortSw = teams
+    ? `<span class="scsw">${swBtn(scSortTeam,'gross',t('term.gross'),'setScSortTeam')}${swBtn(scSortTeam,'net',t('term.net'),'setScSortTeam')}${swBtn(scSortTeam,'hbh',t('sc.hbh'),'setScSortTeam')}</span>`
+    : `<span class="scsw">${swBtn(scSortInd,'gross',t('term.gross'),'setScSortInd')}${swBtn(scSortInd,'net',t('term.net'),'setScSortInd')}</span>`;
   let body='', note='';
   if(teams && teams.length){
     const colorOf=name=>tmColor(name);
     const tAt=(t,i)=>{let s=0,c=0;t.memberIds.forEach(pid=>{const v=adjHole(g,pid,i);if(v!=null){s+=v;c++;}});return c?s:null;};
     const winAt=[]; for(let i=0;i<18;i++){const tot=teams.map(t=>tAt(t,i));const val=tot.filter(v=>v!=null);winAt.push(val.length?tot.map((v,ti)=>v===Math.min(...val)?ti:-1).filter(x=>x>=0):[]);}
     const won=teams.map((_,ti)=>{let w=0;winAt.forEach(ws=>{if(ws.includes(ti))w+=1/ws.length;});return w;});
-    teams.forEach((tm,ti)=>{ const col=colorOf(tm.name);
+    /* §11.12 I: チームは選択指標で並べ替え（グロス/ネット=合計の昇順・HBH=取得ホール数の降順）。
+       winAt は元の teams インデックス基準なので、並べ替えは表示順（ti を保持）だけで行う。 */
+    const tGrossOf=T=>T.memberIds.reduce((a,pid)=>a+effGross(g,pid),0);
+    const tNetOf=T=>Math.round(T.memberIds.reduce((a,pid)=>a+netScore(g,pid),0)*10)/10;
+    const order=teams.map((tm,ti)=>({tm,ti}));
+    order.sort((a,b)=> scSortTeam==='hbh' ? won[b.ti]-won[a.ti]
+      : scSortTeam==='gross' ? tGrossOf(a.tm)-tGrossOf(b.tm) : tNetOf(a.tm)-tNetOf(b.tm));
+    order.forEach(({tm,ti})=>{ const col=colorOf(tm.name);
       body+=`<tr><td class="nm" colspan="24" style="background:${col};color:var(--bg);font-weight:var(--w-bold);text-align:left">${esc(tm.name)}</td></tr>`;
-      tm.memberIds.forEach(pid=>{ if(state.players.find(x=>x.id===pid)) body+=pRow(pid); });
+      // メンバーは個人スコア順（グロス=エブリ後グロス／ネット・HBH=ネット）
+      sortPids(tm.memberIds.filter(pid=>state.players.find(x=>x.id===pid)), scSortTeam==='gross'?'gross':'net')
+        .forEach(pid=>{ body+=pRow(pid); });
       const tCell=(i)=>{ if(!show.totals) return '<td><span class="mask">·</span></td>';   // 合計値OFFなら値も色も隠す
         const s=tm.memberIds.reduce((a,pid)=>a+(adjHole(g,pid,i)||0),0); return `<td class="${winAt[i].includes(ti)?'winc':''}">${s||''}</td>`;};
       const tGross=tm.memberIds.reduce((a,pid)=>a+effGross(g,pid),0);
@@ -116,10 +136,11 @@ function renderScorecard(g, parts, teams){
     });
     note=t('sc.noteTeam');
   } else {
-    body=parts.map(pid=>pRow(pid)).join('');
+    body=sortPids(parts, scSortInd).map(pid=>pRow(pid)).join('');
     note=t('sc.noteHidden');
   }
   return `<div class="card"><h2 class="lbh"><span>${t('sc.title')}${teams?t('sc.teamSuffix'):''} <span class="tag tagtie">${n>=18?t('sc.allHoles'):n+'/18H'}</span></span>
+      <span class="scsw-wrap"><span class="scsw-l">${t('sc.sort')}</span>${sortSw}</span>
       <span class="tgl ${show.totals?'on':'off'}" onclick="toggleShow('totals')">${t('sc.totalsTgl')} ${show.totals?t('btn.show'):t('btn.hide')}</span></h2>
     <div class="reveal-bar">
       <button class="btn gray sm" onclick="resetHoles()" ${n<=0?'disabled':''}>${t('btn.reset')}</button>

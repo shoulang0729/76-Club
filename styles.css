@@ -217,7 +217,16 @@
   .rank-wrap .lb .nmc{font-size:var(--f-name);font-weight:var(--w-bold)}
   .lb td.nmc{text-align:left}
   .rank-wrap .lb b{font-variant-numeric:tabular-nums}
-  h2.lbh{display:flex;justify-content:space-between;align-items:baseline;gap:8px;white-space:nowrap;overflow:hidden}
+  h2.lbh{display:flex;justify-content:space-between;align-items:baseline;gap:8px;white-space:nowrap;overflow:hidden;flex-wrap:wrap}
+  /* スコア表の並べ替えスイッチ（§11.12 I）: 個人=グロス/ネット、チーム=+HBH */
+  .scsw-wrap{display:inline-flex;align-items:center;gap:6px;margin-left:auto}
+  .scsw-l{font-size:var(--f-small);font-weight:var(--w-med);color:var(--sub)}
+  .scsw{display:inline-flex;border:1px solid var(--line);border-radius:var(--r-pill);overflow:hidden;background:var(--card)}
+  .scsw button{border:0;background:var(--card);color:var(--sub);padding:5px 11px;font-size:var(--f-small);
+    font-weight:var(--w-bold);cursor:pointer;letter-spacing:.02em}
+  .scsw button+button{border-left:1px solid var(--line)}
+  .scsw button.on{background:var(--pri);color:var(--on-fill)}
+  @media(min-width:1024px){ .scsw button{min-height:44px;padding:8px 14px;font-size:13px} }
   h2.lbh>span:first-child{flex:0 0 auto}
   .lbnote{font-size:var(--f-small);font-weight:var(--w-bold);color:var(--sub);overflow:hidden;text-overflow:ellipsis;min-width:0;white-space:nowrap}
   /* score card (共通スコア表) */
