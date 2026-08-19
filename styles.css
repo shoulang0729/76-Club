@@ -48,23 +48,20 @@
   /* header（§11.8・§11.12 K）: 面は --card（白）＋下罫線。濃色ベタ塗りは廃止。コンペ情報（#hdrGame）が主・ワードマークは小さく下段（下線なし） */
   header{background:var(--card);color:var(--strong);padding:12px 15px;position:sticky;top:0;z-index:20;border-bottom:1px solid var(--line)}
   .hdr-row{display:flex;align-items:center;justify-content:space-between;gap:8px}
-  .hdr-title{min-width:0;flex:1 1 auto;overflow:hidden}
+  .hdr-title{min-width:0;flex:0 1 auto;overflow:hidden}
   header .gamename{font-family:"Noto Serif JP","Noto Serif",serif;font-size:var(--f-val);font-weight:700;color:var(--strong);
     letter-spacing:.02em;line-height:1.2;margin-top:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
   header h1{font-size:var(--f-small);font-weight:var(--w-med);color:var(--sub);letter-spacing:.06em;line-height:1.2;margin-top:2px}
-  .hamb{background:var(--surface-1);border:1px solid var(--line);color:var(--strong);font-size:var(--f-body);font-weight:var(--w-bold);padding:9px 15px;
-    border-radius:var(--r-pill);cursor:pointer;white-space:nowrap;letter-spacing:.04em}
-  /* 主ナビ（§11.12 E）: ホーム/スコア入力/結果は常時表示タブ。☰＝ゲーム/選手のマスター系だけ */
+  /* 現在版バッジ（§11.12 C/L）: ヘッダのタイトル右隣・クリックでα/β切替 */
+  .chbadge{flex:0 0 auto;border:1px solid var(--line);border-radius:var(--r-pill);background:var(--surface-1);color:var(--sub);
+    padding:5px 12px;font-size:var(--f-small);font-weight:var(--w-bold);white-space:nowrap;cursor:pointer}
+  .chbadge.beta{background:var(--acc-bg);border-color:var(--acc-bg-strong);color:var(--acc-ink)}
+  /* 主ナビ（§11.12 L）: ゲーム/選手/スコア/結果/ホームの5タブ常時表示（☰は廃止） */
   .mainnav{position:sticky;top:50px;z-index:18;display:flex;gap:6px;align-items:center;background:var(--card);
     border-bottom:1px solid var(--line);padding:0 12px}
   .mainnav button{border:0;border-bottom:2px solid transparent;margin-bottom:-1px;background:transparent;color:var(--sub);
     padding:11px 10px;font-size:var(--f-body);font-weight:var(--w-bold);cursor:pointer;letter-spacing:.02em}
   .mainnav button.on{color:var(--strong);border-bottom-color:var(--pri)}
-  /* 現在版バッジ（§11.12 C）: クリックでα/β切替 */
-  .mainnav .chbadge{margin-left:auto;margin-bottom:0;border:1px solid var(--line);border-bottom-width:1px;border-radius:var(--r-pill);
-    background:var(--surface-1);color:var(--sub);padding:5px 12px;font-size:var(--f-small)}
-  .mainnav .chbadge.beta{background:var(--acc-bg);border-color:var(--acc-bg-strong);color:var(--acc-ink)}
-  .mainnav .chbadge.on{border-bottom-color:var(--line)}
   .tagbeta{background:var(--acc-bg);color:var(--acc-ink)}
   /* トップ（ホーム）画面（§11.12 B） */
   .hometop .homesteps{margin:8px 0 0 20px;padding:0}
@@ -82,17 +79,9 @@
   .seentop{margin-top:2px}
   @media(max-width:560px){ .homelinks{grid-template-columns:1fr}
     header .gamename{font-size:17px}   /* 狭幅はコンペ情報をやや縮小＝1行＋ellipsis（§11.12 K） */
-    .hamb-t{display:none}   /* 狭幅は☰アイコンのみ＝ワードマークの幅を確保 */
-    .hamb{padding:9px 12px} .hdrsel{padding:8px 6px}
+    .hdrsel{padding:8px 6px}
     .mainnav{padding:0 8px} .mainnav button{padding:11px 7px} }
   @media(min-width:1024px){ .mainnav button{min-height:48px;font-size:15px} .chbadge{min-height:40px} }
-  .menu-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.3);z-index:35}
-  .appmenu{display:none;position:fixed;right:10px;top:60px;background:var(--card);border:1px solid var(--line);
-    border-radius:var(--r-md);box-shadow:0 10px 30px rgba(0,0,0,.25);z-index:40;overflow:hidden;min-width:190px}
-  .appmenu button{display:block;width:100%;text-align:left;border:0;background:var(--card);padding:13px 18px;
-    font-size:var(--f-title);color:var(--ink);cursor:pointer;border-bottom:1px solid var(--line);font-weight:var(--w-med)}
-  .appmenu button:last-child{border-bottom:0}
-  .appmenu button.on{background:var(--pri);color:var(--on-fill);font-weight:var(--w-bold)}
   main{padding:12px;max-width:960px;margin:0 auto}
   /* cards（小角丸・フラット §11.4／見出しはSerif＋ハイライン区切り・余白拡張 §11.8） */
   .card{background:var(--card);border:1px solid var(--line);border-radius:var(--r-sm);padding:18px 16px;margin-bottom:12px}
@@ -352,13 +341,11 @@
     input,select{min-height:44px}
     button.btn{min-height:44px}
     button.btn.sm{min-height:44px;padding:8px 14px;font-size:13px}
-    .hamb{min-height:44px}
     .tgl{min-height:44px;padding:9px 14px;font-size:13px}
     .eyebtn{min-width:44px;min-height:44px;display:inline-flex;align-items:center;justify-content:center;padding:0}
     .chip{min-height:44px;padding:9px 14px;font-size:14px}
     .subtab4 button{min-height:48px;font-size:15px}
     .holebtn{width:46px;height:46px;font-size:15px}
-    .appmenu button{padding:15px 20px}
     .scoregrid td input{min-height:44px;font-size:15px;padding:9px 2px}   /* 44ptタッチ（幅は fixed レイアウトで自動配分・§11.12 D） */
     .scoregrid td input:focus{outline:2px solid var(--pri);outline-offset:-1px}
     /* ルーレットのiPad中間スケール＋タッチ44pt（§11.9）: --f-rl-*は上の:rootで再定義 */

@@ -17,7 +17,8 @@
       <div class="gamename" id="hdrGame">— ゲーム未選択 —</div>
       <h1>Golf <span>Competition</span></h1>
     </div>
-    <div class="row" style="gap:6px;flex-wrap:nowrap">
+    <button id="chBadge" class="chbadge" onclick="toggleChannel()" data-i18n-title="ch.switch">α版</button>
+    <div class="row" style="gap:6px;flex-wrap:nowrap;margin-left:auto">
       <select id="themeSel" onchange="setTheme(this.value)" data-i18n-title="theme.label" class="hdrsel">
         <option value="light" data-i18n="theme.light">ライト</option>
         <option value="dark" data-i18n="theme.dark">ダーク</option>
@@ -27,20 +28,15 @@
         <option value="zh">中文</option>
         <option value="en">EN</option>
       </select>
-      <button class="hamb" id="hambBtn" onclick="toggleMenu()">☰ メニュー</button>
     </div>
   </div>
 </header>
-<div id="menuOverlay" class="menu-overlay" onclick="toggleMenu(false)"></div>
-<nav id="appMenu" class="appmenu">
+<nav id="mainNav" class="mainnav">
   <button data-tab="game" onclick="go('game')" data-i18n="nav.game">ゲーム</button>
   <button data-tab="players" onclick="go('players')" data-i18n="nav.players">選手</button>
-</nav>
-<nav id="mainNav" class="mainnav">
-  <button data-tab="home" onclick="go('home')" data-i18n="nav.home">ホーム</button>
-  <button data-tab="score" onclick="go('score')" data-i18n="nav.score">スコア入力</button>
+  <button data-tab="score" onclick="go('score')" data-i18n="nav.score">スコア</button>
   <button data-tab="result" onclick="go('result')" data-i18n="nav.result">結果</button>
-  <button id="chBadge" class="chbadge" onclick="toggleChannel()" data-i18n-title="ch.switch">α版</button>
+  <button data-tab="home" onclick="go('home')" data-i18n="nav.home">ホーム</button>
 </nav>
 <main>
   <div id="view-home"></div>

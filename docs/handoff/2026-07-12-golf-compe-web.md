@@ -754,6 +754,57 @@ vegasStandings(g):
 - 不変: ヘッダ右側（テーマ/言語/☰）・header の sticky/面色/下罫線・i18n（キー追加/削除なし）・js/**（nav.js:55 含む）・§3計算・localStorage。ライト/ダークはトークン（`--strong`/`--sub`）継承で自動対応。
 - PR: 単独PR推奨（表示のみ・極小）。触るのは **index.html の2行入替＋styles.css §11.8 ヘッダブロック（48–54行付近と84行）だけ**。
 
+#### L. ナビ再編v2＝α/βバッジをタイトル右へ・☰廃止・タブ5化・「スコア」改称【UI・確定・本節E を上書き＋本節C「現在版バッジ」設置場所を更新・2026-08-19】
+- 要望原文:「アルファ／ベータ版表示はタイトルの右／メニューは中身のゲーム・選手を外だし／順序はライト／ダーク、言語、ゲーム、選手、スコア入力→『スコア』、結果発表、ホーム」。
+- 方針（3点）:
+  1. **`#chBadge`（α版/β版バッジ）を mainnav 右端 → ヘッダのタイトルブロック（`.hdr-title`）の右隣**へ移設。クリックで `toggleChannel()`・`data-i18n-title="ch.switch"`・`.beta` 色は現状のまま。
+  2. **☰ハンバーガー（`#hambBtn`）・ポップアップ（`#appMenu`）・オーバーレイ（`#menuOverlay`）を丸ごと廃止**し、中身のゲーム/選手ボタンを `#mainNav` の常時表示タブへ外出しする（本節E「☰＝マスター系だけ」はこのLで失効。E の「スコア入力・結果を主ナビへ」「ホーム導線」は継続）。
+  3. **並び順**＝ユーザー列挙どおり2段構造のまま再編。ヘッダ右=**テーマ(ライト/ダーク)→言語**（現状維持）、mainnav=**ゲーム→選手→スコア→結果→ホーム**（ホームを先頭→末尾へ）。
+
+- **DOM（index.html・前→後）**
+  - 前: header 右= `[themeSel][langSel][☰ hambBtn]` ／ `#menuOverlay`＋`#appMenu`（ゲーム/選手）／ `#mainNav`= ホーム・スコア入力・結果・`#chBadge`。
+  - 後:
+    - `.hdr-row` 内を `[.hdr-title][#chBadge][右コントロール群(themeSel→langSel)]` の3兄弟にする。`#chBadge` は現行43行の `<button id="chBadge" class="chbadge" onclick="toggleChannel()" data-i18n-title="ch.switch">α版</button>` をそのまま移動（属性変更なし）。
+    - `#hambBtn`（30行）・`#menuOverlay`（34行）・`#appMenu`（35–38行）を**削除**。
+    - `#mainNav` は5ボタンに: `game(nav.game) → players(nav.players) → score(nav.score) → result(nav.result) → home(nav.home)`（各ボタンの `data-tab`/`onclick="go(...)"`/`data-i18n` は現行の appmenu/mainnav の記述を流用。`go()` の既定タブ・初期表示ロジックは不変）。
+
+- **CSS（styles.css・数値確定）**
+  - `.hdr-row`: `justify-content:space-between` は**削除可**（下記 margin-left:auto が余白を吸収するため実質不要。残しても挙動同一＝実装者裁量）。`gap:8px` 維持。
+  - `.hdr-title`: `flex:1 1 auto` → **`flex:0 1 auto`**（伸長をやめ、バッジがタイトルの右隣に密着。`min-width:0; overflow:hidden` は維持＝長いコンペ情報は従来どおり1行ellipsis）。
+  - 右コントロール群（themeSel/langSel を包む `div.row`）: **`margin-left:auto`** を付与（インラインstyle追記 or 新クラス `hdr-ctrl`、命名は実装者裁量）＝右端固定。
+  - `.chbadge` を **mainnav 依存から独立ルールへ差し替え**（現行64–67行の `.mainnav .chbadge` 系3ルールを削除し、ヘッダ付近に新設）:
+    `.chbadge{flex:0 0 auto;border:1px solid var(--line);border-radius:var(--r-pill);background:var(--surface-1);color:var(--sub);padding:5px 12px;font-size:var(--f-small);font-weight:var(--w-bold);white-space:nowrap;cursor:pointer}`
+    `.chbadge.beta{background:var(--acc-bg);border-color:var(--acc-bg-strong);color:var(--acc-ink)}`
+    （旧 `.mainnav .chbadge` の `margin-left:auto`/`margin-bottom:0`/`border-bottom-width:1px` と `.mainnav .chbadge.on` はタブ文脈専用のため**廃止**。`cursor:pointer`/`font-weight` は旧 `.mainnav button` から継承していたぶんを明示。α/βの機能色＝黄系 `--acc-*` はトークンのまま維持）。
+  - **☰関連の削除**: `.hamb`（55–56行）／`@media(max-width:560px)` 内の `.hamb-t{display:none}`・`.hamb{padding:9px 12px}`（85–86行）／`.menu-overlay`（89行）／`.appmenu`・`.appmenu button`・`:last-child`・`.on`（90–95行）／`@media(min-width:1024px)` 内の `.hamb{min-height:44px}`（355行付近）・`.appmenu button{padding:15px 20px}`（361行付近）。57行のコメント「☰＝ゲーム/選手のマスター系だけ」も実態（5タブ）に書き換え。
+  - **変えない**: `@media(min-width:1024px){ .chbadge{min-height:40px} }`（88行・セレクタが独立表記のため有効なまま）／`.mainnav{position:sticky;top:50px}`（ヘッダ高さは下記のとおり不変のため調整不要）。
+  - **ヘッダ高さの検算**: バッジ高 ≈ 11px×1.45＋5×2＋枠2 ≈ 28px（@1024 は min-height:40px）。既存の `.hdrsel{min-height:40px}` がヘッダ内の最大高を決めており、左ブロック高 ≈39px（§11.12 K）とも増減なし → **全幅でヘッダ総高不変＝`top:50px` 据え置き**。
+  - **幅の検算（狭幅320px）**: mainnav 5タブ ≈（2字×2＋3字×1＋2字×1＋3字×1）×13px＋padding14px×5＋gap6×4＋左右16 ≈ 278px ＜320px（「スコア入力」→「スコア」の短縮も効く）。ヘッダは バッジ「α版」≈46px＋select2つ≈110px を除いた残り（≈130px〜）を `#hdrGame` がellipsisで吸収。はみ出す場合のみ狭幅で `.chbadge{padding:5px 9px}` を追加してよい（任意）。
+
+- **JS（js/nav.js のみ・機能削除3点）**
+  - `toggleMenu()`（48–50行）を**関数ごと削除**。`go()`（51行）から `toggleMenu(false);` 呼び出しを除去。
+  - `render()` 56行の `hambBtn` innerHTML 設定行を削除。
+  - 57行のセレクタ `'#appMenu button,#mainNav button'` → **`'#mainNav button'`**。58行の `#chBadge` 更新（`t('ch.'+CHANNEL)`＋`.beta` トグル）は**そのまま**（ヘッダへ移っても id 参照のため動く。`chBadge` は `data-tab` を持たないので 57行の `.on` トグルにも影響なし）。
+  - `toggleChannel`/`setChannel`/`CHANNEL` ほかチャネルロジック・`golfCompe_channel`・`go()`/`render()` の他の行は**一切変更しない**。
+
+- **i18n（js/i18n.js・ja/zh/en 3言語同時）**
+  - **削除**: `nav.menu`（ja:6行「メニュー」/zh:114行「菜单」/en:222行「Menu」）。☰廃止で唯一の使用箇所 nav.js:56 が消えるため。※`home.menu`（ホーム画面のリンクカード見出し・home.js:32 使用中）と `tab.*` は**残す**。
+  - **変更**: `nav.score` ja「スコア入力」→**「スコア」**。zh「记分」/en「Scores」は既に短い語のため**変更なし**。※nav.score はホーム画面リンク（home.js）の表示名も兼ねるため、ホームのカードも「スコア」表記になる（許容＝一貫）。
+  - **キー追加なし**。`nav.result` は**「結果」のまま**（既定判断: ユーザーが明示改称したのは「スコア入力→『スコア』」のみ。「結果発表」は呼称とみなす。改称するなら ja「結果発表」/zh「颁奖」/en「Results」等の3言語同時1キー変更で足りる＝別途指示があれば追補）。
+
+- **見た目比較（前→後・ゲーム「月例杯 2026-08-19 @霞ヶ丘GC」選択・β版時）**
+  - 前: ヘッダ=`月例杯 2026-08-19 @霞ヶ丘GC ／ Golf Competition …… [ライト▾][日本語▾][☰ メニュー]`、タブ=`ホーム｜スコア入力｜結果 ………… [β版]`、☰押下でポップアップ`ゲーム/選手`。
+  - 後: ヘッダ=`月例杯 2026-08-19 @霞ヶ丘GC [β版] ………… [ライト▾][日本語▾]`（バッジはタイトル2行ブロックの右に縦中央揃え・下段は Golf Competition）、タブ=`ゲーム｜選手｜スコア｜結果｜ホーム`（ポップアップなし）。
+  - ゲーム/選手タブの選択中表示は、旧 appmenu の「青ベタ塗り」から他タブと同じ**下線（`border-bottom-color:var(--pri)`）**に変わる（濃色ベタ塗り廃止の§11.4/§11.8 トーンとも整合＝意図どおり）。
+
+- **受け入れ条件**
+  1. `node tools/verify.mjs` 全パス（i18n 3言語キー集合一致・未定義キー参照0・CSS孤立var()なし・計算回帰一致）。
+  2. 5タブ全て遷移可・active 下線が game/players 含め点灯。ヘッダのバッジクリックで α/β 切替＋トースト表示（従来と同挙動）、β時に黄系表示、ライト/ダーク両テーマで機能色維持。
+  3. 320px幅で mainnav が折返し/横スクロールなし、ヘッダで `#hdrGame` がellipsisで縮み、バッジ/セレクトが欠けない。1024px幅でタブ min-height:48px・バッジ min-height:40px 維持。
+  4. ヘッダ総高が前後で不変（`.mainnav` sticky が隙間/重なりなく top:50px で吸着）。
+  5. `☰`・`#appMenu`・`#menuOverlay`・`toggleMenu` への参照が index.html/js/styles.css から消えている（孤立CSS/デッドコードなし）。
+- **触らない範囲**: §3計算・localStorage 全キー・`go()`/`render()` のタブ切替と初期表示（`golfCompe_seenTop` によるトップ表示含む）・home.js のリンクカード構造・結果5タブ（F）・読込順・ESM化しない方針。
+
 #### 保留（今回スコープ外）
 - ルーレットの勝敗色（枠線/塗り）ルールの再設計は**別途検討**（現状維持）。
 - **ルーレット1画面レイアウト（旧J③・iPad横持ち・100dvh縦グリッド・無スクロール）**：**設計を別途やり取りして詰めてから**着手（2026-08-19 ユーザー指示で分離）。ゾーン構成・大きさ配分・スマホ縦の扱いを再検討。モデル叩き台=`artifacts/html/2026/08/76-club-roulette-1screen.html`。
@@ -766,4 +817,5 @@ vegasStandings(g):
 5. **J ルーレット改修（①取得H右上＋②スコア表並びのみ）**。※旧③1画面レイアウトは保留（別途）。
 6. **J④ 「全18ホール終了」テキスト全廃**（極小・表示のみ。単独PR可、5と同一PRでも可。i18n 3言語同時削除を含む）。
 7. **K ヘッダ上下入替＋コンペ情報拡大＋黄下線廃止**（極小・表示のみ・単独PR。index.html 2行入替＋styles.css §11.8 のみ）。
+8. **L ナビ再編v2**（α/βバッジをヘッダのタイトル右へ・☰廃止＝ゲーム/選手をタブ化・タブ順 ゲーム→選手→スコア→結果→ホーム・「スコア」改称。小・表示のみ・単独PR。i18n は nav.menu 3言語削除＋nav.score ja のみ変更）。
 - 各PRとも i18n（ja/zh/en キー同数）・ライト/ダーク・iPad/投影で非破綻を条件に。計算に触れるのは H のみ（他は表示のみ）。

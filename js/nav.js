@@ -45,16 +45,12 @@ const SC_NARROW_MQ = window.matchMedia('(max-width:1023px)');
 function scNarrow(){ return SC_NARROW_MQ.matches; }
 SC_NARROW_MQ.addEventListener('change', ()=>{ if(activeTab==='score'||activeTab==='game') render(); });
 const tabLabel=k=>t('tab.'+k);
-function toggleMenu(force){ const m=document.getElementById('appMenu'), o=document.getElementById('menuOverlay');
-  const open = (force!==undefined)? force : (m.style.display!=='block');
-  m.style.display=open?'block':'none'; o.style.display=open?'block':'none'; }
-function go(tab){ rlStopTimer(); activeTab=tab; toggleMenu(false); render(); }
+function go(tab){ rlStopTimer(); activeTab=tab; render(); }
 function render(){
   Object.entries(views).forEach(([k,id])=> document.getElementById(id).style.display = k===activeTab?'':'none');
   const g=curGame();
   document.getElementById('hdrGame').textContent = g? `${g.name}　${g.date}${g.course?'　@'+g.course:''}` : t('hdr.noGame');
-  document.getElementById('hambBtn').innerHTML = '☰ <span class="hamb-t">'+t('nav.menu')+'</span>';   // ☰＝マスター系(ゲーム/選手)固定（§11.12 E）。狭幅ではラベルをCSSで隠す
-  document.querySelectorAll('#appMenu button,#mainNav button').forEach(b=>b.classList.toggle('on', b.dataset.tab===activeTab));
+  document.querySelectorAll('#mainNav button').forEach(b=>b.classList.toggle('on', b.dataset.tab===activeTab));
   const cb=document.getElementById('chBadge'); if(cb){ cb.textContent=t('ch.'+CHANNEL); cb.classList.toggle('beta', CHANNEL==='b'); }
   if(activeTab==='home') renderHome();
   if(activeTab==='game') renderGame();
