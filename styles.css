@@ -290,7 +290,10 @@
   .rl-panel.fwin{background:var(--win-bg-strong);box-shadow:0 0 0 4px var(--win) inset;animation:rlblink .22s infinite alternate}
   .rl-panel.flose{background:var(--danger-bg);box-shadow:0 0 0 4px var(--red) inset;animation:rlblink .22s infinite alternate}
   .rl-panel.ftie{background:var(--tie-bg);box-shadow:0 0 0 4px var(--tie) inset;animation:rlblink .22s infinite alternate}
-  .rl-team{font-size:var(--f-body);font-weight:var(--w-bold);letter-spacing:.03em}
+  /* §11.12 J①: カード上段＝チーム名（左）＋取得H（右上・チームと同色・0Hから常時表示・ラベルはH据え置き） */
+  .rl-top{display:flex;align-items:baseline;justify-content:space-between;gap:6px}
+  .rl-team{font-size:var(--f-body);font-weight:var(--w-bold);letter-spacing:.03em;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .rl-h{font-size:var(--f-title);font-weight:var(--w-bold);line-height:1;font-variant-numeric:tabular-nums;flex:0 0 auto}
   .rl-name{font-size:var(--f-rl-name);font-weight:var(--w-bold);margin:6px 0 2px;min-height:38px;line-height:1.1}
   .rl-scorebig{font-size:var(--f-rl-score);font-weight:var(--w-bold);color:var(--win);line-height:1;min-height:46px;font-variant-numeric:tabular-nums}
   .rl-ev{font-size:var(--f-small);color:var(--win);font-weight:var(--w-bold);min-height:16px;margin-top:2px}
@@ -311,6 +314,7 @@
     .rlwrap{max-width:900px;margin:0 auto}
     .rl-name{min-height:50px} .rl-scorebig{min-height:66px}
     .rl-panel{flex:1 1 200px;padding:20px 14px} .rl-main{font-size:24px;padding:20px} .rl-chip{font-size:18px}
+    .rl-h{font-size:22px}
     .sc2.rlsc{font-size:15px}
   }
   /* 9:16 大画面投影：結果タブ全体を大きく見やすく */
@@ -362,6 +366,7 @@
     .rl-name{min-height:54px}
     .rl-scorebig{min-height:72px}
     .rl-chip{font-size:19px;min-height:44px;display:inline-flex;align-items:center}
+    .rl-h{font-size:24px}
     .rl-main{min-height:56px;font-size:25px;padding:16px}
     .rl-act .btn{min-height:44px;padding:9px 14px;font-size:13px}
     .sc2.rlsc{font-size:16px}

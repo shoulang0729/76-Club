@@ -88,9 +88,15 @@ function rlScorecard(g){
   const head=`<tr><th class="nm">${t('col.player')}</th>${cols.map(i=>`<th class="${i===h?'cur':''}">${i+1}</th>`).join('')}</tr>`;
   const parRow=`<tr class="parr"><td class="nm">Par</td>${cols.map(i=>`<td class="${i===h?'cur':''} ${g.hidden[i]?'hh':''}">${g.par[i]}</td>`).join('')}</tr>`;
   let body='';
-  teams.forEach(t=>{ const col=rColor(t.name);
+  /* §11.12 J②: チーム戦スコア表と同じ並べ方＝チームは取得Hの多い順、メンバーはネット順。
+     並べ替えは表示だけで、代表/採用の印（rlMarks）や集計には影響しない。 */
+  const wonOf=rlStandings(g).won;
+  const ordered=teams.map((tm,ti)=>({tm,v:wonOf[ti]||0})).sort((a,b)=>b.v-a.v).map(o=>o.tm);
+  ordered.forEach(t=>{ const col=rColor(t.name);
     body+=`<tr><td class="nm" colspan="19" style="background:${col};color:var(--bg);text-align:left;font-weight:var(--w-bold)">${esc(t.name)}</td></tr>`;
-    t.memberIds.forEach(pid=>{ const p=state.players.find(x=>x.id===pid); if(!p)return; const av=adjArr(g,pid); const mm=mark[pid]||{};
+    const mem=t.memberIds.filter(pid=>state.players.find(x=>x.id===pid));
+    const byNet=ranked(mem, pid=>enteredCount(g,pid)?netScore(g,pid):null, 'asc').map(o=>o.pid);
+    byNet.concat(mem.filter(pid=>!byNet.includes(pid))).forEach(pid=>{ const p=state.players.find(x=>x.id===pid); if(!p)return; const av=adjArr(g,pid); const mm=mark[pid]||{};
       body+=`<tr><td class="nm">${esc(p.name)}</td>${cols.map(i=>`<td class="${i===h?'cur':''} ${g.hidden[i]?'hh':''} ${mm[i]||''}">${av[i]??''}</td>`).join('')}</tr>`; }); });
   return `<div class="card"><h2>${t('sc.title')} <span class="muted" style="font-weight:var(--w-med);font-size:11px">${t('rl.legend')}</span></h2>
     <div class="scroll"><table class="sc2 rlsc">${cg}${head}${parRow}${body}</table></div></div>`;
@@ -102,10 +108,10 @@ function renderRouletteTab(g){
   const R=g.roulette;
   teams.forEach(t=>{ if(R.remChange[t.id]===undefined)R.remChange[t.id]=R.changeN; if(R.remChallenge[t.id]===undefined)R.remChallenge[t.id]=R.challengeM; });
   const {won,pending}=rlStandings(g);
-  // 省スペースの1行スタンディング
-  const standRows=teams.map((t,i)=>({t,v:won[i]})).sort((a,b)=>b.v-a.v);
-  const standBar=`<div class="rl-stand">${standRows.map(r=>`<span class="rl-chip" style="border-color:${rColor(r.t.name)}"><b style="color:${rColor(r.t.name)}">${esc(r.t.name)}</b> ${Math.round(r.v*10)/10}H</span>`).join('')}
-    <span class="rl-prog">${Math.min(R.cur,18)}/18</span><button class="btn gray sm" style="margin-left:auto" onclick="rlReset()">${t('btn.reset')}</button></div>`;
+  // §11.12 J①: 取得Hの独立チップ行は廃止（各抽選カードの右上に常時表示）。ここは進捗とリセットのみ
+  const wonH=ti=>Math.round((won[ti]||0)*10)/10;   // 0Hから常時表示（引分は0.5刻み）
+  const standBar=`<div class="rl-stand"><span class="rl-prog">${Math.min(R.cur,18)}/18</span>
+    <button class="btn gray sm" style="margin-left:auto" onclick="rlReset()">${t('btn.reset')}</button></div>`;
 
   if(R.cur>=18){ return `<div class="rlwrap">${standBar}<div class="card"><div class="empty">${t('rl.done')}</div></div>${rlScorecard(g)}</div>`; }
 
@@ -130,7 +136,8 @@ function renderRouletteTab(g){
     else if(rl.challengeFrom) act = (rl.challengeFrom!==tm.id)?`<button class="btn sm" onclick="rlChallengeDo('${rl.challengeFrom}','${tm.id}')">${t('rl.spinThis')}</button>`:`<span class="muted" style="font-size:11px">${t('rl.choosing')}</span>`;
     else if(drawn) act=`<button class="btn sec sm" ${(R.remChange[tm.id]||0)<=0?'disabled':''} onclick="rlChange('${tm.id}')">${t('roulette.change')} ${R.remChange[tm.id]||0}</button><button class="btn gray sm" ${(R.remChallenge[tm.id]||0)<=0?'disabled':''} onclick="rlChallengeStart('${tm.id}')">${t('roulette.challenge')} ${R.remChallenge[tm.id]||0}</button>`;
     return `<div class="rl-panel${stCls[ti]}" id="rl-panel-${tm.id}" style="border-color:${col}">
-      <div class="rl-team" style="color:${col}">${esc(tm.name)}</div>
+      <div class="rl-top"><span class="rl-team" style="color:${col}">${esc(tm.name)}</span>
+        <span class="rl-h" style="color:${col}">${wonH(ti)}H</span></div>
       <div class="rl-name" id="rl-name-${tm.id}">${rl.spinning&&rl.spinTeams.includes(tm.id)?'…':(p?esc(p.name):'―')}</div>
       <div class="rl-scorebig" id="rl-score-${tm.id}">${pid?sv:'&nbsp;'}</div>
       <div class="rl-act">${act}</div>
