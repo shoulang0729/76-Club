@@ -157,3 +157,13 @@ js/init.js         … 末尾のINIT（documentElement.lang＝LANG, setAttribute
 - 言語切替・テーマ切替・リビール・目隠し・書き出し/読み込みが従来どおり動作。
 - GitHub Pages（ルート配信）で `styles.css`/`js/*.js` が相対パスで読める（`index.html` はルート維持）。`file://` 直開きでも動く相対パス。
 - 1PR（`refactor/split-modules`）。着手前に本節を最新正本とする。
+
+---
+
+## ★2026-08-19 追記（モジュール追加の追補）
+分割実装後に追加されたモジュールを本マップに追補する（方式＝通常 `<script src>` 順次読込・ESM化しない、は不変）:
+- **js/home.js**（§11.12 B トップ画面）… `seenTop/setSeenTop/ALPHA_GAMES/BETA_GAMES/renderHome`。読込位置は nav の直後。
+- **js/course.js**（§11.12 N コースタブ）… `renderCourse/courseGrid/setPar/toggleHidden/randomHidden/clearHidden/cyclePrize`（game.js から切り貼り移動＋renderCourse 新設）。読込位置は game の直後。
+- **js/players.js**（§11.12 N-PR② 以降）… 参加者/チームカードとハンドラ `toggleParticipant/addTeam/autoTeams/setTeamName/delTeam/toggleTeamMember` が game.js から移る。
+- 現行の読込順: **state → i18n → nav → home → players → game → course → score → testdata → calc → results → roulette → backup → init**。
+- `tools/verify.mjs` は index.html の script タグからモジュール一覧を動的取得するため、追加時の verify 改変は不要。

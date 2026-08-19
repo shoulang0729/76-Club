@@ -23,12 +23,6 @@ function renderGame(){
     </div>
   </div>`;
 
-  html += `<div class="card"><h2>${t('game.courseCard')}</h2>
-    <div class="muted">${t('game.hiddenNote',{n:`<b id="hidCount">${g.hidden.filter(Boolean).length}</b>`})}</div>
-    <div class="row" style="margin:8px 0"><button class="btn sec sm" onclick="randomHidden()">${t('game.random12')}</button>
-      <button class="btn gray sm" onclick="clearHidden()">${t('btn.clear')}</button></div>
-    ${(scNarrow()? [[0,9],[9,18]] : [[0,18]]).map(([s,e])=>courseGrid(g,s,e)).join('')}</div>`;
-
   html += `<div class="card"><h2>${t('game.periaCard')}</h2>
     <div class="muted">${t('game.periaFormula')}</div>
     <div class="row">
@@ -56,13 +50,6 @@ function renderGame(){
         return `<span class="chip ${t.memberIds.includes(pid)?'on':''}" onclick="toggleTeamMember('${t.id}','${pid}')">${esc(p.name)}</span>`}).join('')}</div>
     </div>`).join('') || `<div class="muted">${t('game.teamEmpty')}</div>`}
   </div>`;
-
-  html += `<div class="card"><h2>${t('game.npdcCard')}</h2>
-    <div class="muted">${t('game.npdcNote')}</div>
-    <div class="mt6">${g.par.map((_,i)=>{
-      const np=g.prizes.niapinHoles.includes(i), dc=g.prizes.draconHoles.includes(i);
-      return `<button class="holebtn ${np?'np':''} ${dc?'dc':''}" onclick="cyclePrize(${i})">${i+1}</button>`}).join('')}</div>
-    <div class="muted" class="mt6">${t('game.npdcLocal')}</div></div>`;
 
   const F=g.formats;
   const fchk=(k,label)=>`<label><input type="checkbox" ${F[k]?'checked':''} onchange="setFmt('${k}',this.checked)"> ${label}</label>`;
@@ -127,32 +114,6 @@ function hostMenuCard(){
 function setG(k,v){ const g=curGame(); g[k]=v; save(); if(k==='name'||k==='date'||k==='course')render(); }
 function setCap(v){ const g=curGame(); g.periaCap = v===''?null:parseFloat(v); save(); }
 function setWE(v){ curGame().womenEvery.enabled=v; save(); }
-function setPar(i,v){ curGame().par[i]=parseInt(v)||0; save(); renderGame(); }
-function toggleHidden(i){ const g=curGame(); g.hidden[i]=!g.hidden[i]; save(); document.getElementById('hidCount').textContent=g.hidden.filter(Boolean).length; }
-/* 隠し12H＝ショート(Par3)2・ミドル(Par4)8・ロング(Par5)2（隠しPar合計48の標準新ペリア構成）。
-   非標準コースは各グループ数でクリップし、不足はミドル→ロング→ショート順に補充（§11.1） */
-function randomHidden(){ const g=curGame();
-  const pick=(arr,n)=>arr.slice().sort(()=>Math.random()-0.5).slice(0,Math.max(0,n));
-  const p3=[],p4=[],p5=[]; g.par.forEach((p,i)=>{ (p<=3?p3:p===4?p4:p5).push(i); });
-  const sel=[...pick(p3,Math.min(2,p3.length)), ...pick(p4,Math.min(8,p4.length)), ...pick(p5,Math.min(2,p5.length))];
-  [p4,p5,p3].forEach(grp=>{ pick(grp,grp.length).forEach(i=>{ if(sel.length<12 && !sel.includes(i)) sel.push(i); }); });
-  g.hidden=Array(18).fill(false); sel.forEach(i=>g.hidden[i]=true); save(); renderGame(); }
-function clearHidden(){ curGame().hidden=Array(18).fill(false); save(); renderGame(); }
-/* コース設定のホール表（§11.12 D）: 狭幅は OUT(1-9)/IN(10-18) の2段、iPad/PC は18列1段。
-   合計列は区間で決まる（前半=OUT小計 / 後半=IN小計＋合計、1段時は合計のみ＝従来どおり）。 */
-function courseGrid(g,s,e){
-  const H=[]; for(let i=s;i<e;i++)H.push(i);
-  const one=(s===0&&e===18);
-  const cols = one ? [{label:t('col.total'), f:a=>sum(a,0,18)}]
-    : (s===0 ? [{label:'OUT', f:a=>sum(a,0,9)}]
-             : [{label:'IN', f:a=>sum(a,9,18)}, {label:t('col.total'), f:a=>sum(a,0,18)}]);
-  return `<div class="scroll"><table class="scoregrid">
-      <tr><th class="name">H</th>${H.map(i=>`<th class="${g.hidden[i]?'hidden-h':''}">${i+1}</th>`).join('')}${cols.map(c=>`<th class="sum">${c.label}</th>`).join('')}</tr>
-      <tr><td class="name">Par</td>${H.map(i=>`<td class="${g.hidden[i]?'hidden-h':''}"><input type="number" min="3" max="6" value="${g.par[i]}" onchange="setPar(${i},this.value)"></td>`).join('')}${cols.map(c=>`<td class="sum">${c.f(g.par)}</td>`).join('')}</tr>
-      <tr><td class="name">${t('game.rowHidden')}</td>${H.map(i=>`<td class="${g.hidden[i]?'hidden-h':''}"><input type="checkbox" ${g.hidden[i]?'checked':''} onchange="toggleHidden(${i})"></td>`).join('')}${cols.map(()=>`<td class="sum">-</td>`).join('')}</tr>
-    </table></div>`;
-}
-
 function setFmt(k,v){ curGame().formats[k]=v; save(); renderGame(); }
 function setPoints(k,v){ curGame().points[k]=v.split(',').map(x=>parseInt(x.trim())).filter(x=>!isNaN(x)); save(); }
 function setPointsNum(k,v){ curGame().points[k]=parseInt(v)||0; save(); }
@@ -177,9 +138,4 @@ function toggleTeamMember(tid,pid){ const g=curGame();
   g.teams.forEach(t=>{ if(t.id!==tid) t.memberIds=t.memberIds.filter(x=>x!==pid); });
   const t=g.teams.find(t=>t.id===tid); const i=t.memberIds.indexOf(pid);
   if(i<0)t.memberIds.push(pid); else t.memberIds.splice(i,1); save(); renderGame(); }
-function cyclePrize(i){ const p=curGame().prizes;
-  const np=p.niapinHoles.includes(i), dc=p.draconHoles.includes(i);
-  p.niapinHoles=p.niapinHoles.filter(x=>x!==i); p.draconHoles=p.draconHoles.filter(x=>x!==i);
-  if(!np&&!dc)p.niapinHoles.push(i); else if(np)p.draconHoles.push(i);
-  save(); renderGame(); }
 

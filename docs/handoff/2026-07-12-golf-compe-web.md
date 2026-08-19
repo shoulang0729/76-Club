@@ -857,6 +857,102 @@ vegasStandings(g):
 5. 状態遷移（回転中→確定→次ホール可）でメインボタンの縦位置が動かない（`.rl-info` の min-height 維持）。
 6. 320px 幅で challengeFrom 中（「相手を選択…」＋キャンセル＋リセット）でも rl-head がはみ出さない（折返し可）。ライト/ダーク両テーマ・iPad(1024px+) で非破綻。
 
+#### N. タブ6化＝「コース」タブ新設とゲーム設定カードの再配置【UI・確定・本節L のタブ構成（5タブ）を上書き・2026-08-19】
+- 要望原文:「タブを増やして ゲーム・コース・選手・…として。現在のゲームタブの内容を再評価してゲーム、コース、選手それぞれに利用しやすいように再配置して」。
+- 方針: mainnav を **6タブ＝ゲーム → コース → 選手 → スコア → 結果 → ホーム**（L の5タブ順の「ゲーム」直後にコースを挿入）。現行ゲームタブの11カード＋幹事メニューを役割別に3タブへ再配置する。**UI の置き場所だけの変更**＝`state`（golfCompe_v1）のデータ構造・キー・§3計算・スコア/結果/ルーレットの挙動は一切変えない。
+
+##### N-1. カード再配置マッピング（前→後）
+現行 `renderGame()`（js/game.js・main=88717b2）の出現順で全カードを列挙。キー名（h2 見出しの i18n）は**全て現行のまま**（辞書のキー改名なし）。
+
+| # | カード（h2 キー） | 前（ゲームタブ内 位置） | 後（タブ / 位置） |
+|---|---|---|---|
+| 1 | ゲーム選択/新規作成（game.title） | ゲーム 1 | **ゲーム 1**（不動） |
+| 2 | 基本設定（game.basic）＝コンペ名/日付/**コース名**/削除/複製 | ゲーム 2 | **ゲーム 2**（コース名入力も**ここに残す**・下記※） |
+| 3 | コース設定（game.courseCard）＝Par/隠し12/randomHidden/hidCount | ゲーム 3 | **コース 1** |
+| 4 | ペリア設定（game.periaCard）＝係数/上限 | ゲーム 4 | **ゲーム 3** |
+| 5 | エブリ（game.everyCard）＝womenEvery | ゲーム 5 | **ゲーム 4** |
+| 6 | 参加者（game.partsCard）＝今回ゲームの参加者チップ | ゲーム 6 | **選手 3** |
+| 7 | チーム対抗（game.teamCard）＝addTeam/autoTeams(2/3) | ゲーム 7 | **選手 4** |
+| 8 | ニアピン/ドラコン ホール（game.npdcCard） | ゲーム 8 | **コース 2** |
+| 9 | 採用フォーマット（game.fmtCard・β時 tagbeta/vegas設定含む） | ゲーム 9 | **ゲーム 5** |
+| 10 | ルーレット設定（game.rlCard）＝changeN/challengeM | ゲーム 10 | **ゲーム 6** |
+| 11 | ポイント・賞金（game.ptsCard `.prizewin`） | ゲーム 11 | **ゲーム 7** |
+| 12 | 幹事メニュー（hostMenuCard・details） | ゲーム 末尾 | **ゲーム 末尾**（不動） |
+
+選手タブの最終構成（上から）: **1 選手マスター（player.master・追加フォーム）→ 2 登録一覧（player.registered）→ 3 参加者（game.partsCard）→ 4 チーム対抗（game.teamCard）→ 5 バックアップ（backup.title）**。マスター登録→今回の参加者選択→チーム分け、と人に関する操作が1タブで完結する。
+コースタブの最終構成: **1 コース設定（game.courseCard）→ 2 ニアピン/ドラコン ホール（game.npdcCard）**（NPDC 対象ホールはコース属性のため。※賞金額 pts.niapin/pts.dracon はポイント・賞金カード＝ゲームタブのまま）。
+- ※**コース名入力（game.course）は基本設定に残す**（既定判断）。根拠: `g.course` はゲームの識別情報でヘッダ表示（`名前　日付　@コース`＝nav.js）の一部・新規作成時に名前/日付と一緒に1カードで入力完結する流れを守る。コースタブは「ホールのデータ（Par/隠し/NPDC）」専用とする。
+- ペリア設定/エブリは**計算ルール（ゲームのルール）**なのでゲームタブ（コースではない）。ルーレット設定（回数）もゲームルール。
+
+##### N-2. タブ・DOM・render 構造
+- **index.html**（3箇所）:
+  1. `#mainNav` に `<button data-tab="course" onclick="go('course')" data-i18n="nav.course">コース</button>` を **game の直後**に挿入（6ボタン: game→course→players→score→result→home）。
+  2. `<main>` に `<div id="view-course" style="display:none"></div>` を `#view-game` の直後に追加。
+  3. `<script src="js/course.js"></script>` を **js/game.js の直後**に追加（読込順: state→i18n→nav→home→players→game→**course**→score→testdata→calc→results→roulette→backup→init。関数定義のみ＝トップレベル実行なしのため位置依存は無いが、タブ順と揃えてここに置く）。
+- **新モジュール `js/course.js`**: `renderCourse()`（新設）＋ game.js から**切り貼り移動**する関数 `courseGrid` / `setPar` / `toggleHidden` / `randomHidden` / `clearHidden` / `cyclePrize`。`renderCourse()` はゲーム未選択時 `<div class="empty">${t('msg.needGame')}</div>` のみ、選択時はカード3→8（N-1 の後配置）を現行マークアップのまま描画。
+- **js/nav.js**（3箇所）: ① `views` に `course:'view-course'` 追加（game の次）。② `render()` に `if(activeTab==='course') renderCourse();` 追加。③ `SC_NARROW_MQ` リスナ（46行）の条件 `activeTab==='score'||activeTab==='game'` → **`activeTab==='score'||activeTab==='course'`**（OUT/IN 2段折返しの scoregrid がコースタブへ移るため。ゲームタブには scoregrid が残らない。付近のコメントも実態に更新）。
+- **js/players.js**: `renderPlayers()` の登録一覧とバックアップカードの間に、game.js から移した参加者/チームカードを挿入。`const g=curGame()` を取り、**未選択時はこの2カードの代わりに `<div class="empty">${t('msg.needGame')}</div>` を1つ**表示（選手マスター/登録一覧/バックアップはゲーム非依存なので常時表示）。
+- **js/home.js**: リンクメニューに `${link('course','nav.course','home.d.course')}` を game の直後に追加（5リンク: game/course/players/score/result。2列グリッドで5枚目が片側になるのは許容）。
+- **再描画呼び出しの付け替え**（移動する関数内の `renderGame()` を移動先の描画関数へ。表示のみ・保存(save)は不変）:
+
+| 関数 | 前 | 後 |
+|---|---|---|
+| setPar / randomHidden / clearHidden / cyclePrize | save(); renderGame() | save(); **renderCourse()** |
+| toggleParticipant / addTeam / autoTeams / delTeam / toggleTeamMember | save(); renderGame() | save(); **renderPlayers()** |
+| toggleHidden | `#hidCount` textContent 直更新 | **不変**（hidCount はコースタブ内に移るだけ） |
+| setFmt | save(); renderGame() | **不変**（フォーマットカードはゲームタブ残留） |
+| setG / createGame / selectGame / deleteGame / dupGame | render() 系 | **不変**（render() は activeTab を描くのでどのタブでも正しく動く） |
+
+- 関数の改名・シグネチャ変更は**なし**（inline onclick 依存のため。ESM化しない方針も不変）。参加者/チームのハンドラ（toggleParticipant/addTeam/autoTeams/setTeamName/delTeam/toggleTeamMember）はカードと一緒に **js/players.js へ移動**、コース系6関数は **js/course.js へ移動**、残りは game.js 残留。
+
+##### N-3. 320px 幅の検算（6タブ）と CSS
+- 現行の狭幅ルール（styles.css `@media(max-width:560px)`: `.mainnav{padding:0 8px}` `.mainnav button{padding:11px 7px}`・font 13px・gap 6）のままだと: ja 6タブ＝ゲーム3+コース3+選手2+スコア3+結果2+ホーム3＝**16字×13px≈208＋字間4＋padding14×6＝84＋gap6×5＝30＋左右16 ≈ 342px ＞ 320px で溢れる**（L の5タブ≈278px に対し+64px）。
+- **対策（確定）**: `@media(max-width:560px)` の当該2ルールを **`.mainnav{padding:0 6px;gap:2px}` / `.mainnav button{padding:11px 5px;font-size:12px;letter-spacing:0}`** に変更。検算@320px（chrome＝左右12＋gap2×5=10＋padding10×6=60＝82px）:
+  - ja: 16字×12px＝192 → **合計≈274px ✓**（余裕46px）
+  - zh: 比赛/球场/选手/记分/结果/首页＝12字×12px＝144 → **≈226px ✓**
+  - en: Game+Course+Players+Scores+Results+Home＝34字×約6.6px（Noto Sans bold@12px 平均0.55em）≈224 → **≈306px ✓**（余裕約14px。en が最長のため実装後に 320px 実機/DevTools で折返しなしを必ず確認）
+- ボタン高@狭幅 ≈ 11+11+12×1.45 ≈ 39px（現行≈41px と同水準＝許容）。561px 以上は現行ルールのまま（既定 padding 11px 10px・13px でも ja≈386px/en≈419px ＜ 561px ✓）。`@media(min-width:1024px)` の `min-height:48px;font-size:15px` は不変（6タブ≈414px ≪ 1024px）。active 表示（下線 `border-bottom-color:var(--pri)`）・機能色・sticky top:50px は現行踏襲＝変更なし。styles.css 59行のコメント「5タブ常時表示」は「6タブ」に更新。
+
+##### N-4. i18n（ja/zh/en 3言語同時・キー集合一致を維持）
+- **追加（3キー）**:
+  - `nav.course`: ja「コース」/ zh「球场」/ en「Course」
+  - `msg.needGame`: ja「先に「ゲーム」タブでゲームを作成・選択してください」/ zh「请先在「比赛」页新建或选择比赛」/ en「Create or select a game on the Game tab first」（コースタブ全体・選手タブの参加者/チーム枠の空表示で共用）
+  - `home.d.course`: ja「パー・隠しホール・ニアピン/ドラコン対象ホール」/ zh「标准杆・隐藏洞・近旗奖/远打奖洞」/ en「Pars, hidden holes, NP/LD holes」
+- **値のみ変更（キー名不変・5キー）**（再配置後の導線に合わせる）:
+  - `home.step1`: ja「「ゲーム」でコンペを作成し、行うゲームやポイントを決めます。コース（パー・隠しホール・ニアピン/ドラコン）は「コース」で設定します。」/ zh「在「比赛」中创建比赛，选择要进行的游戏和积分。球场（标准杆・隐藏洞・近旗奖/远打奖）在「球场」页设置。」/ en「Create a competition under "Game" and pick the games and points. Set the course (pars, hidden holes, NP/LD) under "Course".」
+  - `home.step2`: ja「「選手」に選手を登録し、今回の参加者とチームを選びます（ハンデ区分・幹事対象外もここで設定）。」/ zh「在「选手」中登记选手，并选择本次参赛者和队伍（差点类型・干事豁免也在此设置）。」/ en「Register players under "Players", then pick this game's participants and teams (handicap type and organizer exemption are set here too).」
+  - `home.d.game`: ja「コンペ作成・ゲーム選択・ポイント設定」/ zh「创建比赛・选择游戏・积分设置」/ en「Create a competition, pick games, set points」
+  - `home.d.players`: ja「選手の登録・参加者とチームの設定」/ zh「登记选手・设置参赛者与队伍」/ en「Register players, set participants and teams」
+  - `game.partsEmpty`: ja「先に上の「選手マスター」で選手を追加してください」/ zh「请先在上方「选手名册」中添加选手」/ en「Add players in the Player Roster above first」（参加者カードが選手タブ内に来るため「選手タブで」の文言が不自然になる）
+- **削除・改名なし**。`game.courseCard`/`game.partsCard`/`game.teamCard`/`game.npdcCard` 等の既存 `game.*` キーは**キー名そのまま使用場所だけ移動**（辞書不変）。`tab.*` 系（tabLabel 用・現在未使用）は触らない＝`tab.course` は追加しない。
+
+##### N-5. verify.mjs / CLAUDE.md / 分割設計書
+- **tools/verify.mjs は改変不要**（確認済み: モジュール一覧は index.html の `<script src="js/*.js">` タグから**動的取得**＝15行目 `html.matchAll(/<script src="js\/([^."]+)\.js">/g)`。course.js を script タグに足せば自動で連結構文チェック対象になり「連結JS(14モジュール)」表示になる）。
+- **CLAUDE.md** の「読込順は index.html の並び（state→i18n→…）」の1行に **course を追記**（…players→game→**course**→score→…）。実装PRに含めてよい（docs/handoff ではないため implementer が編集可）。
+- **docs/handoff/2026-07-13-refactor-split.md** のモジュール構成は本設計（js/home.js＝§11.12 B・js/course.js＝本節）で追補済み（同ファイル末尾の ★2026-08-19 追記を参照）。
+
+##### N-6. 挙動比較（前→後・1行例）
+- タブバー: 前「ゲーム｜選手｜スコア｜結果｜ホーム」→ 後「ゲーム｜**コース**｜選手｜スコア｜結果｜ホーム」。
+- Par を変えたい: 前「ゲームタブ→3枚目のコース設定カードまでスクロール」→ 後「コースタブ→先頭カード」。表示値・setPar の保存内容は完全一致。
+- チーム分け: 前「ゲームタブ7枚目」→ 後「選手タブ4枚目（登録一覧のすぐ下）」。チップの on/off・自動2/3組の割当ロジックは完全一致。
+- ゲーム未選択時: ゲームタブ＝従来どおり `game.emptyCreate`＋幹事メニュー／コースタブ＝`msg.needGame` のみ／選手タブ＝マスター・登録一覧・バックアップは表示＋参加者/チーム枠の位置に `msg.needGame`。
+- テストデータ投入（幹事メニュー）後の全ゲーム集計値・スコア/結果/ルーレットタブ表示は**前後で完全一致**（データ・計算は不変）。
+
+##### N-7. 受け入れ条件
+1. `node tools/verify.mjs` 全パス（連結JS 14モジュール構文OK・i18n 3言語キー集合一致・未定義キー参照0・CSS孤立var()なし・計算回帰 #3/Vegas 一致）。
+2. 6タブ全て遷移可・active 下線点灯・ルーレット再生中の `go()` タイマー停止も従来どおり。ホームのリンク5枚（コース含む）から各タブへ遷移できる。
+3. N-1 の表どおりに全カードが表示され、各カードの入力→保存→再表示（タブ往復・リロード）が従来どおり。`golfCompe_v1` の JSON 構造がリニューアル前後で同一（書き出し比較）。
+4. 320px 幅で mainnav が ja/zh/en とも折返し・横スクロールなし（en が最長）。1024px で min-height:48px/15px 維持。ライト/ダーク両テーマ非破綻。
+5. 狭幅（<1024px）でコースタブの Par/隠しH 表が OUT/IN 2段折返し（§11.12 D 挙動がコースタブで維持され、幅変更時に再描画される）。
+6. `renderGame` 内にコース/NPDC/参加者/チームのカード・`renderCourse`/`renderPlayers` 側に置き忘れの重複が**ない**（同じカードが2タブに出ない）。
+##### N-8. 触らない範囲
+§3 計算・`state` 構造と localStorage 全キー・スコア/結果/ルーレット/ホーム各タブの挙動（ホームは step 文言とリンク1枚追加のみ）・inline onclick 方式（ESM化しない）・既存セッター関数のロジックと関数名・ヘッダ（K/L の構成）・機能色。
+
+##### N-9. 推奨PR分割（2PR・順序あり）
+1. **PR-①「コース」タブ新設**: index.html（navボタン/`#view-course`/script タグ）・js/course.js 新設（コース設定＋NPDC カードと6関数の移動）・js/game.js から該当カード/関数を削除・js/nav.js（views/render 分岐/SC_NARROW 条件）・js/home.js リンク追加・styles.css 狭幅 mainnav 調整（N-3）・i18n 追加3キー＋ `home.step1`/`home.d.game` 値変更・CLAUDE.md 読込順1行。
+2. **PR-②参加者・チームを選手タブへ**（PR-①マージ後・`msg.needGame` を再利用）: js/game.js → js/players.js へ2カード＋5ハンドラ移動（renderGame→renderPlayers 付け替え）・i18n 値変更 `home.step2`/`home.d.players`/`game.partsEmpty`。
+- 1PRでまとめても成立するが、①は「新タブ＋ナビ幅」②は「カード移動のみ」と検証観点が異なるため分割推奨。両PRとも表示のみ（計算・データ不変）。
+
 #### 保留（今回スコープ外）
 - ルーレットの勝敗色（枠線/塗り）ルールの再設計は**別途検討**（現状維持）。
 - **ルーレット1画面レイアウト（旧J③・iPad横持ち・100dvh縦グリッド・無スクロール）**：**設計を別途やり取りして詰めてから**着手（2026-08-19 ユーザー指示で分離）。ゾーン構成・大きさ配分・スマホ縦の扱いを再検討。モデル叩き台=`artifacts/html/2026/08/76-club-roulette-1screen.html`。
@@ -871,4 +967,6 @@ vegasStandings(g):
 7. **K ヘッダ上下入替＋コンペ情報拡大＋黄下線廃止**（極小・表示のみ・単独PR。index.html 2行入替＋styles.css §11.8 のみ）。
 8. **L ナビ再編v2**（α/βバッジをヘッダのタイトル右へ・☰廃止＝ゲーム/選手をタブ化・タブ順 ゲーム→選手→スコア→結果→ホーム・「スコア」改称。小・表示のみ・単独PR。i18n は nav.menu 3言語削除＋nav.score ja のみ変更）。
 9. **M ルーレット standBar 全廃＋リセット移設＋WINテキスト廃止**（小・表示のみ・単独PR。js/roulette.js＋styles.css のみ。i18n 変更なし。孤立CSS `.rl-chip` の掃除を含む）。
+10. **N-PR① 「コース」タブ新設**（js/course.js 新設・タブ6化・狭幅ナビ調整・i18n 3キー追加。§11.12 N-9 参照）。
+11. **N-PR② 参加者・チームを選手タブへ移動**（PR-10 マージ後。カード移動のみ・i18n 値変更3キー。§11.12 N-9 参照）。
 - 各PRとも i18n（ja/zh/en キー同数）・ライト/ダーク・iPad/投影で非破綻を条件に。計算に触れるのは H のみ（他は表示のみ）。

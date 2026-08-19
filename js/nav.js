@@ -1,5 +1,5 @@
 /* ============================ TAB NAV ============================ */
-const views = { home:'view-home', game:'view-game', players:'view-players', score:'view-score', result:'view-result' };
+const views = { home:'view-home', game:'view-game', course:'view-course', players:'view-players', score:'view-score', result:'view-result' };
 let activeTab='home';   // 起動時はトップ（§11.12 B）。init.js で golfCompe_seenTop を見て上書き
 let revealHoles=18;            // 個人戦で開封済みのホール数(0-18)。18=全開（既定）
 let rl={ spinning:false, spinTeams:[], timer:null, challengeFrom:null };  // ルーレットの実行時状態（非保存）
@@ -40,10 +40,10 @@ function chFormats(g){ const F=Object.assign({}, g.formats||{});
 const isBetaFmt=k=>BETA_FMT.includes(k);
 /* §11.12 D: 狭幅（<1024px＝スマホ/小型タブレット）はホール表を OUT(1-9)/IN(10-18) の2段に折り返す。
    iPad Pro 13"縦(1024pt)以上とPCは従来どおり18列1段。
-   段が変わったら該当タブだけ描き直す（入力中の値は保存済みなので再描画で失われない）。 */
+   段が変わったら該当タブ（スコア入力／コースの Par・隠しH 表）だけ描き直す（入力中の値は保存済みなので再描画で失われない）。 */
 const SC_NARROW_MQ = window.matchMedia('(max-width:1023px)');
 function scNarrow(){ return SC_NARROW_MQ.matches; }
-SC_NARROW_MQ.addEventListener('change', ()=>{ if(activeTab==='score'||activeTab==='game') render(); });
+SC_NARROW_MQ.addEventListener('change', ()=>{ if(activeTab==='score'||activeTab==='course') render(); });
 const tabLabel=k=>t('tab.'+k);
 function go(tab){ rlStopTimer(); activeTab=tab; render(); }
 function render(){
@@ -54,6 +54,7 @@ function render(){
   const cb=document.getElementById('chBadge'); if(cb){ cb.textContent=t('ch.'+CHANNEL); cb.classList.toggle('beta', CHANNEL==='b'); }
   if(activeTab==='home') renderHome();
   if(activeTab==='game') renderGame();
+  if(activeTab==='course') renderCourse();
   if(activeTab==='players') renderPlayers();
   if(activeTab==='score') renderScore();
   if(activeTab==='result') renderResult();

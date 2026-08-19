@@ -18,7 +18,7 @@
   - 現行の重要仕様（§11.12 H・2026-08-19）: **ペリアHDCP はエブリ適用後スコア(`adjHole`)基準**で隠し12ホール合計を取る。
 - **localStorage キー**: データ=`golfCompe_v1`（`state`）／表示状態=`golfCompe_lang`・`golfCompe_theme`・`golfCompe_channel`・`golfCompe_seenTop`。**データと表示状態は分離**（表示状態を `golfCompe_v1` に入れない）。
 - **i18n 辞書**（`js/i18n.js` の `I18N`）は **ja/zh/en のキー集合が完全一致**であること。追加時は3言語同時。
-- **inline `onclick`/`onchange` はグローバル関数依存** → **ESM 化しない**（通常 `<script src>` 順次読込）。読込順は `index.html` の並び（state→i18n→nav→home→players→game→score→testdata→calc→results→roulette→backup→init）。
+- **inline `onclick`/`onchange` はグローバル関数依存** → **ESM 化しない**（通常 `<script src>` 順次読込）。読込順は `index.html` の並び（state→i18n→nav→home→players→game→course→score→testdata→calc→results→roulette→backup→init）。
 - **機能色の"意味"**（勝ち=緑/引分=橙/採用=枠/危険=赤）は保持。デザインは**トークン**（`styles.css` の `:root` ＋ `html[data-theme="dark"]`）で管理。面に濃色ベタ塗りを使わない（黒＝文字・罫線）。
 
 ## 検証（reviewer 必須）

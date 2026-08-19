@@ -56,7 +56,7 @@
   .chbadge{flex:0 0 auto;border:1px solid var(--line);border-radius:var(--r-pill);background:var(--surface-1);color:var(--sub);
     padding:5px 12px;font-size:var(--f-small);font-weight:var(--w-bold);white-space:nowrap;cursor:pointer}
   .chbadge.beta{background:var(--acc-bg);border-color:var(--acc-bg-strong);color:var(--acc-ink)}
-  /* 主ナビ（§11.12 L）: ゲーム/選手/スコア/結果/ホームの5タブ常時表示（☰は廃止） */
+  /* 主ナビ（§11.12 L/N）: ゲーム/コース/選手/スコア/結果/ホームの6タブ常時表示（☰は廃止） */
   .mainnav{position:sticky;top:50px;z-index:18;display:flex;gap:6px;align-items:center;background:var(--card);
     border-bottom:1px solid var(--line);padding:0 12px}
   .mainnav button{border:0;border-bottom:2px solid transparent;margin-bottom:-1px;background:transparent;color:var(--sub);
@@ -80,7 +80,7 @@
   @media(max-width:560px){ .homelinks{grid-template-columns:1fr}
     header .gamename{font-size:17px}   /* 狭幅はコンペ情報をやや縮小＝1行＋ellipsis（§11.12 K） */
     .hdrsel{padding:8px 6px}
-    .mainnav{padding:0 8px} .mainnav button{padding:11px 7px} }
+    .mainnav{padding:0 6px;gap:2px} .mainnav button{padding:11px 5px;font-size:12px;letter-spacing:0} }
   @media(min-width:1024px){ .mainnav button{min-height:48px;font-size:15px} .chbadge{min-height:40px} }
   main{padding:12px;max-width:960px;margin:0 auto}
   /* cards（小角丸・フラット §11.4／見出しはSerif＋ハイライン区切り・余白拡張 §11.8） */
