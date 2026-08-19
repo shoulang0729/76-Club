@@ -294,6 +294,7 @@
   .rl-top{display:flex;align-items:baseline;justify-content:space-between;gap:6px}
   .rl-team{font-size:var(--f-body);font-weight:var(--w-bold);letter-spacing:.03em;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
   .rl-h{font-size:var(--f-title);font-weight:var(--w-bold);line-height:1;font-variant-numeric:tabular-nums;flex:0 0 auto}
+  .rl-final{padding:14px 12px}   /* 18H終了後のカード＝上段だけなので余白を詰める（§11.12 J③） */
   .rl-name{font-size:var(--f-rl-name);font-weight:var(--w-bold);margin:6px 0 2px;min-height:38px;line-height:1.1}
   .rl-scorebig{font-size:var(--f-rl-score);font-weight:var(--w-bold);color:var(--win);line-height:1;min-height:46px;font-variant-numeric:tabular-nums}
   .rl-ev{font-size:var(--f-small);color:var(--win);font-weight:var(--w-bold);min-height:16px;margin-top:2px}

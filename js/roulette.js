@@ -113,7 +113,19 @@ function renderRouletteTab(g){
   const standBar=`<div class="rl-stand"><span class="rl-prog">${Math.min(R.cur,18)}/18</span>
     <button class="btn gray sm" style="margin-left:auto" onclick="rlReset()">${t('btn.reset')}</button></div>`;
 
-  if(R.cur>=18){ return `<div class="rlwrap">${standBar}<div class="card"><div class="empty">${t('rl.done')}</div></div>${rlScorecard(g)}</div>`; }
+  /* §11.12 J③: 18H終了後もチームカードを残す（#31）。抽選は終わっているので個人名・代表スコア・
+     チェンジ/チャレンジは描かず、カード上段（チーム名＋右上の取得H）だけを取得H降順で残す。 */
+  if(R.cur>=18){
+    const finals=teams.map((tm,ti)=>({tm,ti,v:won[ti]||0})).sort((a,b)=>b.v-a.v);
+    const cards=finals.map(({tm,ti})=>{ const col=rColor(tm.name);
+      return `<div class="rl-panel rl-final" style="border-color:${col}">
+        <div class="rl-top"><span class="rl-team" style="color:${col}">${esc(tm.name)}</span>
+          <span class="rl-h" style="color:${col}">${wonH(ti)}H</span></div>
+      </div>`; }).join('');
+    return `<div class="rlwrap">${standBar}
+      <div class="card rl-play"><div class="rl-head"><div class="rl-par">${t('rl.done')}</div></div>
+        <div class="rl-panels">${cards}</div></div>${rlScorecard(g)}</div>`;
+  }
 
   const h=R.cur; const reps=R.reps[h]||{}; const drawn=rlHoleDrawn(g);
   const holeScores=()=>teams.map(t=>{const pid=reps[t.id];return pid!=null?rlHoleScore(g,pid,h):null;});
