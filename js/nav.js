@@ -38,6 +38,12 @@ function chFormats(g){ const F=Object.assign({}, g.formats||{});
   if(CHANNEL!=='b') BETA_FMT.forEach(k=>{ F[k]=false; });
   return F; }
 const isBetaFmt=k=>BETA_FMT.includes(k);
+/* §11.12 D: 狭幅（<1024px＝スマホ/小型タブレット）はホール表を OUT(1-9)/IN(10-18) の2段に折り返す。
+   iPad Pro 13"縦(1024pt)以上とPCは従来どおり18列1段。
+   段が変わったら該当タブだけ描き直す（入力中の値は保存済みなので再描画で失われない）。 */
+const SC_NARROW_MQ = window.matchMedia('(max-width:1023px)');
+function scNarrow(){ return SC_NARROW_MQ.matches; }
+SC_NARROW_MQ.addEventListener('change', ()=>{ if(activeTab==='score'||activeTab==='game') render(); });
 const tabLabel=k=>t('tab.'+k);
 function toggleMenu(force){ const m=document.getElementById('appMenu'), o=document.getElementById('menuOverlay');
   const open = (force!==undefined)? force : (m.style.display!=='block');

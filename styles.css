@@ -150,11 +150,27 @@
   .kanjibadge{display:inline-block;background:var(--pri);color:var(--on-fill);border-radius:var(--r-sm);font-size:var(--f-small);padding:1px 6px;margin-left:6px;font-weight:var(--w-bold);letter-spacing:.02em}
   .mask{color:var(--sub);opacity:.55;letter-spacing:1px}
   /* score input grid (入力タブ) */
-  .scoregrid td input{width:38px;padding:5px 2px;text-align:center;border-radius:var(--r-sm);font-size:var(--f-body)}
-  .scoregrid th,.scoregrid td{padding:3px 3px;min-width:34px}
-  .scoregrid td.name{position:sticky;left:0;background:var(--card);text-align:left;min-width:96px;font-weight:var(--w-bold);z-index:2;white-space:nowrap}
-  .scoregrid th.name{position:sticky;left:0;background:var(--surface-2);z-index:3;text-align:left;min-width:96px;white-space:nowrap}
-  .scoregrid .sum{background:var(--surface-2);font-weight:var(--w-bold)}
+  /* §11.12 D: ホール表は table-layout:fixed で画面幅にフィット＝横スクロールなし。
+     狭幅(<1024px)は OUT(1-9)/IN(10-18) の2段に折り返し、iPad Pro 13"縦(1024pt)以上は18列1段のまま。 */
+  .scoregrid{table-layout:fixed;width:100%}
+  .scoregrid td input{width:100%;padding:5px 2px;text-align:center;border-radius:var(--r-sm);font-size:var(--f-body)}
+  /* スピナーを消して数字の表示幅を確保（狭幅で桁が見切れないように・§11.12 D） */
+  .scoregrid td input[type=number]{-moz-appearance:textfield;appearance:textfield}
+  .scoregrid td input[type=number]::-webkit-outer-spin-button,
+  .scoregrid td input[type=number]::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
+  .scoregrid th,.scoregrid td{padding:3px 2px;min-width:0;overflow:hidden}
+  .scoregrid td.name{background:var(--card);text-align:left;width:14%;font-weight:var(--w-bold);
+    white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .scoregrid th.name{background:var(--surface-2);text-align:left;width:14%;white-space:nowrap}
+  .scoregrid .sum{background:var(--surface-2);font-weight:var(--w-bold);width:7%}
+  .scoregrid .parlbl{font-size:var(--f-small);color:var(--sub)}
+  @media(max-width:1023px){
+    .scoregrid td.name,.scoregrid th.name{width:17%;font-size:var(--f-small)}
+    .scoregrid .sum{width:8%}
+    .scoregrid td input[type=number]{min-height:40px;padding:6px 0;font-size:14px}   /* 列が半分になるぶん高さで押しやすさを確保 */
+    .scoregrid td input[type=checkbox]{width:20px;height:20px;min-height:28px}
+    .card .scroll+.scroll{margin-top:10px}   /* OUT表とIN表の間隔 */
+  }
   .hidden-h{background:var(--acc-bg) !important}
   /* game setup */
   .seg{display:flex;border:1px solid var(--pri);border-radius:var(--r-sm);overflow:hidden;margin:4px 0}
@@ -338,8 +354,7 @@
     .subtab4 button{min-height:48px;font-size:15px}
     .holebtn{width:46px;height:46px;font-size:15px}
     .appmenu button{padding:15px 20px}
-    .scoregrid th,.scoregrid td{min-width:46px}
-    .scoregrid td input{width:52px;min-height:44px;font-size:17px;padding:9px 2px}
+    .scoregrid td input{min-height:44px;font-size:15px;padding:9px 2px}   /* 44ptタッチ（幅は fixed レイアウトで自動配分・§11.12 D） */
     .scoregrid td input:focus{outline:2px solid var(--pri);outline-offset:-1px}
     /* ルーレットのiPad中間スケール＋タッチ44pt（§11.9）: --f-rl-*は上の:rootで再定義 */
     .rlwrap{max-width:1100px}
