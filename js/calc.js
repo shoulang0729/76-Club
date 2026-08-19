@@ -2,15 +2,19 @@
 function parTotal(g){ return g.par.reduce((a,b)=>a+b,0); }
 function gross(g,pid){ const sc=g.scores[pid]||[]; return sc.reduce((a,v)=>a+(v?Number(v):0),0); }
 function complete(g,pid){ const sc=g.scores[pid]||[]; return sc.filter(v=>v!=null&&v!=='').length===18; }
+/* ダブルペリアHDCP（★§11.12 H・2026-08-19に算定基準を変更＝§3/§11.2 を上書き）:
+   隠し12ホールの合計を「エブリ適用後スコア」(adjHole) 基準で取る。
+   ＝①エブリを各ホールに先に反映 → ②その合計からHDCPを算定 → ③ネット＝(エブリ後グロス)−(このHDCP)。
+   エブリ選手はHDCPが小さくなり（0クリップされやすく）ネットが上がる。二重控除にはならない。 */
 function periaHdcp(g,pid){
-  const sc=g.scores[pid]||[]; let h=0; g.hidden.forEach((hid,i)=>{ if(hid)h+=(sc[i]?Number(sc[i]):0); });
+  let h=0; g.hidden.forEach((hid,i)=>{ if(hid){ const v=adjHole(g,pid,i); if(v!=null)h+=v; } });
   let hd=(h*1.5 - parTotal(g))*g.periaCoef;
   if(hd<0)hd=0; if(g.periaCap!=null && hd>g.periaCap)hd=g.periaCap;
   return Math.round(hd*10)/10;
 }
 function enteredCount(g,pid){ return (g.scores[pid]||[]).filter(v=>v!=null&&v!=='').length; }
 /* エブリ控除の実額（§11.2）：入力済み各ホールに−1(E1)/−2(E2)を積み上げる＝表示系(adjArr/adjHole)と同一基準。
-   18H入力時は従来どおりE1=−18/E2=−36。ペリアHDCPは生スコア基準のまま（慣例・独立ハンデ）。 */
+   18H入力時は従来どおりE1=−18/E2=−36。ペリアHDCPもこのエブリ後スコアを基準に算定する（§11.12 H）。 */
 function everyStrokes(g,pid){ return evPer(g,pid)*enteredCount(g,pid); }
 function womenEvery(g,pid){ return everyStrokes(g,pid); }
 function gross_(g,pid){ return gross(g,pid); }
@@ -42,7 +46,7 @@ function callawayHdcp(g,pid){
 }
 function callawayNet(g,pid){ const h=callawayHdcp(g,pid); return h==null?null:gross(g,pid)-h; }
 function net9(g,pid,s,e){ const sc=g.scores[pid]||[]; const raw=sum(sc,s,e);
-  let ev=0; for(let i=s;i<e;i++){ if(sc[i]!=null&&sc[i]!=='') ev+=evPer(g,pid); }   // 当該9Hのエブリ実額（§11.2）
+  let ev=0; for(let i=s;i<e;i++){ if(sc[i]!=null&&sc[i]!=='') ev+=evPer(g,pid); }   // 当該9Hのエブリ実額（§11.2）。HDCPはエブリ後基準（§11.12 H）
   return Math.round((raw-ev-periaHdcp(g,pid)/2)*10)/10; }
 function nassauTotalNet(g,pid){ return Math.round((net9(g,pid,0,9)+net9(g,pid,9,18))*10)/10; }
 
