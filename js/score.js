@@ -8,17 +8,29 @@ function renderScore(){
     <div class="row" class="mt8"><button class="btn sec sm" onclick="fillRandomScores()">${t('score.fillRandom')}</button>
       <button class="btn gray sm" onclick="clearScores()">${t('score.clearBtn')}</button></div>
   </div>`;
-  html+=`<div class="card"><div class="scroll"><table class="scoregrid">
-    <tr><th class="name">${t('col.player')}</th>${g.par.map((_,i)=>`<th class="${g.hidden[i]?'hidden-h':''}">${i+1}</th>`).join('')}<th class="sum">OUT</th><th class="sum">IN</th><th class="sum">${t('col.total')}</th></tr>
-    <tr><td class="name" style="font-size:11px;color:var(--sub)">Par</td>${g.par.map((p,i)=>`<td class="${g.hidden[i]?'hidden-h':''}" style="font-size:11px;color:var(--sub)">${p}</td>`).join('')}<td class="sum">${sum(g.par,0,9)}</td><td class="sum">${sum(g.par,9,18)}</td><td class="sum">${sum(g.par,0,18)}</td></tr>
+  // §11.12 D: 狭幅は OUT(1-9)/IN(10-18) の2段に折り返す。iPad/PCは従来どおり18列1段
+  html += (scNarrow()? [[0,9],[9,18]] : [[0,18]]).map(([s,e])=>scoreGrid(g,s,e)).join('');
+  el.innerHTML=html;
+}
+/* 合計列の構成（区間で自動的に決まる）: 前半を含めばOUT / 後半を含めばIN / 18Hまで含めば計 */
+function scSumCols(s,e){ const c=[];
+  if(s===0) c.push({key:'out', label:'OUT', f:a=>sum(a,0,9)});
+  if(e===18) c.push({key:'in', label:'IN', f:a=>sum(a,9,18)});
+  if(e===18) c.push({key:'tot', label:t('col.total'), f:a=>sum(a,0,18)});
+  return c; }
+function scoreGrid(g,s,e){
+  const H=[]; for(let i=s;i<e;i++)H.push(i);
+  const cols=scSumCols(s,e);
+  return `<div class="card"><div class="scroll"><table class="scoregrid">
+    <tr><th class="name">${t('col.player')}</th>${H.map(i=>`<th class="${g.hidden[i]?'hidden-h':''}">${i+1}</th>`).join('')}${cols.map(c=>`<th class="sum">${c.label}</th>`).join('')}</tr>
+    <tr><td class="name parlbl">Par</td>${H.map(i=>`<td class="parlbl ${g.hidden[i]?'hidden-h':''}">${g.par[i]}</td>`).join('')}${cols.map(c=>`<td class="sum">${c.f(g.par)}</td>`).join('')}</tr>
     ${g.participants.map(pid=>{ const p=state.players.find(x=>x.id===pid); if(!p)return'';
       const sc=g.scores[pid]||Array(18).fill(null);
       return `<tr><td class="name">${esc(p.name)}</td>
-        ${sc.map((v,i)=>`<td class="${g.hidden[i]?'hidden-h':''}"><input id="sc-${pid}-${i}" type="number" inputmode="numeric" pattern="[0-9]*" min="1" max="15" value="${v??''}" onchange="setScore('${pid}',${i},this)"></td>`).join('')}
-        <td class="sum" id="out-${pid}">${sum(sc,0,9)||''}</td><td class="sum" id="in-${pid}">${sum(sc,9,18)||''}</td><td class="sum" id="tot-${pid}">${sum(sc,0,18)||''}</td></tr>`;
+        ${H.map(i=>`<td class="${g.hidden[i]?'hidden-h':''}"><input id="sc-${pid}-${i}" type="number" inputmode="numeric" pattern="[0-9]*" min="1" max="15" value="${sc[i]??''}" onchange="setScore('${pid}',${i},this)"></td>`).join('')}
+        ${cols.map(c=>`<td class="sum" id="${c.key}-${pid}">${c.f(sc)||''}</td>`).join('')}</tr>`;
     }).join('')}
   </table></div></div>`;
-  el.innerHTML=html;
 }
 function sum(a,s,e){ let t=0,any=false; for(let i=s;i<e;i++){ if(a[i]!=null&&a[i]!==''){t+=Number(a[i]);any=true;} } return any?t:0; }
 // フォーカスを失わないよう、再描画せず合計セルだけ更新
