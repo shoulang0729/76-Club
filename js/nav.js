@@ -1,0 +1,48 @@
+/* ============================ TAB NAV ============================ */
+const views = { game:'view-game', players:'view-players', score:'view-score', result:'view-result' };
+let activeTab='game';
+let revealHoles=18;            // 個人戦で開封済みのホール数(0-18)。18=全開（既定）
+let rl={ spinning:false, spinTeams:[], timer:null, challengeFrom:null };  // ルーレットの実行時状態（非保存）
+function rlStopTimer(){ if(rl.timer){clearInterval(rl.timer);rl.timer=null;} rl.spinning=false; }
+// 発表用の表示/非表示スイッチ（true=表示）。totals=スコア表の合計欄（個人/チーム共通・チーム小計の色も含む）
+let show={ totals:true };
+function toggleShow(k){ show[k]=!show[k]; renderResult(); }
+// グロス/ネットの名前・スコアの表示制御（表ごと master ＋順位ごと個別ボタン）。mode XOR except
+let nsMode={ gross:'show', net:'show' };
+let nsExcept={ gross:new Set(), net:new Set() };
+function nsMasked(table,pid){ return (nsMode[table]==='hide') !== nsExcept[table].has(pid); }
+function toggleNSAll(table){ nsMode[table]= nsMode[table]==='show'?'hide':'show'; nsExcept[table].clear(); renderResult(); }
+function toggleNSRow(table,pid){ const s=nsExcept[table]; if(s.has(pid))s.delete(pid); else s.add(pid); renderResult(); }
+// チーム対抗の各ゲーム：ゲームごと master ＋チームごと個別ボタン。チーム名＋合計をまとめて表示/非表示
+let tgMode={ teamGross:'show', teamNet:'show', best2ball:'show', holeByHole:'show', vegas:'show' };
+let tgExcept={ teamGross:new Set(), teamNet:new Set(), best2ball:new Set(), holeByHole:new Set(), vegas:new Set() };
+function tgMasked(key,tid){ return (tgMode[key]==='hide') !== tgExcept[key].has(tid); }
+function toggleTgAll(key){ tgMode[key]= tgMode[key]==='show'?'hide':'show'; tgExcept[key].clear(); renderResult(); }
+function toggleTgRow(key,tid){ const s=tgExcept[key]; if(s.has(tid))s.delete(tid); else s.add(tid); renderResult(); }
+let resultSub='ind';   // 'pts' | 'ind' | 'prize' | 'team'
+const tabLabel=k=>t('tab.'+k);
+function toggleMenu(force){ const m=document.getElementById('appMenu'), o=document.getElementById('menuOverlay');
+  const open = (force!==undefined)? force : (m.style.display!=='block');
+  m.style.display=open?'block':'none'; o.style.display=open?'block':'none'; }
+function go(tab){ rlStopTimer(); activeTab=tab; toggleMenu(false); render(); }
+function render(){
+  Object.entries(views).forEach(([k,id])=> document.getElementById(id).style.display = k===activeTab?'':'none');
+  const g=curGame();
+  document.getElementById('hdrGame').textContent = g? `${g.name}　${g.date}${g.course?'　@'+g.course:''}` : t('hdr.noGame');
+  document.getElementById('hambBtn').innerHTML = '☰ '+tabLabel(activeTab);
+  document.querySelectorAll('#appMenu button').forEach(b=>b.classList.toggle('on', b.dataset.tab===activeTab));
+  if(activeTab==='game') renderGame();
+  if(activeTab==='players') renderPlayers();
+  if(activeTab==='score') renderScore();
+  if(activeTab==='result') renderResult();
+}
+function esc(s){ return (s||'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
+const everyLabel=k=> k==='none'?t('every.s.none'):k==='every1'?'E1(−18)':'E2(−36)';
+// 最小の線アイコン（目のオン/オフ）と丸数字の順位バッジ
+const EYE='<svg class="ei" viewBox="0 0 24 24"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7z"/><circle cx="12" cy="12" r="3"/></svg>';
+const EYEOFF='<svg class="ei" viewBox="0 0 24 24"><path d="M3 3l18 18M10.6 10.6a3 3 0 004.2 4.2M9.9 5.2A9.7 9.7 0 0112 5c6.5 0 10 7 10 7a17 17 0 01-3.2 3.9M6.1 6.1A17 17 0 002 12s3.5 7 10 7a9.7 9.7 0 003.2-.5"/></svg>';
+const posBadge=(rank,first)=>`<span class="rankno${first?' r1':''}">${rank}</span>`;
+/* チーム名から識別色を引く（値はトークン＝ライト/ダークで自動反転 §11.8）。塗りに使う場合の文字色は var(--bg) */
+function tmColor(name){ return /レッド|赤/.test(name)?'var(--tm-red)':/ブルー|青/.test(name)?'var(--tm-blue)'
+  :/グリーン|緑/.test(name)?'var(--tm-green)':/イエロー|黄/.test(name)?'var(--tm-yellow)':'var(--tm-gray)'; }
+
