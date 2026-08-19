@@ -45,13 +45,13 @@
   body{font-family:"Noto Sans JP","Noto Sans",-apple-system,"Hiragino Kaku Gothic ProN",Meiryo,sans-serif;
     background:var(--bg);color:var(--ink);font-size:var(--f-body);line-height:1.45;padding-bottom:24px}
   html[lang="zh-CN"] body{font-family:"Noto Sans SC","Noto Sans",system-ui,sans-serif}   /* 簡体字の字形最適化（i18n §3.5） */
-  /* header（§11.8）: 面は --card（白）＋下罫線。濃色ベタ塗りは廃止。ワードマークは濃色文字＋"COMPE"に黄下線を少量 */
+  /* header（§11.8・§11.12 K）: 面は --card（白）＋下罫線。濃色ベタ塗りは廃止。コンペ情報（#hdrGame）が主・ワードマークは小さく下段（下線なし） */
   header{background:var(--card);color:var(--strong);padding:12px 15px;position:sticky;top:0;z-index:20;border-bottom:1px solid var(--line)}
   .hdr-row{display:flex;align-items:center;justify-content:space-between;gap:8px}
-  header h1{font-family:"Noto Serif JP","Noto Serif",serif;font-size:var(--f-name);font-weight:700;letter-spacing:.06em;color:var(--strong)}
-  header h1 span{font-family:inherit;font-weight:700;color:var(--strong);font-size:inherit;margin-left:6px;letter-spacing:.04em;
-    border-bottom:2px solid var(--acc);padding-bottom:1px}
-  header .gamename{font-size:var(--f-small);color:var(--sub);margin-top:2px;font-weight:var(--w-med)}
+  .hdr-title{min-width:0;flex:1 1 auto;overflow:hidden}
+  header .gamename{font-family:"Noto Serif JP","Noto Serif",serif;font-size:var(--f-val);font-weight:700;color:var(--strong);
+    letter-spacing:.02em;line-height:1.2;margin-top:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  header h1{font-size:var(--f-small);font-weight:var(--w-med);color:var(--sub);letter-spacing:.06em;line-height:1.2;margin-top:2px}
   .hamb{background:var(--surface-1);border:1px solid var(--line);color:var(--strong);font-size:var(--f-body);font-weight:var(--w-bold);padding:9px 15px;
     border-radius:var(--r-pill);cursor:pointer;white-space:nowrap;letter-spacing:.04em}
   /* 主ナビ（§11.12 E）: ホーム/スコア入力/結果は常時表示タブ。☰＝ゲーム/選手のマスター系だけ */
@@ -81,7 +81,7 @@
   .chcard .pill{margin:2px 2px 0 0}
   .seentop{margin-top:2px}
   @media(max-width:560px){ .homelinks{grid-template-columns:1fr}
-    header h1{font-size:15px;white-space:nowrap}   /* 狭幅でもワードマークは1行（§11.12 A） */
+    header .gamename{font-size:17px}   /* 狭幅はコンペ情報をやや縮小＝1行＋ellipsis（§11.12 K） */
     .hamb-t{display:none}   /* 狭幅は☰アイコンのみ＝ワードマークの幅を確保 */
     .hamb{padding:9px 12px} .hdrsel{padding:8px 6px}
     .mainnav{padding:0 8px} .mainnav button{padding:11px 7px} }
