@@ -123,8 +123,7 @@ function renderRouletteTab(g){
           <span class="rl-h" style="color:${col}">${wonH(ti)}H</span></div>
       </div>`; }).join('');
     return `<div class="rlwrap">${standBar}
-      <div class="card rl-play"><div class="rl-head"><div class="rl-par">${t('rl.done')}</div></div>
-        <div class="rl-panels">${cards}</div></div>${rlScorecard(g)}</div>`;
+      <div class="card rl-play"><div class="rl-panels">${cards}</div></div>${rlScorecard(g)}</div>`;
   }
 
   const h=R.cur; const reps=R.reps[h]||{}; const drawn=rlHoleDrawn(g);
