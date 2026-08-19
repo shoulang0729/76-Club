@@ -2,6 +2,7 @@
 /* 言語は golfCompe_lang に永続化（golfCompe_v1 とは分離）。計算・データモデルには一切介入しない。 */
 const I18N = {
 ja: {
+  'sc.sort':'並び','sc.hbh':'HBH',
   'nav.home':'ホーム','nav.menu':'メニュー','tab.home':'ホーム',
   'home.title':'ようこそ — Golf Competition','home.lead':'ゴルフコンペのスコア集計・順位発表・賞金ポイント配分までを1台で行えるアプリです。はじめての方は次の順に進めてください。',
   'home.step1':'「ゲーム」でコンペを作成し、コース（パー・隠しホール）と行うゲームを決めます。',
@@ -109,6 +110,7 @@ ja: {
   'confirm.seedTest':'テスト用のサンプル（12名・コース・スコア）を新しいゲームとして作成します。よろしいですか？','confirm.rlReset':'ルーレットを最初からやり直しますか？',
 },
 zh: {
+  'sc.sort':'排序','sc.hbh':'逐洞',
   'nav.home':'首页','nav.menu':'菜单','tab.home':'首页',
   'home.title':'欢迎 — Golf Competition','home.lead':'这是一款可在一台设备上完成高尔夫比赛计分、排名发布与奖金积分分配的应用。首次使用请按以下顺序操作。',
   'home.step1':'在「比赛」中创建比赛，设置球场（标准杆・隐藏洞）并选择要进行的游戏。',
@@ -216,6 +218,7 @@ zh: {
   'confirm.seedTest':'将创建测试样本（12人·球场·成绩）作为新比赛，确定吗？','confirm.rlReset':'确定从头重新开始轮盘吗？',
 },
 en: {
+  'sc.sort':'Sort','sc.hbh':'Hole-by-hole',
   'nav.home':'Home','nav.menu':'Menu','tab.home':'Home',
   'home.title':'Welcome — Golf Competition','home.lead':'An app that handles scoring, rankings and prize-point payouts for a golf competition on a single device. If this is your first time, follow these steps.',
   'home.step1':'Create a competition under "Game", then set the course (pars, hidden holes) and pick the games to play.',
