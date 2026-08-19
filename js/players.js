@@ -1,6 +1,24 @@
 /* ============================ PLAYERS ============================ */
 function renderPlayers(){
   const el=document.getElementById('view-players');
+  const g=curGame();
+  // 参加者・チーム対抗カード（ゲーム未選択時は msg.needGame を1つ表示）（§11.12 N）
+  const gameCards = !g ? `<div class="empty">${t('msg.needGame')}</div>`
+    : `<div class="card"><h2>${t('game.partsCard')}</h2>
+    ${state.players.length? state.players.map(p=>`<span class="chip ${g.participants.includes(p.id)?'on':''}" onclick="toggleParticipant('${p.id}')">${esc(p.name)}${p.everyType!=='none'?' '+everyLabel(p.everyType):''}</span>`).join('')
+      : `<div class="muted">${t('game.partsEmpty')}</div>`}
+  </div>
+  <div class="card"><h2>${t('game.teamCard')}</h2>
+    <div class="row"><button class="btn sec sm" onclick="addTeam()">${t('game.addTeam')}</button>
+      <button class="btn gray sm" onclick="autoTeams(2)">${t('game.auto2')}</button>
+      <button class="btn gray sm" onclick="autoTeams(3)">${t('game.auto3')}</button></div>
+    ${g.teams.map(t=>`<div style="border:1px solid var(--line);border-radius:var(--r-md);padding:10px;margin-top:8px">
+      <div class="row between"><input value="${esc(t.name)}" onchange="setTeamName('${t.id}',this.value)" style="flex:1;font-weight:var(--w-bold)">
+        <button class="btn sm danger" onclick="delTeam('${t.id}')">×</button></div>
+      <div class="mt6">${g.participants.map(pid=>{const p=state.players.find(x=>x.id===pid);if(!p)return'';
+        return `<span class="chip ${t.memberIds.includes(pid)?'on':''}" onclick="toggleTeamMember('${t.id}','${pid}')">${esc(p.name)}</span>`}).join('')}</div>
+    </div>`).join('') || `<div class="muted">${t('game.teamEmpty')}</div>`}
+  </div>`;
   el.innerHTML = `
     <div class="card">
       <h2>${t('player.master')}</h2>
@@ -34,6 +52,7 @@ function renderPlayers(){
               <button class="btn sm danger" onclick="delPlayer('${p.id}')">×</button></td>
         </tr>`).join('')}</table></div>` : `<div class="empty">${t('player.empty')}</div>`}
     </div>
+    ${gameCards}
     <div class="card">
       <h2>${t('backup.title')}</h2>
       <div class="muted">${t('backup.note')}</div>
@@ -61,4 +80,19 @@ function delPlayer(id){ if(!confirm(t('confirm.delete')))return;
   state.games.forEach(g=>{ g.participants=g.participants.filter(x=>x!==id); delete g.scores[id];
     g.teams.forEach(t=>t.memberIds=t.memberIds.filter(x=>x!==id)); });
   save(); renderPlayers(); }
+/* 参加者・チーム対抗（js/game.js から移動・§11.12 N） */
+function toggleParticipant(pid){ const g=curGame(); const i=g.participants.indexOf(pid);
+  if(i<0){ g.participants.push(pid); g.scores[pid]=g.scores[pid]||Array(18).fill(null); }
+  else { g.participants.splice(i,1); } save(); renderPlayers(); }
+function addTeam(){ const g=curGame(); const names=['レッド','ブルー','グリーン','イエロー'];
+  g.teams.push({id:uid(),name:'チーム'+names[g.teams.length%4],memberIds:[]}); save(); renderPlayers(); }
+function autoTeams(n){ const g=curGame(); const names=['レッド','ブルー','グリーン'];
+  g.teams=[]; for(let i=0;i<n;i++)g.teams.push({id:uid(),name:'チーム'+names[i],memberIds:[]});
+  g.participants.forEach((pid,i)=>g.teams[i%n].memberIds.push(pid)); save(); renderPlayers(); }
+function setTeamName(id,v){ curGame().teams.find(t=>t.id===id).name=v; save(); }
+function delTeam(id){ const g=curGame(); g.teams=g.teams.filter(t=>t.id!==id); save(); renderPlayers(); }
+function toggleTeamMember(tid,pid){ const g=curGame();
+  g.teams.forEach(t=>{ if(t.id!==tid) t.memberIds=t.memberIds.filter(x=>x!==pid); });
+  const t=g.teams.find(t=>t.id===tid); const i=t.memberIds.indexOf(pid);
+  if(i<0)t.memberIds.push(pid); else t.memberIds.splice(i,1); save(); renderPlayers(); }
 
