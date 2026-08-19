@@ -193,7 +193,7 @@ function setPrize(k,h,v){ curGame().prizes[k][h]=v; save(); renderResult(); }
 
 // チーム対抗の各結果を「個別カード」で返す。ゲームごとに master トグル＋チームごとの目隠しボタン（名前＋合計をまとめて隠す）
 function renderTeams(g){
-  const F=g.formats; const teams=g.teams.filter(t=>t.memberIds.length);
+  const F=chFormats(g); const teams=g.teams.filter(t=>t.memberIds.length);   // αではβゲームのカードを出さない（§11.12 C）
   const teamGross=t=>t.memberIds.reduce((a,pid)=>a+effGross(g,pid),0);
   const teamNet=t=>Math.round(t.memberIds.reduce((a,pid)=>a+netScore(g,pid),0)*10)/10;
   const card=(key,title,valFn,dir,note)=>{ const rows=teams.map(t=>({t,v:valFn(t)})).sort((a,b)=> dir==='desc'? b.v-a.v : a.v-b.v);

@@ -49,7 +49,7 @@ function renderStanding(g, parts){
 
 // 個人戦タブ（上：スコア表 / 下：各順位を左から右に並べる）
 function renderIndividual(g, parts){
-  const F=g.formats;
+  const F=chFormats(g);   // αではβゲームを表示しない（§11.12 C）
   const done=parts.filter(pid=>complete(g,pid)).length;
   const banner = allComplete(g)
     ? `<div class="card" style="background:var(--win-bg)">${t('ind.finalBanner',{N:parts.length})}</div>`
@@ -72,11 +72,11 @@ function renderIndividual(g, parts){
     <details class="mt10"><summary>${t('rule.summary')}</summary><div class="in">
       <div class="rule">${t('rule.net')}</div>
       <div class="rule">${t('rule.gross')}</div>
-      <div class="rule">${t('rule.stableford')}</div>
+      ${CHANNEL==='b'?`<div class="rule">${t('rule.stableford')}</div>
       <div class="rule">${t('rule.olympic')}</div>
       <div class="rule">${t('rule.callaway')}</div>
       <div class="rule">${t('rule.nassau')}</div>
-      <div class="rule">${t('rule.vegas')}</div>
+      <div class="rule">${t('rule.vegas')}</div>`:''}
     </div></details>`;
 }
 
@@ -157,7 +157,7 @@ function renderPrizeTab(g){
 
 // チーム戦タブ（上：チーム別スコア表(ホール勝敗を直接表示) / 下：対抗結果を左→右に並べる）
 function renderTeamTab(g){
-  const F=g.formats;
+  const F=chFormats(g);   // αではβゲームを表示しない（§11.12 C）
   const anyTeamFmt = F.teamGross||F.teamNet||F.holeByHole||F.best2ball||F.vegas;
   if(!g.teams.filter(t=>t.memberIds.length).length)
     return `<div class="card"><h2>${t('team.title')}</h2><div class="empty">${t('team.emptyTeams')}</div></div>`;
