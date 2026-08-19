@@ -731,6 +731,29 @@ vegasStandings(g):
 - ルーレットのロジック（抽選/チェンジ/チャレンジ/ハーフ制=§11.3・取得H集計）は不変＝**見た目のみ**。
 - ※**旧③「1画面レイアウト（iPad横持ち・100dvh縦グリッド）」は本Jから外し、別途やり取りして設計を詰める**（下記「保留」）。
 
+#### K. ヘッダ上下入替＝コンペ情報を主役に【UI・確定・§11.8 ヘッダ仕様＋本節Aのワードマーク装飾を上書き・2026-08-19】
+- 要望原文:「タイトル『Golf Competition』とその下のコンペ情報は上下を逆にしてフォントも交換、さらにコンペ情報を大きく。さらに黄色い下線は不要」。
+- 方針: ヘッダ左ブロックの主役を**コンペ情報（ゲーム名/日付/コース＝`#hdrGame`）**にし、ワードマーク「Golf Competition」は小さく下段へ。**黄下線（`border-bottom:2px solid var(--acc)`）は廃止**。
+- DOM（index.html 17–18行）: `.hdr-row` 左ブロック内で **`<div class="gamename" id="hdrGame">` を上、`<h1>` を下**に（2行の順序入替のみ。要素名/クラス名/文言は不変。`<h1>` はページタイトルとして温存）。
+- スタイル（styles.css §11.8 ヘッダブロック。数値確定・前→後）:
+
+| 要素 | 前 | 後 |
+|---|---|---|
+| `header .gamename`（#hdrGame） | 11px(`--f-small`)／`--sub`／w600(`--w-med`)／Sans（body既定）／margin-top:2px | **20px(`--f-val`)／`--strong`／700／"Noto Serif JP","Noto Serif",serif**／letter-spacing:.02em／line-height:1.2／margin-top:0／**white-space:nowrap; overflow:hidden; text-overflow:ellipsis** |
+| `header h1` | 16px(`--f-name`)／`--strong`／700／Serif／letter-spacing:.06em | **11px(`--f-small`)／`--sub`／600(`--w-med`)／Sans（bodyフォント継承）**／letter-spacing:.06em／line-height:1.2／margin-top:2px |
+| `header h1 span` | `margin-left:6px; border-bottom:2px solid var(--acc); padding-bottom:1px` ほか | **セレクタごと削除**（span は h1 を素直に継承＝下線・余白・装飾なし） |
+| 狭幅 `@media(max-width:560px)` | `header h1{font-size:15px;white-space:nowrap}` | この1行を **`header .gamename{font-size:17px}`** に置換（h1 は全幅で 11px 固定のため狭幅個別指定は不要） |
+
+- はみ出し対策: `#hdrGame` の中身は js/nav.js:55 の `名前　日付　@コース`（変更しない）で長くなり得る → **常に1行＋末尾省略（…）**とする（折返しでヘッダを縦に伸ばさない）。ellipsis を効かせるため、`<h1>`/`#hdrGame` を包む左ブロック `<div>` にクラス（例 `hdr-title`、命名は実装者裁量）を付け `min-width:0; flex:1 1 auto; overflow:hidden` を指定する（flex子のellipsisは `min-width:0` 必須）。
+- ヘッダ高さ: 両行 line-height:1.2 の明示により、後の左ブロック高 ≈ 20×1.2 + 2 + 11×1.2 ≈ 39px（前 ≈ 16×1.45 + 2 + 11×1.45 ≈ 41px）＝**ヘッダ総高は増えない** → `.mainnav{position:sticky;top:50px}` は変更不要。
+- `--acc` トークンは**削除しない**（`.chbadge.beta` / `.tagbeta` / `.chcard.beta` / `.rule` / `.prizewin` / `.payoutcard` / `.ic` / `.hidden-h` / `.sc2` 系で使用中）。廃止は「ヘッダ h1 span の下線」だけ。styles.css 48行のコメント（「"COMPE"に黄下線を少量」）も実態に合わせて書き換える。本節Aの「ワードマークは Serif＋"Competition"に黄下線少量」の装飾規定はこのKで失効（改称「Golf Competition」と sticky は維持）。
+- **見た目比較（前→後・1行例。ゲーム「月例杯 2026-08-19 @霞ヶ丘GC」選択時）**
+  - 前: 上段 `Golf Competition`（Serif 16px 濃色・Competition に黄下線）／下段 `月例杯　2026-08-19　@霞ヶ丘GC`（Sans 11px 灰）
+  - 後: 上段 `月例杯　2026-08-19　@霞ヶ丘GC`（**Serif 20px 濃色**・長ければ `月例杯　2026-08-…` と省略）／下段 `Golf Competition`（Sans 11px 灰・下線なし）
+  - 未選択時: 上段が `— ゲーム未選択 —`（`hdr.noGame`）で同スタイル表示（色分け等の特別扱いはしない＝既定）。
+- 不変: ヘッダ右側（テーマ/言語/☰）・header の sticky/面色/下罫線・i18n（キー追加/削除なし）・js/**（nav.js:55 含む）・§3計算・localStorage。ライト/ダークはトークン（`--strong`/`--sub`）継承で自動対応。
+- PR: 単独PR推奨（表示のみ・極小）。触るのは **index.html の2行入替＋styles.css §11.8 ヘッダブロック（48–54行付近と84行）だけ**。
+
 #### 保留（今回スコープ外）
 - ルーレットの勝敗色（枠線/塗り）ルールの再設計は**別途検討**（現状維持）。
 - **ルーレット1画面レイアウト（旧J③・iPad横持ち・100dvh縦グリッド・無スクロール）**：**設計を別途やり取りして詰めてから**着手（2026-08-19 ユーザー指示で分離）。ゾーン構成・大きさ配分・スマホ縦の扱いを再検討。モデル叩き台=`artifacts/html/2026/08/76-club-roulette-1screen.html`。
@@ -742,4 +765,5 @@ vegasStandings(g):
 4. **D レスポンシブ入力**（コース設定・スコア入力の横スクロール解消）
 5. **J ルーレット改修（①取得H右上＋②スコア表並びのみ）**。※旧③1画面レイアウトは保留（別途）。
 6. **J④ 「全18ホール終了」テキスト全廃**（極小・表示のみ。単独PR可、5と同一PRでも可。i18n 3言語同時削除を含む）。
+7. **K ヘッダ上下入替＋コンペ情報拡大＋黄下線廃止**（極小・表示のみ・単独PR。index.html 2行入替＋styles.css §11.8 のみ）。
 - 各PRとも i18n（ja/zh/en キー同数）・ライト/ダーク・iPad/投影で非破綻を条件に。計算に触れるのは H のみ（他は表示のみ）。
