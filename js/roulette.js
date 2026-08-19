@@ -108,10 +108,8 @@ function renderRouletteTab(g){
   const R=g.roulette;
   teams.forEach(t=>{ if(R.remChange[t.id]===undefined)R.remChange[t.id]=R.changeN; if(R.remChallenge[t.id]===undefined)R.remChallenge[t.id]=R.challengeM; });
   const {won,pending}=rlStandings(g);
-  // §11.12 J①: 取得Hの独立チップ行は廃止（各抽選カードの右上に常時表示）。ここは進捗とリセットのみ
+  // §11.12 J①: 取得Hの独立チップ行は廃止（各抽選カードの右上に常時表示）
   const wonH=ti=>Math.round((won[ti]||0)*10)/10;   // 0Hから常時表示（引分は0.5刻み）
-  const standBar=`<div class="rl-stand"><span class="rl-prog">${Math.min(R.cur,18)}/18</span>
-    <button class="btn gray sm" style="margin-left:auto" onclick="rlReset()">${t('btn.reset')}</button></div>`;
 
   /* §11.12 J③: 18H終了後もチームカードを残す（#31）。抽選は終わっているので個人名・代表スコア・
      チェンジ/チャレンジは描かず、カード上段（チーム名＋右上の取得H）だけを取得H降順で残す。 */
@@ -122,8 +120,8 @@ function renderRouletteTab(g){
         <div class="rl-top"><span class="rl-team" style="color:${col}">${esc(tm.name)}</span>
           <span class="rl-h" style="color:${col}">${wonH(ti)}H</span></div>
       </div>`; }).join('');
-    return `<div class="rlwrap">${standBar}
-      <div class="card rl-play"><div class="rl-panels">${cards}</div></div>${rlScorecard(g)}</div>`;
+    return `<div class="rlwrap">
+      <div class="card rl-play"><div class="rl-head"><button class="btn gray sm" style="margin-left:auto" onclick="rlReset()">${t('btn.reset')}</button></div><div class="rl-panels">${cards}</div></div>${rlScorecard(g)}</div>`;
   }
 
   const h=R.cur; const reps=R.reps[h]||{}; const drawn=rlHoleDrawn(g);
@@ -132,7 +130,7 @@ function renderRouletteTab(g){
   if(drawn){ const sc=holeScores();
     if(sc.some(s=>s==null)) holeInfo=`<span class="muted">${t('rl.repNoScore')}</span>`;
     else{ const mn=Math.min(...sc); const wi=sc.map((s,i)=>s===mn?i:-1).filter(i=>i>=0);
-      holeInfo = wi.length===teams.length?t('rl.tie'):('WIN: <b>'+wi.map(i=>esc(teams[i].name)).join('・')+'</b>'); } }
+      holeInfo = wi.length===teams.length?t('rl.tie'):''; } }   // §11.12 M: WIN テキスト廃止（カードの緑表示＋取得H加算で伝わる）
   // 確定時の勝敗クラス（#6）：勝ち=win/負け=lose/全チーム同点=tie。スコア未入力が混じれば無色
   const stCls=(()=>{ const none=teams.map(()=>''); if(!drawn||rl.spinning)return none;
     const sc=holeScores(); if(sc.some(s=>s==null))return none;
@@ -163,10 +161,10 @@ function renderRouletteTab(g){
     <hr>${teams.map(tm=>`<div class="row between" style="margin:2px 0"><span style="color:${rColor(tm.name)};min-width:64px">${esc(tm.name)}</span><span><button class="btn gray sm" onclick="rlRefund('${tm.id}','change')">${t('rl.refundChange',{n:R.remChange[tm.id]||0})}</button> <button class="btn gray sm" onclick="rlRefund('${tm.id}','challenge')">${t('rl.refundChallenge',{n:R.remChallenge[tm.id]||0})}</button></span></div>`).join('')}
   </div></details>`;
   return `<div class="rlwrap">
-    ${standBar}
     <div class="card rl-play">
       <div class="rl-head"><div class="rl-hole">${h+1}<small>H</small></div><div class="rl-par">Par ${g.par[h]}</div>
-        ${rl.challengeFrom?`<span class="muted" style="margin-left:auto">${t('rl.pickOpp')} <button class="btn gray sm" onclick="rlCancelChallenge()">${t('btn.cancel')}</button></span>`:''}</div>
+        ${rl.challengeFrom?`<span class="muted">${t('rl.pickOpp')} <button class="btn gray sm" onclick="rlCancelChallenge()">${t('btn.cancel')}</button></span>`:''}
+        <button class="btn gray sm" style="margin-left:auto" onclick="rlReset()">${t('btn.reset')}</button></div>
       <div class="rl-panels">${panels}</div>
       <div class="rl-ctrl">
         <div class="rl-info">${(!rl.spinning&&drawn)?holeInfo:'&nbsp;'}</div>
