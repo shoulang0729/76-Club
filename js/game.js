@@ -34,23 +34,6 @@ function renderGame(){
     <label style="display:flex;gap:8px;align-items:center;font-size:14px"><input type="checkbox" ${g.womenEvery.enabled?'checked':''} onchange="setWE(this.checked)"> ${t('game.everyApply')}</label>
     <div class="muted" class="mt6">${t('game.everyNote')}</div></div>`;
 
-  html += `<div class="card"><h2>${t('game.partsCard')}</h2>
-    ${state.players.length? state.players.map(p=>`<span class="chip ${g.participants.includes(p.id)?'on':''}" onclick="toggleParticipant('${p.id}')">${esc(p.name)}${p.everyType!=='none'?' '+everyLabel(p.everyType):''}</span>`).join('')
-      : `<div class="muted">${t('game.partsEmpty')}</div>`}
-  </div>`;
-
-  html += `<div class="card"><h2>${t('game.teamCard')}</h2>
-    <div class="row"><button class="btn sec sm" onclick="addTeam()">${t('game.addTeam')}</button>
-      <button class="btn gray sm" onclick="autoTeams(2)">${t('game.auto2')}</button>
-      <button class="btn gray sm" onclick="autoTeams(3)">${t('game.auto3')}</button></div>
-    ${g.teams.map(t=>`<div style="border:1px solid var(--line);border-radius:var(--r-md);padding:10px;margin-top:8px">
-      <div class="row between"><input value="${esc(t.name)}" onchange="setTeamName('${t.id}',this.value)" style="flex:1;font-weight:var(--w-bold)">
-        <button class="btn sm danger" onclick="delTeam('${t.id}')">×</button></div>
-      <div class="mt6">${g.participants.map(pid=>{const p=state.players.find(x=>x.id===pid);if(!p)return'';
-        return `<span class="chip ${t.memberIds.includes(pid)?'on':''}" onclick="toggleTeamMember('${t.id}','${pid}')">${esc(p.name)}</span>`}).join('')}</div>
-    </div>`).join('') || `<div class="muted">${t('game.teamEmpty')}</div>`}
-  </div>`;
-
   const F=g.formats;
   const fchk=(k,label)=>`<label><input type="checkbox" ${F[k]?'checked':''} onchange="setFmt('${k}',this.checked)"> ${label}</label>`;
   // β系フォーマットのトグルは β版でだけ表示・選択可（§11.12 C）。α版でも g.formats の値自体は保持する
@@ -124,18 +107,4 @@ function selectGame(id){ state.currentGameId=id||null; save(); render(); }
 function deleteGame(){ if(!confirm(t('confirm.deleteGame')))return;
   state.games=state.games.filter(x=>x.id!==state.currentGameId); state.currentGameId=state.games[0]?.id||null; save(); render(); }
 function dupGame(){ const g=JSON.parse(JSON.stringify(curGame())); g.id=uid(); g.name=g.name+' (複製)'; state.games.push(g); state.currentGameId=g.id; save(); render(); }
-function toggleParticipant(pid){ const g=curGame(); const i=g.participants.indexOf(pid);
-  if(i<0){ g.participants.push(pid); g.scores[pid]=g.scores[pid]||Array(18).fill(null); }
-  else { g.participants.splice(i,1); } save(); renderGame(); }
-function addTeam(){ const g=curGame(); const names=['レッド','ブルー','グリーン','イエロー'];
-  g.teams.push({id:uid(),name:'チーム'+names[g.teams.length%4],memberIds:[]}); save(); renderGame(); }
-function autoTeams(n){ const g=curGame(); const names=['レッド','ブルー','グリーン'];
-  g.teams=[]; for(let i=0;i<n;i++)g.teams.push({id:uid(),name:'チーム'+names[i],memberIds:[]});
-  g.participants.forEach((pid,i)=>g.teams[i%n].memberIds.push(pid)); save(); renderGame(); }
-function setTeamName(id,v){ curGame().teams.find(t=>t.id===id).name=v; save(); }
-function delTeam(id){ const g=curGame(); g.teams=g.teams.filter(t=>t.id!==id); save(); renderGame(); }
-function toggleTeamMember(tid,pid){ const g=curGame();
-  g.teams.forEach(t=>{ if(t.id!==tid) t.memberIds=t.memberIds.filter(x=>x!==pid); });
-  const t=g.teams.find(t=>t.id===tid); const i=t.memberIds.indexOf(pid);
-  if(i<0)t.memberIds.push(pid); else t.memberIds.splice(i,1); save(); renderGame(); }
 
