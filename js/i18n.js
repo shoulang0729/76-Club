@@ -3,7 +3,7 @@
 const I18N = {
 ja: {
   'sc.sort':'並び','sc.hbh':'HBH',
-  'nav.home':'ホーム','nav.menu':'メニュー','tab.home':'ホーム',
+  'nav.home':'ホーム','tab.home':'ホーム',
   'home.title':'ようこそ — Golf Competition','home.lead':'ゴルフコンペのスコア集計・順位発表・賞金ポイント配分までを1台で行えるアプリです。はじめての方は次の順に進めてください。',
   'home.step1':'「ゲーム」でコンペを作成し、コース（パー・隠しホール）と行うゲームを決めます。',
   'home.step2':'「選手」に参加者を登録します（ハンデ区分・幹事対象外もここで設定）。',
@@ -17,7 +17,7 @@ ja: {
   'ch.a.desc':'検証済みの安定版。定番のゲームだけを扱います。','ch.b.desc':'新機能テスト中の版。α版のゲームに加えて、試験中のゲームも選べます。',
   'ch.common':'賞金ポイント配分・次回幹事・表彰式リビール・目隠し・多言語・ライト/ダークは、どちらの版でも使えます。',
   'ch.enter':'{v}に切り替える','ch.switch':'α版 / β版の切替','ch.switched':'{v}に切り替えました','ch.betaOnly':'β版のゲーム',
-  'nav.game':'ゲーム','nav.players':'選手','nav.score':'スコア入力','nav.result':'結果',
+  'nav.game':'ゲーム','nav.players':'選手','nav.score':'スコア','nav.result':'結果',
   'theme.label':'テーマ','theme.light':'ライト','theme.dark':'ダーク',
   'tab.game':'ゲーム','tab.players':'選手','tab.score':'入力','tab.result':'結果',
   'hdr.noGame':'— ゲーム未選択 —',
@@ -111,7 +111,7 @@ ja: {
 },
 zh: {
   'sc.sort':'排序','sc.hbh':'逐洞',
-  'nav.home':'首页','nav.menu':'菜单','tab.home':'首页',
+  'nav.home':'首页','tab.home':'首页',
   'home.title':'欢迎 — Golf Competition','home.lead':'这是一款可在一台设备上完成高尔夫比赛计分、排名发布与奖金积分分配的应用。首次使用请按以下顺序操作。',
   'home.step1':'在「比赛」中创建比赛，设置球场（标准杆・隐藏洞）并选择要进行的游戏。',
   'home.step2':'在「选手」中登记参赛者（差点类型・干事豁免也在此设置）。',
@@ -219,7 +219,7 @@ zh: {
 },
 en: {
   'sc.sort':'Sort','sc.hbh':'Hole-by-hole',
-  'nav.home':'Home','nav.menu':'Menu','tab.home':'Home',
+  'nav.home':'Home','tab.home':'Home',
   'home.title':'Welcome — Golf Competition','home.lead':'An app that handles scoring, rankings and prize-point payouts for a golf competition on a single device. If this is your first time, follow these steps.',
   'home.step1':'Create a competition under "Game", then set the course (pars, hidden holes) and pick the games to play.',
   'home.step2':'Register the participants under "Players" (handicap type and organizer exemption are set here too).',
