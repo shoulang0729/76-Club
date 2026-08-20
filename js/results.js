@@ -17,12 +17,14 @@ function renderResult(){
   if(!g0){ el.innerHTML=`<div class="empty">${t('result.noGame')}</div>`; return; }
   const parts=g0.participants.filter(pid=>state.players.find(x=>x.id===pid));
   if(!parts.length){ el.innerHTML=`<div class="empty">${t('result.noParts')}</div>`; return; }
+  if(resultSub==='m1' && CHANNEL!=='b') resultSub='ind';   // 1 on 1 はβ版のみ（α切替時の残留対策・§11.13）
   const g=viewGame(g0);   // 開封済みホールのみ反映
   const partial = revealHoles<18 ? `<span class="tag tagtie">${revealHoles}/18H</span>` : '';
   let sticky=`<div class="result-sticky"><div class="subtab4">
       <button class="${resultSub==='prize'?'on':''}" onclick="setResultSub('prize')">${t('result.sub.prize')}</button>
       <button class="${resultSub==='ind'?'on':''}" onclick="setResultSub('ind')">${t('result.sub.ind')}</button>
       <button class="${resultSub==='team'?'on':''}" onclick="setResultSub('team')">${t('result.sub.team')}</button>
+      ${CHANNEL==='b'?`<button class="${resultSub==='m1'?'on':''}" onclick="setResultSub('m1')">${t('result.sub.match1v1')}</button>`:''}
       <button class="${resultSub==='roulette'?'on':''}" onclick="setResultSub('roulette')">${t('result.sub.roulette')}</button>
       <button class="${resultSub==='pts'?'on':''}" onclick="setResultSub('pts')">${t('result.sub.pts')}</button>
     </div></div>`;
@@ -31,6 +33,7 @@ function renderResult(){
   else if(resultSub==='ind') body=renderIndividual(g, parts);
   else if(resultSub==='prize') body=renderPrizeTab(g);
   else if(resultSub==='roulette') body=renderRouletteTab(g0);   // 実スコアで動作
+  else if(resultSub==='m1') body=renderMatch1v1Tab(g);          // 開封済みホール連動（§11.13）
   else body=renderTeamTab(g);
   el.innerHTML = sticky + body;
 }
@@ -76,6 +79,7 @@ function renderIndividual(g, parts){
       <div class="rule">${t('rule.olympic')}</div>
       <div class="rule">${t('rule.callaway')}</div>
       <div class="rule">${t('rule.nassau')}</div>
+      <div class="rule">${t('rule.match1v1')}</div>
       <div class="rule">${t('rule.vegas')}</div>`:''}
     </div></details>`;
 }
@@ -186,5 +190,74 @@ function renderTeamTab(g){
     return `<div class="card"><h2>${t('team.title')}</h2><div class="empty">${t('team.emptyFmt')}</div></div>`;
   const teams=g.teams.filter(t=>t.memberIds.length);
   return renderScorecard(g, g.participants, teams) + `<div class="rank-wrap">${renderTeams(g)}</div>`;
+}
+
+/* ---- 1 on 1 マッチプレー タブ（§11.13・docs/handoff/2026-08-20-1on1-match.md §4/§7）---- */
+// 抽選（§4.2 mod方式）: X/Y=各チームの参加メンバーをシャッフル（Fisher–Yates）、n=max(|X|,|Y|)、pairs[i]=[X[i mod |X|],Y[i mod |Y|]]
+// → 大きい側=全員ちょうど1回・小さい側=全員1回以上（回数差は最大1）・同一カードの再戦なし
+function m1Shuffle(a){ const x=a.slice(); for(let i=x.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [x[i],x[j]]=[x[j],x[i]]; } return x; }
+function m1MakePairs(g){ const T=m1Teams(g); if(T.length!==2) return null;
+  const X=m1Shuffle(m1MemberIds(g,T[0])), Y=m1Shuffle(m1MemberIds(g,T[1]));
+  const n=Math.max(X.length,Y.length), pairs=[];
+  for(let i=0;i<n;i++) pairs.push([X[i%X.length], Y[i%Y.length]]);
+  return { teamA:T[0].id, teamB:T[1].id, pairs }; }
+function m1Draw(redraw){ const g=curGame(); if(!g)return;
+  if(redraw && !confirm(t('m1.confirmRedraw')))return;
+  const m=m1MakePairs(g); if(!m)return;
+  g.match1v1=m; save(); renderResult(); }   // 保存＝再読込でも不変（§4.3）
+
+function renderMatch1v1Tab(g){
+  const F=chFormats(g);   // αでは match1v1 は一律 false（§11.12 C）
+  if(!F.match1v1) return `<div class="card"><h2>${t('term.match1v1')}</h2><div class="empty">${t('m1.emptyFmt')}</div></div>`;
+  const T=m1Teams(g);
+  if(T.length!==2) return `<div class="card"><h2>${t('term.match1v1')}</h2><div class="empty">${t('m1.need2Teams')}</div></div>`;
+  const m=g.match1v1||{pairs:[]};
+  const v=m1Valid(g);                 // 現在の2チームと一致する保存済み抽選（なければ null）
+  const pairs=m1ValidPairs(g);        // 有効試合のみ（無効試合は表示・集計からスキップ §4.3）
+  const stale=(m.pairs||[]).length>0 && pairs.length<m.pairs.length;
+  const nameOf=pid=>{ const p=state.players.find(x=>x.id===pid); return p?esc(p.name):'?'; };
+  const n=revealHoles;
+  // 上部カード：抽選/再抽選＋チーム対抗サマリ（表示のみ・配点には使わない）
+  let top=`<div class="card"><h2 class="lbh"><span>${t('term.match1v1')} <span class="tag tagtie">${n>=18?t('sc.allHoles'):n+'/18H'}</span></span></h2>`;
+  if(v && pairs.length){
+    const rs=pairs.map(([a,b])=>m1Result(g,a,b));
+    const wA=rs.filter(r=>r.played&&r.diff>0).length, wB=rs.filter(r=>r.played&&r.diff<0).length, dr=rs.filter(r=>r.played&&r.diff===0).length;
+    top+=`<div class="mt8" style="font-size:var(--f-title);font-weight:var(--w-bold)">
+      <span style="color:${tmColor(v.A.name)}">${esc(v.A.name)}</span> <b>${wA}</b> – <b>${wB}</b> <span style="color:${tmColor(v.B.name)}">${esc(v.B.name)}</span>
+      ${dr?`<span class="tag tagtie">AS ${dr}</span>`:''}</div>`;
+    const cnt={}; pairs.forEach(([a,b])=>{ cnt[a]=(cnt[a]||0)+1; cnt[b]=(cnt[b]||0)+1; });
+    const dup=Object.keys(cnt).filter(pid=>cnt[pid]>1).map(nameOf);
+    if(dup.length) top+=`<div class="muted mt6">${t('m1.doubleNote',{name:dup.join(', ')})}</div>`;
+  }
+  if(stale) top+=`<div class="muted mt6" style="color:var(--red)">${t('m1.stale')}</div>`;
+  top+=`<div class="row mt8">${(m.pairs||[]).length
+    ? `<button class="btn gray sm" onclick="m1Draw(true)">${t('m1.redrawBtn')}</button>`
+    : `<button class="btn gold" onclick="m1Draw(false)">${t('m1.drawBtn')}</button>`}</div></div>`;
+  if(!pairs.length) return top;
+  // 開封バー（スコアカードと同一の4ボタン＝既存関数流用）
+  const bar=`<div class="card"><div class="reveal-bar">
+    <button class="btn gray sm" onclick="resetHoles()" ${n<=0?'disabled':''}>${t('btn.reset')}</button>
+    <button class="btn gray sm" onclick="closeHole()" ${n<=0?'disabled':''}>${t('sc.prev')}</button>
+    <button class="btn gold sm" onclick="openNextHole()" ${n>=18?'disabled':''}>${t('sc.next')}</button>
+    <button class="btn gray sm" onclick="openAllHoles()" ${n>=18?'disabled':''}>${t('btn.all')}</button>
+    <span class="tag tagtie">${n>=18?t('sc.allHoles'):n+'/18H'}</span></div></div>`;
+  // 対戦カード（1試合=1カード・抽選順）。値=adjHole・勝ちセル=緑(rwin)・ハーフ=橙(rtie)・未開封=空欄
+  const H=[...Array(18).keys()];
+  const colg=`<colgroup><col class="cnm">${H.map(()=>'<col class="ch">').join('')}</colgroup>`;
+  const cards=pairs.map(([a,b])=>{
+    const r=m1Result(g,a,b);
+    const colA=tmColor(v.A.name), colB=tmColor(v.B.name);
+    const tag = !r.played ? `<span class="tag">—</span>`
+      : r.diff>0 ? `<span class="tag" style="background:var(--win-bg);color:var(--win-ink)">${nameOf(a)} ${t('m1.up',{n:r.diff})}</span>`
+      : r.diff<0 ? `<span class="tag" style="background:var(--win-bg);color:var(--win-ink)">${nameOf(b)} ${t('m1.up',{n:-r.diff})}</span>`
+      : `<span class="tag tagtie">${t('m1.as')}</span>`;
+    const row=(pid,me,col)=>`<tr><td class="nm" style="color:${col}">${nameOf(pid)}</td>${H.map(i=>{
+      const w=m1HoleWin(g,a,b,i); const cls=w===me?'rwin':w==='H'?'rtie':'';
+      const val=adjHole(g,pid,i); return `<td class="${cls}">${val==null?'':val}</td>`; }).join('')}</tr>`;
+    return `<div class="card"><h2 class="lbh"><span><span style="color:${colA}">${nameOf(a)}</span> vs <span style="color:${colB}">${nameOf(b)}</span></span><span>${tag}</span></h2>
+      <table class="sc2">${colg}<tr><th class="nm"></th>${H.map(i=>`<th>${i+1}</th>`).join('')}</tr>
+      ${row(a,'A',colA)}${row(b,'B',colB)}</table></div>`;
+  }).join('');
+  return top + bar + cards;
 }
 

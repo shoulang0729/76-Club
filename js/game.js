@@ -44,7 +44,7 @@ function renderGame(){
     ${fchk('holeByHole',t('fmt.hbh'))}${bchk('stableford',t('fmt.stableford'))}
     ${bchk('nassau',t('fmt.nassau'))}${bchk('olympic',t('fmt.olympic'))}
     ${bchk('callaway',t('fmt.callaway'))}${bchk('best2ball',t('fmt.best2'))}
-    ${bchk('vegas',t('fmt.vegas'))}
+    ${bchk('vegas',t('fmt.vegas'))}${bchk('match1v1',t('fmt.match1v1'))}
   </div>${(CHANNEL==='b'&&F.vegas)?`<div style="margin-top:10px;border-top:1px solid var(--line);padding-top:10px">
     <label style="display:flex;gap:8px;align-items:center;font-size:13px"><input type="checkbox" ${g.vegas.flip?'checked':''} onchange="setVegas('flip',this.checked)"> ${t('vegas.flip')}</label>
     <div class="row" style="margin-top:8px;align-items:center"><span style="font-size:13px">${t('vegas.cap')}</span>
@@ -71,6 +71,8 @@ function renderGame(){
     <h3>${t('game.h3Ind')}</h3>
     ${ptsInd('net',t('fmt.net'))}${ptsInd('gross',t('fmt.gross'))}${ptsInd('stableford',t('fmt.stableford'))}
     ${ptsInd('olympic',t('fmt.olympic'))}${ptsInd('callaway',t('term.callaway'))}${ptsInd('nassauTotal',t('pts.nassauTotal'))}
+    ${F.match1v1?`<div class="ptsrow"><span>${t('pts.m1win')}</span><span class="ptsedit"><input type="number" value="${P.m1win}" onchange="setPointsNum('m1win',this.value)"></span></div>
+    <div class="ptsrow"><span>${t('pts.m1draw')}</span><span class="ptsedit"><input type="number" value="${P.m1draw}" onchange="setPointsNum('m1draw',this.value)"></span></div>`:''}
     <h3>${t('game.h3Team')}</h3>
     ${ptsTeam('teamGross',t('term.teamGross'))}${ptsTeam('teamNet',t('term.teamNet'))}${ptsTeam('holeByHole',t('term.hbh'))}${ptsTeam('best2ball',t('term.best2'))}
     <div class="ptsrow"><span>${t('term.roulette')}${t('pts.each')}</span><span class="ptsedit"><input value="${(P.roulette||[]).join(',')}" onchange="setPoints('roulette',this.value)" placeholder="3"></span></div>

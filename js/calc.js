@@ -111,6 +111,26 @@ function vegasStandings(g){ const teams=g.teams.filter(T=>vegasPair(g,T));   // 
   return { teams, tot };
 }
 
+/* ---- 1 on 1 マッチプレー（§11.13・docs/handoff/2026-08-20-1on1-match.md §3/§4）----
+   判定スコアはエブリ適用後 adjHole（チームHBH・スコア表と同一基準）。既存 §3 計算には一切触れない。 */
+function m1HoleWin(g,pidA,pidB,i){ const a=adjHole(g,pidA,i), b=adjHole(g,pidB,i);
+  if(a==null||b==null) return null;                       // 未入力/未開封はスキップ
+  return a<b?'A' : b<a?'B' : 'H'; }                       // 少ない方が1UP・同打数はハーフ
+function m1Result(g,pidA,pidB){ let upA=0,upB=0,half=0;
+  for(let i=0;i<18;i++){ const w=m1HoleWin(g,pidA,pidB,i);
+    if(w==='A')upA++; else if(w==='B')upB++; else if(w==='H')half++; }
+  return { upA, upB, half, played:upA+upB+half, diff:upA-upB }; }   // diff>0=A勝ち/<0=B勝ち/0=AS。タイブレークなし
+/* §4.1 前提: 「参加中かつ選手マスターに実在するメンバー」が1人以上のチーム。ちょうど2チームで抽選可 */
+function m1MemberIds(g,T){ return T.memberIds.filter(pid=>g.participants.includes(pid)&&state.players.find(x=>x.id===pid)); }
+function m1Teams(g){ return g.teams.filter(T=>m1MemberIds(g,T).length); }
+/* §4.3 有効性チェック: 保存済み teamA/teamB が現在の2チームと一致し、pair の両 pid が該当チームの参加メンバーである試合のみ有効 */
+function m1Valid(g){ const m=g.match1v1; if(!m||!m.teamA||!m.teamB||!(m.pairs||[]).length) return null;
+  const T=m1Teams(g); if(T.length!==2) return null;
+  const A=T.find(x=>x.id===m.teamA), B=T.find(x=>x.id===m.teamB);
+  return (A&&B)? {A,B} : null; }
+function m1ValidPairs(g){ const v=m1Valid(g); if(!v) return [];
+  return g.match1v1.pairs.filter(([a,b])=> m1MemberIds(g,v.A).includes(a) && m1MemberIds(g,v.B).includes(b)); }
+
 /* ---- points & payout ---- */
 function computePoints(g){
   const parts=g.participants.filter(pid=>state.players.find(x=>x.id===pid));
@@ -128,6 +148,13 @@ function computePoints(g){
   // prizes
   Object.values(g.prizes.niapinWinner||{}).forEach(pid=>{ if(pid&&pts[pid]!=null)pts[pid]+=(P.niapin||0); });
   Object.values(g.prizes.draconWinner||{}).forEach(pid=>{ if(pid&&pts[pid]!=null)pts[pid]+=(P.dracon||0); });
+  // 1 on 1 マッチプレー（§11.13 §6）：勝者+m1win/引分両者+m1draw。個人にのみ加算（チーム全員加算はしない）
+  if(F.match1v1 && g.match1v1 && (g.match1v1.pairs||[]).length){
+    m1ValidPairs(g).forEach(([a,b])=>{ const r=m1Result(g,a,b); if(!r.played)return;   // 有効試合のみ・未プレーは配点なし
+      if(r.diff>0){ if(pts[a]!=null)pts[a]+=(P.m1win||0); }
+      else if(r.diff<0){ if(pts[b]!=null)pts[b]+=(P.m1win||0); }
+      else { if(pts[a]!=null)pts[a]+=(P.m1draw||0); if(pts[b]!=null)pts[b]+=(P.m1draw||0); } });
+  }
   // teams（1人でも入力があるチームのみ配点）
   const teamEntered=t=>t.memberIds.some(pid=>entered(pid));
   const awardTeam=(cond,tr,arr)=>{ if(!cond||!arr||!arr.length)return; tr.forEach(r=>{ if(!teamEntered(r.t))return; const p=arr[r.rank-1]||0; r.t.memberIds.forEach(pid=>{ if(pts[pid]!=null)pts[pid]+=p; }); }); };
