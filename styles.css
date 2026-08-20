@@ -25,7 +25,7 @@
     --r-sm:6px; --r-md:10px; --r-pill:99px;
     --w-reg:400; --w-med:600; --w-bold:800;
     --f-hero:21px; --f-val:20px; --f-name:16px; --f-title:15px; --f-body:13px; --f-small:11px;
-    --f-rl-hole:48px; --f-rl-name:30px; --f-rl-score:44px;   /* ルーレット投影用大型（§11.10別枠） */
+    --f-rl-hole:48px; --f-rl-name:30px; --f-rl-score:44px;   /* 投影用大型（§11.14。ルーレット・1 on 1 で共用） */
   }
   /* ダーク（§11.8）: 色トークンの値のみ上書き。構造・余白・角丸・サイズは :root と共通 */
   html[data-theme="dark"]{
@@ -296,6 +296,14 @@
   .sc2 .rwin{background:var(--win-bg-strong) !important;font-weight:var(--w-bold);color:var(--win-ink) !important}   /* 勝ち：濃緑文字で高コントラスト */
   .sc2 .rtie{background:var(--tie-bg) !important;font-weight:var(--w-bold);color:var(--tie-ink) !important}   /* 引分：濃橙文字 */
   .rlsc td.nm,.rlsc th.nm{width:72px}
+  /* 1 on 1 大型UP表示（投影原則 §11.14 適用第1号・§13.3）。--f-rl-* の @media 再定義に自動追従 */
+  .m1-hero{display:grid;grid-template-columns:1fr auto 1fr;align-items:center;text-align:center;gap:8px;margin:4px 0 8px}
+  .m1-nm{font-size:var(--f-rl-name);font-weight:var(--w-bold);line-height:1.15;overflow-wrap:anywhere}
+  .m1-big{font-size:var(--f-rl-score);font-weight:var(--w-bold);line-height:1;font-variant-numeric:tabular-nums;white-space:nowrap}
+  .m1-big.w{color:var(--win)}   /* 勝ち=緑（矢印がリード側を指す＝文字併記） */
+  .m1-big.d{color:var(--tie)}   /* AS=橙 */
+  .m1-big.n{color:var(--sub)}   /* 未プレー */
+  .m1-editwrap{margin-top:10px}   /* 幹事用編集UI（details 折りたたみ＝投影の邪魔をしない） */
   @media(min-width:820px){
     :root{--f-rl-hole:66px;--f-rl-name:40px;--f-rl-score:64px}
     .rlwrap{max-width:900px;margin:0 auto}
