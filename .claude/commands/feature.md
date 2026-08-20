@@ -1,8 +1,15 @@
 76-Club の 設計→実装→レビュー パイプラインを次のお題で回す: $ARGUMENTS
 
 手順（各ステップは対応するサブエージェントに委譲する）:
-1. **architect** サブエージェントで設計する。docs/handoff/ を更新し GitHub Issue を起票。Issue番号と設計正本の節を報告させる。仕様に流派/曖昧があり既定で決め切れない場合はここで停止してユーザーに確認する。
+0. **サイズ判定（PM=親が実施）**: お題が **S**（見た目のみの小変更。§3計算・データモデル・localStorage・i18nキー集合・タブ/モジュール構成に非接触）なら **architect を省略**し、親が受け入れ条件つきの簡潔な Issue を起票して 2 へ。迷ったら M/L としてフルで回す。関連する小さいお題が複数あれば **1 Issue（箇条書き）＋1PR にまとめてよい**。
+1. **architect** サブエージェントで設計する。機能別の設計ファイル `docs/handoff/YYYY-MM-DD-<slug>.md` を新設し（正本 2026-07-12 への追記は §3/§4 に触れる場合のみ）、GitHub Issue を起票。Issue番号と設計ファイルのパスを報告させる。仕様に流派/曖昧があり既定で決め切れない場合はここで停止してユーザーに確認する。
 2. **implementer** サブエージェントで、その Issue を feature ブランチで実装する。`node tools/verify.mjs` を PASS させ、PR を出す。
-3. **reviewer** サブエージェントで PR を検証する（`node tools/verify.mjs` ＋ 差分精査）。全 PASS かつ load-bearing 逸脱なしなら承認コメント→ squash マージ→ 公開反映確認。FAIL や逸脱があれば implementer に差し戻す。
+3. **reviewer** サブエージェントで PR を検証する（`node tools/verify.mjs` ＋ 差分精査。S レーンは軽量レビュー）。全 PASS かつ load-bearing 逸脱なしなら承認コメント→ squash マージ→ 公開反映確認。FAIL や逸脱があれば implementer に差し戻す。
+
+並列運用（PM の裁量）:
+- 互いに独立なお題（触るファイル群が重ならない）は**別ブランチで並走**してよい。同じファイル群を触るお題は直列。
+- お題Nの実装/レビュー中に、お題N+1の **architect を先行起動**してよい（設計ファイルは機能別なので衝突しない）。
+
+環境注記: gh CLI が無い環境（クラウドセッション等）では Issue/PR/マージ/公開確認を親が GitHub MCP・Actions で代行し、サブエージェントは本文ドラフトをファイルで受け渡し、git は commit まで（push は親）。
 
 停止条件: architect が product decision を要する / reviewer が load-bearing 違反を検出 / verify.mjs が FAIL。いずれもユーザーに要点を報告して指示を仰ぐ。
