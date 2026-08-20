@@ -1,15 +1,17 @@
 /* ============================ RESULTS ============================ */
-/* 1 on 1 のオープン演出用表示状態（§13.2・揮発＝再読込で既定に戻る。localStorage には保存しない） */
+/* 1 on 1 のオープン演出用表示状態（§13.2/§14.1・揮発＝再読込で既定に戻る。localStorage には保存しない） */
 let m1RevealMode='all';      // 'all'=全組一括（既定） | 'one'=一組ずつ
-let m1Opened=new Set();      // 一組ずつモードでオープン済みのカード（キー='pidA:pidB'・並び替え/削除に不変）
+let m1Opened=new Map();      // 一組ずつモードのオープン済みカード（キー='pidA:pidB'・並び替え/削除に不変。値=その組の開封ホール数0〜18 §14.1）
 function setResultSub(s){ if(s!=='roulette')rlStopTimer(); resultSub=s; renderResult(); }
-// 開封済みホール(revealHoles)までのスコアだけ集計に使うビュー用ゲーム（18=全開）
-function viewGame(g){
-  if(revealHoles>=18) return g;
+// 先頭 n ホールのスコアだけ残した集計用ビューゲーム（n>=18=全開・§14.1 の一般化ヘルパー）
+function viewGameN(g,n){
+  if(n>=18) return g;
   const scores={};
-  g.participants.forEach(pid=>{ const a=g.scores[pid]||[]; scores[pid]=a.map((v,i)=> i<revealHoles? v : null); });
+  g.participants.forEach(pid=>{ const a=g.scores[pid]||[]; scores[pid]=a.map((v,i)=> i<n? v : null); });
   return Object.assign({}, g, {scores});
 }
+// 開封済みホール(revealHoles)までのスコアだけ集計に使うビュー用ゲーム（既存呼び出しは挙動不変）
+function viewGame(g){ return viewGameN(g,revealHoles); }
 function openNextHole(){ revealHoles=Math.min(18,revealHoles+1); renderResult(); }
 function closeHole(){ revealHoles=Math.max(0,revealHoles-1); renderResult(); }
 function openAllHoles(){ revealHoles=18; renderResult(); }
@@ -36,7 +38,7 @@ function renderResult(){
   else if(resultSub==='ind') body=renderIndividual(g, parts);
   else if(resultSub==='prize') body=renderPrizeTab(g);
   else if(resultSub==='roulette') body=renderRouletteTab(g0);   // 実スコアで動作
-  else if(resultSub==='m1') body=renderMatch1v1Tab(g);          // 開封済みホール連動（§11.13）
+  else if(resultSub==='m1') body=renderMatch1v1Tab(g0);         // 生ゲームを渡す（マスクはモード別に内部で・§14.1）
   else body=renderTeamTab(g);
   el.innerHTML = sticky + body;
 }
@@ -195,7 +197,7 @@ function renderTeamTab(g){
   return renderScorecard(g, g.participants, teams) + `<div class="rank-wrap">${renderTeams(g)}</div>`;
 }
 
-/* ---- 1 on 1 マッチプレー タブ（§11.13・docs/handoff/2026-08-20-1on1-match.md §13 が正）----
+/* ---- 1 on 1 マッチプレー タブ（§11.13・docs/handoff/2026-08-20-1on1-match.md §13 が正。一組ずつモードの開封は §14 が正）----
    組合せ=幹事の手動作成（§13.1・抽選は廃止）。判定/配点/データ構造（§3/§5/§6）は不変。
    投影原則（正本 §11.14）適用第1号: 大型UP表示が主役・幹事の編集UIは details 折りたたみ。 */
 // 組合せ編集（§13.1）: いずれも save() → renderResult()。唯一のブロック=同一カードの重複（m1.dupPair）
@@ -215,16 +217,20 @@ function m1MovePair(idx,dir){ const g=curGame(); if(!g||!g.match1v1)return;
 function m1ClearAll(){ const g=curGame(); if(!g||!g.match1v1)return;
   if(!confirm(t('m1.confirmClear')))return;
   g.match1v1={teamA:null,teamB:null,pairs:[]}; m1Opened.clear(); save(); renderResult(); }
-// オープン演出（§13.2）: 表示状態のみを更新（save() しない＝localStorage 非保存）
+// オープン演出（§13.2/§14.1）: 表示状態のみを更新（save() しない＝localStorage 非保存）
 function m1Key(a,b){ return a+':'+b; }
-function m1SetMode(mode){ m1RevealMode=mode; renderResult(); }
-function m1OpenCard(k){ m1Opened.add(k); renderResult(); }
+function m1SetMode(mode){ if(mode!==m1RevealMode) m1Opened.clear(); m1RevealMode=mode; renderResult(); }   // モード切替で組状態リセット（§14.1）
+function m1OpenCard(k){ m1Opened.set(k,0); renderResult(); }   // オープン直後=0開封（全ホール伏せ・§14.1）
 function m1OpenNext(){ const g=curGame(); if(!g)return;
   const k=m1ValidPairs(g).map(([a,b])=>m1Key(a,b)).find(x=>!m1Opened.has(x));   // 未オープンの先頭＝登録リスト順
-  if(k){ m1Opened.add(k); renderResult(); } }
+  if(k){ m1Opened.set(k,0); renderResult(); } }
 function m1OpenAllCards(){ const g=curGame(); if(!g)return;
-  m1ValidPairs(g).forEach(([a,b])=>m1Opened.add(m1Key(a,b))); renderResult(); }
+  m1ValidPairs(g).forEach(([a,b])=>m1Opened.set(m1Key(a,b),18)); renderResult(); }   // 演出スキップ＝全開
 function m1CoverAll(){ m1Opened.clear(); renderResult(); }
+// 組ローカルのホール開封（一組ずつモード・カード内バー §14.2）
+function m1Holes(k,op){ const c=m1Opened.get(k)||0;
+  m1Opened.set(k, op==='reset'?0 : op==='prev'?Math.max(0,c-1) : op==='next'?Math.min(18,c+1) : 18);
+  renderResult(); }
 
 function renderMatch1v1Tab(g){
   const F=chFormats(g);   // αでは match1v1 は一律 false（§11.12 C）
@@ -238,16 +244,19 @@ function renderMatch1v1Tab(g){
   const stale=raw.length>0 && pairs.length<raw.length;
   const nameOf=pid=>{ const p=state.players.find(x=>x.id===pid); return p?esc(p.name):'?'; };
   const n=revealHoles;
-  const isOpen=(a,b)=> m1RevealMode==='all' || m1Opened.has(m1Key(a,b));
+  const one=m1RevealMode==='one';
+  const isOpen=(a,b)=> !one || m1Opened.has(m1Key(a,b));
+  const gAll=viewGame(g);   // 全組一括モード用（従来どおり共通 revealHoles でマスク。一組ずつは組ごとに viewGameN §14.1）
   // 未出場（両チームの参加メンバーで組合せに1度も現れない選手）: 警告のみ・登録/集計はブロックしない（§13.1 運用ガイド）
   const appeared=new Set(); raw.forEach(([a,b])=>{ appeared.add(a); appeared.add(b); });
   const notPlayed=[...m1MemberIds(g,T[0]),...m1MemberIds(g,T[1])].filter(pid=>!appeared.has(pid));
   const npNote=(raw.length&&notPlayed.length)?`<div class="muted mt6" style="color:var(--red)">${t('m1.notPlayed',{name:notPlayed.map(nameOf).join(', ')})}</div>`:'';
-  // 上部カード：チーム対抗サマリ（表示のみ・配点には使わない。一組ずつモードではオープン済みのみ集計 §13.2）
-  let top=`<div class="card"><h2 class="lbh"><span>${t('term.match1v1')} <span class="tag tagtie">${n>=18?t('sc.allHoles'):n+'/18H'}</span></span></h2>`;
+  // 上部カード：チーム対抗サマリ（表示のみ・配点には使わない。一組ずつモードではオープン済みカードの現在開封数のみ集計 §14.2。n/18H タグは revealHoles が効かない一組ずつでは非表示）
+  let top=`<div class="card"><h2 class="lbh"><span>${t('term.match1v1')}${one?'':` <span class="tag tagtie">${n>=18?t('sc.allHoles'):n+'/18H'}</span>`}</span></h2>`;
   if(v && pairs.length){
-    const counted=m1RevealMode==='one'? pairs.filter(([a,b])=>m1Opened.has(m1Key(a,b))) : pairs;
-    const rs=counted.map(([a,b])=>m1Result(g,a,b));
+    const rs=one
+      ? pairs.filter(([a,b])=>m1Opened.has(m1Key(a,b))).map(([a,b])=>m1Result(viewGameN(g,m1Opened.get(m1Key(a,b))||0),a,b))
+      : pairs.map(([a,b])=>m1Result(gAll,a,b));
     const wA=rs.filter(r=>r.played&&r.diff>0).length, wB=rs.filter(r=>r.played&&r.diff<0).length, dr=rs.filter(r=>r.played&&r.diff===0).length;
     top+=`<div class="mt8" style="font-size:var(--f-rl-name);font-weight:var(--w-bold);line-height:1.15">
       <span style="color:${tmColor(v.A.name)}">${esc(v.A.name)}</span> <b>${wA}</b> – <b>${wB}</b> <span style="color:${tmColor(v.B.name)}">${esc(v.B.name)}</span>
@@ -274,36 +283,48 @@ function renderMatch1v1Tab(g){
     ${raw.length?`<div class="row mt8"><button class="btn gray sm" onclick="m1ClearAll()">${t('m1.clearAll')}</button></div>`:''}
   </div></details>`;
   if(!pairs.length) return top + editUI;
-  // 開封バー（スコアカードと同一の4ボタン＝既存関数流用・revealHoles が主 §13.2）＋オープン方式 seg
+  // 共通開封バー：全組一括=従来どおり4ボタン＋タグ（revealHoles）。一組ずつ=ホール開封は組ローカルに一本化するため4ボタン・タグ非表示（§14.2）
   const allOpen=pairs.every(([a,b])=>m1Opened.has(m1Key(a,b)));
   const bar=`<div class="card"><div class="reveal-bar">
-    <button class="btn gray sm" onclick="resetHoles()" ${n<=0?'disabled':''}>${t('btn.reset')}</button>
+    ${one?'':`<button class="btn gray sm" onclick="resetHoles()" ${n<=0?'disabled':''}>${t('btn.reset')}</button>
     <button class="btn gray sm" onclick="closeHole()" ${n<=0?'disabled':''}>${t('sc.prev')}</button>
     <button class="btn gold sm" onclick="openNextHole()" ${n>=18?'disabled':''}>${t('sc.next')}</button>
     <button class="btn gray sm" onclick="openAllHoles()" ${n>=18?'disabled':''}>${t('btn.all')}</button>
-    <span class="tag tagtie">${n>=18?t('sc.allHoles'):n+'/18H'}</span>
-    <span class="seg"><button class="${m1RevealMode==='all'?'on':''}" onclick="m1SetMode('all')">${t('m1.modeAll')}</button><button class="${m1RevealMode==='one'?'on':''}" onclick="m1SetMode('one')">${t('m1.modeOne')}</button></span>
-    ${m1RevealMode==='one'?`<button class="btn gold sm" onclick="m1OpenNext()" ${allOpen?'disabled':''}>${t('m1.openNext')}</button>
+    <span class="tag tagtie">${n>=18?t('sc.allHoles'):n+'/18H'}</span>`}
+    <span class="seg"><button class="${one?'':'on'}" onclick="m1SetMode('all')">${t('m1.modeAll')}</button><button class="${one?'on':''}" onclick="m1SetMode('one')">${t('m1.modeOne')}</button></span>
+    ${one?`<button class="btn gold sm" onclick="m1OpenNext()" ${allOpen?'disabled':''}>${t('m1.openNext')}</button>
       <button class="btn gray sm" onclick="m1OpenAllCards()">${t('m1.openAllCards')}</button>
       <button class="btn gray sm" onclick="m1CoverAll()">${t('m1.coverAll')}</button>`:''}</div></div>`;
-  // 対戦カード（1試合=1カード・登録リスト順）: hero=大型UP表示（§13.3）＋ホール表（値=adjHole・勝ち=rwin・ハーフ=rtie・未開封=空欄）
+  // 対戦カード（1試合=1カード・登録リスト順）: hero=大型UP表示（§13.3）＋[一組ずつ: カード内開封バー §14.2]＋ホール表（値=adjHole・勝ち=rwin・ハーフ=rtie・未開封=空欄）
   const H=[...Array(18).keys()];
   const colg=`<colgroup><col class="cnm">${H.map(()=>'<col class="ch">').join('')}</colgroup>`;
   const colA=tmColor(v.A.name), colB=tmColor(v.B.name);
   const cards=pairs.map(([a,b])=>{
+    const k=m1Key(a,b);
     const hero=c=>`<div class="m1-hero"><div class="m1-nm" style="color:${colA}">${nameOf(a)}</div><div>${c}</div><div class="m1-nm" style="color:${colB}">${nameOf(b)}</div></div>`;
     if(!isOpen(a,b))   // 伏せ状態（一組ずつ・未オープン §13.2）: 名前は見える・結果とホール表は隠す
-      return `<div class="card">${hero(`<button class="btn gold" onclick="m1OpenCard('${m1Key(a,b)}')">${t('m1.open')}</button>`)}</div>`;
-    const r=m1Result(g,a,b);
+      return `<div class="card">${hero(`<button class="btn gold" onclick="m1OpenCard('${k}')">${t('m1.open')}</button>`)}</div>`;
+    const c=one? (m1Opened.get(k)||0) : 18;      // 一組ずつ=組ローカル開封数（オープン直後0）
+    const gc=one? viewGameN(g,c) : gAll;         // 表示・判定の基準ゲーム（§14.1。revealHoles は一組ずつでは関与しない）
+    const r=m1Result(gc,a,b);
     const big = !r.played ? `<div class="m1-big n">—</div>`   // 機能色維持＋文字併記: 勝ち=緑＋矢印（リード側を指す）/ AS=橙 / 未プレー=sub
       : r.diff>0 ? `<div class="m1-big w">◀ ${t('m1.up',{n:r.diff})}</div>`
       : r.diff<0 ? `<div class="m1-big w">${t('m1.up',{n:-r.diff})} ▶</div>`
       : `<div class="m1-big d">AS</div>`;
-    const prov=(n<18&&r.played>0)?`<div class="mt6"><span class="tag tagtie">${n}/18H</span></div>`:'';   // 暫定タグ（revealHoles<18）
+    // 暫定タグ: 一組ずつ=c<18 で常に表示（0/18H で進捗ゼロが分かる §14.2）／一括=従来（revealHoles<18 かつ played>0）
+    const prov=one ? (c<18?`<div class="mt6"><span class="tag tagtie">${c}/18H</span></div>`:'')
+      : ((n<18&&r.played>0)?`<div class="mt6"><span class="tag tagtie">${n}/18H</span></div>`:'');
+    // カード内開封バー（一組ずつのみ・既存キー流用＝新キーなし。disabled 境界 0/18）
+    const cardbar=one?`<div class="reveal-bar m1-cardbar">
+      <button class="btn gray sm" onclick="m1Holes('${k}','reset')" ${c<=0?'disabled':''}>${t('btn.reset')}</button>
+      <button class="btn gray sm" onclick="m1Holes('${k}','prev')" ${c<=0?'disabled':''}>${t('sc.prev')}</button>
+      <button class="btn gold sm" onclick="m1Holes('${k}','next')" ${c>=18?'disabled':''}>${t('sc.next')}</button>
+      <button class="btn gray sm" onclick="m1Holes('${k}','all')" ${c>=18?'disabled':''}>${t('btn.all')}</button>
+      <span class="tag tagtie">${c>=18?t('sc.allHoles'):c+'/18H'}</span></div>`:'';
     const row=(pid,me,col)=>`<tr><td class="nm" style="color:${col}">${nameOf(pid)}</td>${H.map(i=>{
-      const w=m1HoleWin(g,a,b,i); const cls=w===me?'rwin':w==='H'?'rtie':'';
-      const val=adjHole(g,pid,i); return `<td class="${cls}">${val==null?'':val}</td>`; }).join('')}</tr>`;
-    return `<div class="card">${hero(big+prov)}
+      const w=m1HoleWin(gc,a,b,i); const cls=w===me?'rwin':w==='H'?'rtie':'';
+      const val=adjHole(gc,pid,i); return `<td class="${cls}">${val==null?'':val}</td>`; }).join('')}</tr>`;
+    return `<div class="card">${hero(big+prov)}${cardbar}
       <table class="sc2">${colg}<tr><th class="nm"></th>${H.map(i=>`<th>${i+1}</th>`).join('')}</tr>
       ${row(a,'A',colA)}${row(b,'B',colB)}</table></div>`;
   }).join('');
