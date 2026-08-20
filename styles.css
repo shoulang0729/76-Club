@@ -265,6 +265,11 @@
   .rl-hole{font-size:var(--f-rl-hole);font-weight:var(--w-bold);line-height:1;color:var(--ink)}
   .rl-hole small{font-size:var(--f-name);font-weight:var(--w-bold);color:var(--sub);margin-left:2px}
   .rl-par{font-size:var(--f-title);color:var(--sub);font-weight:var(--w-bold)}
+  /* ホール確定時の大型勝敗表示（roulette-hero 設計・§11.14 準拠。--f-rl-* の @media 再定義に自動追従） */
+  .rl-res{display:flex;align-items:baseline;column-gap:10px;flex-wrap:wrap;min-width:0}
+  .rl-res-nm{font-size:var(--f-rl-name);font-weight:var(--w-bold);line-height:1;overflow-wrap:anywhere}
+  .rl-res-w{font-size:var(--f-rl-score);font-weight:var(--w-bold);line-height:1;color:var(--win)}
+  .rl-res-tie{font-size:var(--f-rl-name);font-weight:var(--w-bold);line-height:1.1;color:var(--tie)}
   .rl-panels{display:flex;flex-wrap:wrap;gap:10px}
   .rl-panel{flex:1 1 150px;min-width:140px;border:3px solid var(--line);border-radius:var(--r-md);padding:14px 10px;text-align:center;background:var(--card)}
   /* 確定時の勝敗背景（#6）。機能色トークン（--win/--red/--tie）から導出＝意味は固定 */

@@ -127,10 +127,15 @@ function renderRouletteTab(g){
   const h=R.cur; const reps=R.reps[h]||{}; const drawn=rlHoleDrawn(g);
   const holeScores=()=>teams.map(t=>{const pid=reps[t.id];return pid!=null?rlHoleScore(g,pid,h):null;});
   let holeInfo='';
+  /* 大型勝敗表示（rl-head・roulette-hero 設計）。表示条件は下の stCls と同一
+     （!spinning && 全代表確定 && 全スコア入力済み）。判定は既存の holeScores()+Math.min の再利用＝計算不変。
+     WIN はリテラル（UP/AS/nH/Par と同じ言語非依存の記号扱い）。引分は rl.tie を rl-info から移動して大型化 */
+  let holeRes='';
   if(drawn){ const sc=holeScores();
     if(sc.some(s=>s==null)) holeInfo=`<span class="muted">${t('rl.repNoScore')}</span>`;
-    else{ const mn=Math.min(...sc); const wi=sc.map((s,i)=>s===mn?i:-1).filter(i=>i>=0);
-      holeInfo = wi.length===teams.length?t('rl.tie'):''; } }   // §11.12 M: WIN テキスト廃止（カードの緑表示＋取得H加算で伝わる）
+    else if(!rl.spinning){ const mn=Math.min(...sc); const wi=sc.map((s,i)=>s===mn?i:-1).filter(i=>i>=0);
+      if(wi.length===teams.length) holeRes=`<div class="rl-res"><span class="rl-res-tie">${t('rl.tie')}</span></div>`;
+      else holeRes=`<div class="rl-res">${wi.map(i=>`<span class="rl-res-nm" style="color:${rColor(teams[i].name)}">${esc(teams[i].name)}</span>`).join('')}<span class="rl-res-w">WIN</span></div>`; } }
   // 確定時の勝敗クラス（#6）：勝ち=win/負け=lose/全チーム同点=tie。スコア未入力が混じれば無色
   const stCls=(()=>{ const none=teams.map(()=>''); if(!drawn||rl.spinning)return none;
     const sc=holeScores(); if(sc.some(s=>s==null))return none;
@@ -163,6 +168,7 @@ function renderRouletteTab(g){
   return `<div class="rlwrap">
     <div class="card rl-play">
       <div class="rl-head"><div class="rl-hole">${h+1}<small>H</small></div><div class="rl-par">Par ${g.par[h]}</div>
+        ${holeRes}
         ${rl.challengeFrom?`<span class="muted">${t('rl.pickOpp')} <button class="btn gray sm" onclick="rlCancelChallenge()">${t('btn.cancel')}</button></span>`:''}
         <button class="btn gray sm" style="margin-left:auto" onclick="rlReset()">${t('btn.reset')}</button></div>
       <div class="rl-panels">${panels}</div>
