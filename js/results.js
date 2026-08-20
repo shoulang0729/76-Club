@@ -1,4 +1,7 @@
 /* ============================ RESULTS ============================ */
+/* 1 on 1 のオープン演出用表示状態（§13.2・揮発＝再読込で既定に戻る。localStorage には保存しない） */
+let m1RevealMode='all';      // 'all'=全組一括（既定） | 'one'=一組ずつ
+let m1Opened=new Set();      // 一組ずつモードでオープン済みのカード（キー='pidA:pidB'・並び替え/削除に不変）
 function setResultSub(s){ if(s!=='roulette')rlStopTimer(); resultSub=s; renderResult(); }
 // 開封済みホール(revealHoles)までのスコアだけ集計に使うビュー用ゲーム（18=全開）
 function viewGame(g){
@@ -192,19 +195,36 @@ function renderTeamTab(g){
   return renderScorecard(g, g.participants, teams) + `<div class="rank-wrap">${renderTeams(g)}</div>`;
 }
 
-/* ---- 1 on 1 マッチプレー タブ（§11.13・docs/handoff/2026-08-20-1on1-match.md §4/§7）---- */
-// 抽選（§4.2 mod方式）: X/Y=各チームの参加メンバーをシャッフル（Fisher–Yates）、n=max(|X|,|Y|)、pairs[i]=[X[i mod |X|],Y[i mod |Y|]]
-// → 大きい側=全員ちょうど1回・小さい側=全員1回以上（回数差は最大1）・同一カードの再戦なし
-function m1Shuffle(a){ const x=a.slice(); for(let i=x.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [x[i],x[j]]=[x[j],x[i]]; } return x; }
-function m1MakePairs(g){ const T=m1Teams(g); if(T.length!==2) return null;
-  const X=m1Shuffle(m1MemberIds(g,T[0])), Y=m1Shuffle(m1MemberIds(g,T[1]));
-  const n=Math.max(X.length,Y.length), pairs=[];
-  for(let i=0;i<n;i++) pairs.push([X[i%X.length], Y[i%Y.length]]);
-  return { teamA:T[0].id, teamB:T[1].id, pairs }; }
-function m1Draw(redraw){ const g=curGame(); if(!g)return;
-  if(redraw && !confirm(t('m1.confirmRedraw')))return;
-  const m=m1MakePairs(g); if(!m)return;
-  g.match1v1=m; save(); renderResult(); }   // 保存＝再読込でも不変（§4.3）
+/* ---- 1 on 1 マッチプレー タブ（§11.13・docs/handoff/2026-08-20-1on1-match.md §13 が正）----
+   組合せ=幹事の手動作成（§13.1・抽選は廃止）。判定/配点/データ構造（§3/§5/§6）は不変。
+   投影原則（正本 §11.14）適用第1号: 大型UP表示が主役・幹事の編集UIは details 折りたたみ。 */
+// 組合せ編集（§13.1）: いずれも save() → renderResult()。唯一のブロック=同一カードの重複（m1.dupPair）
+function m1AddPair(){ const g=curGame(); if(!g)return;
+  const T=m1Teams(g); if(T.length!==2)return;
+  const selA=document.getElementById('m1selA'), selB=document.getElementById('m1selB');
+  if(!selA||!selB)return; const a=selA.value, b=selB.value; if(!a||!b)return;
+  const m=g.match1v1||(g.match1v1={teamA:null,teamB:null,pairs:[]});
+  if((m.pairs||[]).some(([x,y])=>x===a&&y===b)){ toast(t('m1.dupPair')); return; }   // 重複カードのみ弾く。同一選手の複数回は可
+  if(!m1Valid(g)){ m.teamA=T[0].id; m.teamB=T[1].id; }   // 初回追加（有効な保存がない）時に現在の2チームで確定（以後 §4.3 の stale 判定が機能）
+  m.pairs.push([a,b]); save(); renderResult(); }
+function m1DelPair(idx){ const g=curGame(); if(!g||!g.match1v1)return;
+  g.match1v1.pairs.splice(idx,1); save(); renderResult(); }
+function m1MovePair(idx,dir){ const g=curGame(); if(!g||!g.match1v1)return;
+  const p=g.match1v1.pairs, j=idx+dir; if(j<0||j>=p.length)return;
+  [p[idx],p[j]]=[p[j],p[idx]]; save(); renderResult(); }   // 並び順＝カード表示順＝「次の組」のめくり順
+function m1ClearAll(){ const g=curGame(); if(!g||!g.match1v1)return;
+  if(!confirm(t('m1.confirmClear')))return;
+  g.match1v1={teamA:null,teamB:null,pairs:[]}; m1Opened.clear(); save(); renderResult(); }
+// オープン演出（§13.2）: 表示状態のみを更新（save() しない＝localStorage 非保存）
+function m1Key(a,b){ return a+':'+b; }
+function m1SetMode(mode){ m1RevealMode=mode; renderResult(); }
+function m1OpenCard(k){ m1Opened.add(k); renderResult(); }
+function m1OpenNext(){ const g=curGame(); if(!g)return;
+  const k=m1ValidPairs(g).map(([a,b])=>m1Key(a,b)).find(x=>!m1Opened.has(x));   // 未オープンの先頭＝登録リスト順
+  if(k){ m1Opened.add(k); renderResult(); } }
+function m1OpenAllCards(){ const g=curGame(); if(!g)return;
+  m1ValidPairs(g).forEach(([a,b])=>m1Opened.add(m1Key(a,b))); renderResult(); }
+function m1CoverAll(){ m1Opened.clear(); renderResult(); }
 
 function renderMatch1v1Tab(g){
   const F=chFormats(g);   // αでは match1v1 は一律 false（§11.12 C）
@@ -212,52 +232,81 @@ function renderMatch1v1Tab(g){
   const T=m1Teams(g);
   if(T.length!==2) return `<div class="card"><h2>${t('term.match1v1')}</h2><div class="empty">${t('m1.need2Teams')}</div></div>`;
   const m=g.match1v1||{pairs:[]};
-  const v=m1Valid(g);                 // 現在の2チームと一致する保存済み抽選（なければ null）
+  const raw=m.pairs||[];              // 登録済み全組（無効組も編集UIには出す）
+  const v=m1Valid(g);                 // 現在の2チームと一致する保存済み組合せ（なければ null）
   const pairs=m1ValidPairs(g);        // 有効試合のみ（無効試合は表示・集計からスキップ §4.3）
-  const stale=(m.pairs||[]).length>0 && pairs.length<m.pairs.length;
+  const stale=raw.length>0 && pairs.length<raw.length;
   const nameOf=pid=>{ const p=state.players.find(x=>x.id===pid); return p?esc(p.name):'?'; };
   const n=revealHoles;
-  // 上部カード：抽選/再抽選＋チーム対抗サマリ（表示のみ・配点には使わない）
+  const isOpen=(a,b)=> m1RevealMode==='all' || m1Opened.has(m1Key(a,b));
+  // 未出場（両チームの参加メンバーで組合せに1度も現れない選手）: 警告のみ・登録/集計はブロックしない（§13.1 運用ガイド）
+  const appeared=new Set(); raw.forEach(([a,b])=>{ appeared.add(a); appeared.add(b); });
+  const notPlayed=[...m1MemberIds(g,T[0]),...m1MemberIds(g,T[1])].filter(pid=>!appeared.has(pid));
+  const npNote=(raw.length&&notPlayed.length)?`<div class="muted mt6" style="color:var(--red)">${t('m1.notPlayed',{name:notPlayed.map(nameOf).join(', ')})}</div>`:'';
+  // 上部カード：チーム対抗サマリ（表示のみ・配点には使わない。一組ずつモードではオープン済みのみ集計 §13.2）
   let top=`<div class="card"><h2 class="lbh"><span>${t('term.match1v1')} <span class="tag tagtie">${n>=18?t('sc.allHoles'):n+'/18H'}</span></span></h2>`;
   if(v && pairs.length){
-    const rs=pairs.map(([a,b])=>m1Result(g,a,b));
+    const counted=m1RevealMode==='one'? pairs.filter(([a,b])=>m1Opened.has(m1Key(a,b))) : pairs;
+    const rs=counted.map(([a,b])=>m1Result(g,a,b));
     const wA=rs.filter(r=>r.played&&r.diff>0).length, wB=rs.filter(r=>r.played&&r.diff<0).length, dr=rs.filter(r=>r.played&&r.diff===0).length;
-    top+=`<div class="mt8" style="font-size:var(--f-title);font-weight:var(--w-bold)">
+    top+=`<div class="mt8" style="font-size:var(--f-rl-name);font-weight:var(--w-bold);line-height:1.15">
       <span style="color:${tmColor(v.A.name)}">${esc(v.A.name)}</span> <b>${wA}</b> – <b>${wB}</b> <span style="color:${tmColor(v.B.name)}">${esc(v.B.name)}</span>
       ${dr?`<span class="tag tagtie">AS ${dr}</span>`:''}</div>`;
-    const cnt={}; pairs.forEach(([a,b])=>{ cnt[a]=(cnt[a]||0)+1; cnt[b]=(cnt[b]||0)+1; });
-    const dup=Object.keys(cnt).filter(pid=>cnt[pid]>1).map(nameOf);
-    if(dup.length) top+=`<div class="muted mt6">${t('m1.doubleNote',{name:dup.join(', ')})}</div>`;
   }
+  if(!raw.length) top+=`<div class="empty">${t('m1.noPairs')}</div>`;
+  top+=npNote;
   if(stale) top+=`<div class="muted mt6" style="color:var(--red)">${t('m1.stale')}</div>`;
-  top+=`<div class="row mt8">${(m.pairs||[]).length
-    ? `<button class="btn gray sm" onclick="m1Draw(true)">${t('m1.redrawBtn')}</button>`
-    : `<button class="btn gold" onclick="m1Draw(false)">${t('m1.drawBtn')}</button>`}</div></div>`;
-  if(!pairs.length) return top;
-  // 開封バー（スコアカードと同一の4ボタン＝既存関数流用）
+  top+=`</div>`;
+  // 編集UI（幹事用・§13.1）: カード群の下・pairs 0件のときだけ初期展開（投影原則3＝閲覧の邪魔をしない）
+  const cA={}, cB={}; raw.forEach(([a,b])=>{ cA[a]=(cA[a]||0)+1; cB[b]=(cB[b]||0)+1; });
+  const mkSel=(id,ids,cnt)=>{ const def=ids.find(pid=>!appeared.has(pid))||ids[0];   // 既定=未出場の先頭（全員出場済みなら先頭）
+    return `<select id="${id}">${ids.map(pid=>`<option value="${pid}"${pid===def?' selected':''}>${nameOf(pid)}${cnt[pid]?` ×${cnt[pid]}`:''}</option>`).join('')}</select>`; };
+  const rows=raw.map((p,i)=>{ const [a,b]=p; const invalid=!pairs.includes(p);   // 無効組=赤字＋タグ・×で削除可（§13.1）
+    return `<div class="row mt6"><span${invalid?' style="color:var(--red)"':''}>#${i+1} ${nameOf(a)} vs ${nameOf(b)}</span>
+      ${invalid?`<span class="tag" style="background:var(--danger-bg);color:var(--red)">${t('m1.invalidPair')}</span>`:''}
+      <button class="btn gray sm" onclick="m1MovePair(${i},-1)" ${i===0?'disabled':''}>↑</button>
+      <button class="btn gray sm" onclick="m1MovePair(${i},1)" ${i===raw.length-1?'disabled':''}>↓</button>
+      <button class="btn gray sm" onclick="m1DelPair(${i})">×</button></div>`; }).join('');
+  const editUI=`<details class="m1-editwrap"${raw.length?'':' open'}><summary>${t('m1.edit')}</summary><div class="in">
+    <div class="row mt6">${mkSel('m1selA',m1MemberIds(g,T[0]),cA)} vs ${mkSel('m1selB',m1MemberIds(g,T[1]),cB)}
+      <button class="btn gold sm" onclick="m1AddPair()">${t('m1.addPair')}</button></div>
+    ${rows}${npNote}
+    ${raw.length?`<div class="row mt8"><button class="btn gray sm" onclick="m1ClearAll()">${t('m1.clearAll')}</button></div>`:''}
+  </div></details>`;
+  if(!pairs.length) return top + editUI;
+  // 開封バー（スコアカードと同一の4ボタン＝既存関数流用・revealHoles が主 §13.2）＋オープン方式 seg
+  const allOpen=pairs.every(([a,b])=>m1Opened.has(m1Key(a,b)));
   const bar=`<div class="card"><div class="reveal-bar">
     <button class="btn gray sm" onclick="resetHoles()" ${n<=0?'disabled':''}>${t('btn.reset')}</button>
     <button class="btn gray sm" onclick="closeHole()" ${n<=0?'disabled':''}>${t('sc.prev')}</button>
     <button class="btn gold sm" onclick="openNextHole()" ${n>=18?'disabled':''}>${t('sc.next')}</button>
     <button class="btn gray sm" onclick="openAllHoles()" ${n>=18?'disabled':''}>${t('btn.all')}</button>
-    <span class="tag tagtie">${n>=18?t('sc.allHoles'):n+'/18H'}</span></div></div>`;
-  // 対戦カード（1試合=1カード・抽選順）。値=adjHole・勝ちセル=緑(rwin)・ハーフ=橙(rtie)・未開封=空欄
+    <span class="tag tagtie">${n>=18?t('sc.allHoles'):n+'/18H'}</span>
+    <span class="seg"><button class="${m1RevealMode==='all'?'on':''}" onclick="m1SetMode('all')">${t('m1.modeAll')}</button><button class="${m1RevealMode==='one'?'on':''}" onclick="m1SetMode('one')">${t('m1.modeOne')}</button></span>
+    ${m1RevealMode==='one'?`<button class="btn gold sm" onclick="m1OpenNext()" ${allOpen?'disabled':''}>${t('m1.openNext')}</button>
+      <button class="btn gray sm" onclick="m1OpenAllCards()">${t('m1.openAllCards')}</button>
+      <button class="btn gray sm" onclick="m1CoverAll()">${t('m1.coverAll')}</button>`:''}</div></div>`;
+  // 対戦カード（1試合=1カード・登録リスト順）: hero=大型UP表示（§13.3）＋ホール表（値=adjHole・勝ち=rwin・ハーフ=rtie・未開封=空欄）
   const H=[...Array(18).keys()];
   const colg=`<colgroup><col class="cnm">${H.map(()=>'<col class="ch">').join('')}</colgroup>`;
+  const colA=tmColor(v.A.name), colB=tmColor(v.B.name);
   const cards=pairs.map(([a,b])=>{
+    const hero=c=>`<div class="m1-hero"><div class="m1-nm" style="color:${colA}">${nameOf(a)}</div><div>${c}</div><div class="m1-nm" style="color:${colB}">${nameOf(b)}</div></div>`;
+    if(!isOpen(a,b))   // 伏せ状態（一組ずつ・未オープン §13.2）: 名前は見える・結果とホール表は隠す
+      return `<div class="card">${hero(`<button class="btn gold" onclick="m1OpenCard('${m1Key(a,b)}')">${t('m1.open')}</button>`)}</div>`;
     const r=m1Result(g,a,b);
-    const colA=tmColor(v.A.name), colB=tmColor(v.B.name);
-    const tag = !r.played ? `<span class="tag">—</span>`
-      : r.diff>0 ? `<span class="tag" style="background:var(--win-bg);color:var(--win-ink)">${nameOf(a)} ${t('m1.up',{n:r.diff})}</span>`
-      : r.diff<0 ? `<span class="tag" style="background:var(--win-bg);color:var(--win-ink)">${nameOf(b)} ${t('m1.up',{n:-r.diff})}</span>`
-      : `<span class="tag tagtie">${t('m1.as')}</span>`;
+    const big = !r.played ? `<div class="m1-big n">—</div>`   // 機能色維持＋文字併記: 勝ち=緑＋矢印（リード側を指す）/ AS=橙 / 未プレー=sub
+      : r.diff>0 ? `<div class="m1-big w">◀ ${t('m1.up',{n:r.diff})}</div>`
+      : r.diff<0 ? `<div class="m1-big w">${t('m1.up',{n:-r.diff})} ▶</div>`
+      : `<div class="m1-big d">AS</div>`;
+    const prov=(n<18&&r.played>0)?`<div class="mt6"><span class="tag tagtie">${n}/18H</span></div>`:'';   // 暫定タグ（revealHoles<18）
     const row=(pid,me,col)=>`<tr><td class="nm" style="color:${col}">${nameOf(pid)}</td>${H.map(i=>{
       const w=m1HoleWin(g,a,b,i); const cls=w===me?'rwin':w==='H'?'rtie':'';
       const val=adjHole(g,pid,i); return `<td class="${cls}">${val==null?'':val}</td>`; }).join('')}</tr>`;
-    return `<div class="card"><h2 class="lbh"><span><span style="color:${colA}">${nameOf(a)}</span> vs <span style="color:${colB}">${nameOf(b)}</span></span><span>${tag}</span></h2>
+    return `<div class="card">${hero(big+prov)}
       <table class="sc2">${colg}<tr><th class="nm"></th>${H.map(i=>`<th>${i+1}</th>`).join('')}</tr>
       ${row(a,'A',colA)}${row(b,'B',colB)}</table></div>`;
   }).join('');
-  return top + bar + cards;
+  return top + bar + cards + editUI;
 }
 
