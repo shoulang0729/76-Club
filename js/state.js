@@ -27,13 +27,16 @@ function migrate(s){
     if(g.formats && g.formats.vegas===undefined) g.formats.vegas=false;   // ラスベガス（§11.11）
     if(!g.vegas) g.vegas={ flip:true, cap:'doublePar' };
     else { if(g.vegas.flip===undefined) g.vegas.flip=true; if(!g.vegas.cap) g.vegas.cap='doublePar'; }
+    if(g.formats && g.formats.match1v1===undefined) g.formats.match1v1=false;   // 1 on 1 マッチプレー（§11.13）
+    if(!g.match1v1) g.match1v1={ teamA:null, teamB:null, pairs:[] };
   });
 }
 /* changeN/challengeM は「ハーフ9Hあたり」の回数（§11.3・2026-08-16に意味変更。既存ゲームの値もハーフあたりとして解釈） */
 function newRoulette(){ return { changeN:2, challengeM:2, reps:{}, pool:{}, remChange:{}, remChallenge:{}, cur:0 }; }
 function defaultPoints(){ return {
   net:[5,3,1], gross:[5,3,1], stableford:[5,3,1], olympic:[5,3,1], callaway:[5,3,1], nassauTotal:[5,3,1],
-  teamGross:[3], teamNet:[3], holeByHole:[3], best2ball:[3], roulette:[3], niapin:2, dracon:2 }; }
+  teamGross:[3], teamNet:[3], holeByHole:[3], best2ball:[3], roulette:[3], niapin:2, dracon:2,
+  m1win:2, m1draw:1 }; }   // 1 on 1 マッチプレー（§11.13）：勝者+2pt/引分両者+1pt（個人にのみ加算）
 function save(){ localStorage.setItem(LS_KEY, JSON.stringify(state)); }
 function uid(){ return Math.random().toString(36).slice(2,9); }
 function toast(m){ const t=document.getElementById('toast'); t.textContent=m; t.classList.add('show');
@@ -53,8 +56,9 @@ function newGame(){
     prizes:{ niapinHoles:[], draconHoles:[], niapinWinner:{}, draconWinner:{} },
     points:defaultPoints(), prizePool:0, roulette:newRoulette(),
     vegas:{ flip:true, cap:'doublePar' },   // ラスベガス設定（§11.11）
+    match1v1:{ teamA:null, teamB:null, pairs:[] },   // 1 on 1 マッチプレーの抽選結果（§11.13）
     formats:{ gross:true, net:true, teamGross:true, teamNet:true, holeByHole:true,
-      stableford:true, nassau:true, olympic:true, callaway:false, best2ball:false, vegas:false }
+      stableford:true, nassau:true, olympic:true, callaway:false, best2ball:false, vegas:false, match1v1:false }
   };
 }
 
