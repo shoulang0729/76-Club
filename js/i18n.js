@@ -17,7 +17,7 @@ ja: {
   'ch.a.desc':'検証済みの安定版。定番のゲームだけを扱います。','ch.b.desc':'新機能テスト中の版。α版のゲームに加えて、試験中のゲームも選べます。',
   'ch.common':'賞金ポイント配分・次回幹事・表彰式リビール・目隠し・多言語・ライト/ダークは、どちらの版でも使えます。',
   'ch.enter':'{v}に切り替える','ch.switch':'α版 / β版の切替','ch.switched':'{v}に切り替えました','ch.betaOnly':'β版のゲーム',
-  'nav.game':'ゲーム','nav.course':'コース','nav.players':'選手','nav.score':'スコア','nav.result':'結果',
+  'nav.game':'ゲーム','nav.course':'コース','nav.players':'選手','nav.score':'スコア','nav.result':'結果発表',
   'msg.needGame':'先に「ゲーム」タブでゲームを作成・選択してください',
   'theme.label':'テーマ','theme.light':'ライト','theme.dark':'ダーク',
   'tab.game':'ゲーム','tab.players':'選手','tab.score':'入力','tab.result':'結果',
