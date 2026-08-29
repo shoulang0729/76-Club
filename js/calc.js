@@ -131,6 +131,66 @@ function m1Valid(g){ const m=g.match1v1; if(!m||!m.teamA||!m.teamB||!(m.pairs||[
 function m1ValidPairs(g){ const v=m1Valid(g); if(!v) return [];
   return g.match1v1.pairs.filter(([a,b])=> m1MemberIds(g,v.A).includes(a) && m1MemberIds(g,v.B).includes(b)); }
 
+/* ---- チーム戦・種目別勝ち点（§11.15・docs/handoff/2026-08-20-team-points.md §3）----
+   各種目の勝敗値の計算式（Σ effGross・Σ net・holesWon・best2・rlStandings・m1Result・vegasHoleNet）は不変。
+   変わるのは「値→配点」の変換のみ：各成立種目の総合1位に勝ち点1（同点は山分け）→勝ち点合計の総合順位で配分。 */
+/* §3.3.1 ニアドラ本数（NP＋DC獲得本数のチーム合計）。対象ホールはパー導出のみ（npdc-par §4 と同じ非破壊規則）。
+   チーム未所属の勝者はどのチームにも数えない（個人配点は従来どおり別途付く）。 */
+function niadoraTeamCount(g,T){ let n=0;
+  niapinHolesOf(g).forEach(h=>{ const pid=(g.prizes.niapinWinner||{})[h]; if(pid&&T.memberIds.includes(pid))n++; });
+  draconHolesOf(g).forEach(h=>{ const pid=(g.prizes.draconWinner||{})[h]; if(pid&&T.memberIds.includes(pid))n++; });
+  return n;
+}
+/* §3.3.2 ベガス勝ちホール数：vegasStandings と同じ総当たりで vegasHoleNet の符号のみ数える。
+   点差集計（vegasStandings.tot・ベガス表）は従来どおり独立＝本関数は読むだけで一切変えない。 */
+function vegasHoleWins(g){ const teams=g.teams.filter(T=>vegasPair(g,T));   // 資格=参加メンバーちょうど2人（§11.11）
+  const wins=teams.map(()=>0);
+  for(let a=0;a<teams.length;a++) for(let b=a+1;b<teams.length;b++)
+    for(let i=0;i<18;i++){ const n=vegasHoleNet(g,teams[a],teams[b],i);
+      if(n!=null){ if(n>0)wins[a]++; else if(n<0)wins[b]++; } }   // 0（フリップ後も同数字）・null（未入力）は加算なし
+  return {teams,wins};
+}
+/* §3.1〜3.2 種目別勝ち点。teams=順位対象チーム（メンバー1人以上かつ1H以上入力済み）。
+   返り値 { teams, wins:number[], events:[{key,winners:int[],vals:(number|null)[]}] }（表示側 §6 と共用の正）。
+   rlStandings/holesWon/vegasHoleWins は独自に g.teams をフィルタするため index 前提にせず team.id で突合する。 */
+function teamWinPoints(g){
+  const entered=pid=>(g.scores[pid]||[]).some(v=>v!=null&&v!=='');
+  const teams=g.teams.filter(t=>t.memberIds.length&&t.memberIds.some(entered));
+  const wins=teams.map(()=>0), events=[];
+  if(teams.length<2) return {teams,wins,events};   // 成立条件（共通）：対象チーム2以上
+  const F=chFormats(g);   // αではβ種目（best2ball/match1v1/vegas）を懸けない（§11.12 C）
+  const add=(key,vals,dir)=>{   // 種目の成立判定＋勝ち点1（同点は 1/同点チーム数 で山分け・§3.2）
+    const live=vals.map((v,i)=>v!=null?i:-1).filter(i=>i>=0);
+    if(live.length<2)return;   // 種目の対象チームが1以下＝不成立
+    const best=(dir==='asc'?Math.min:Math.max)(...live.map(i=>vals[i]));
+    const winners=live.filter(i=>vals[i]===best);
+    winners.forEach(i=>wins[i]+=1/winners.length);
+    events.push({key,winners,vals});
+  };
+  const byId=(list,fn)=>teams.map(t=>{ const j=list.findIndex(x=>x.id===t.id); return j>=0?fn(j):null; });
+  if(F.teamGross) add('teamGross', teams.map(t=>t.memberIds.reduce((a,pid)=>a+effGross(g,pid),0)),'asc');
+  if(F.teamNet) add('teamNet', teams.map(t=>Math.round(t.memberIds.reduce((a,pid)=>a+netScore(g,pid),0)*10)/10),'asc');
+  if(F.holeByHole){ const hw=holesWon(g); if(hw.won.some(w=>w>0)) add('holeByHole', byId(hw.teams,j=>hw.won[j]),'desc'); }
+  if(F.best2ball) add('best2ball', teams.map(t=>best2(g,t)),'asc');
+  // ルーレット対抗：formats トグルなし・進行実績（決着ホール≥1）があれば自動で1種目。現行どおり実ゲーム curGame() 基準
+  const st=rlStandings(curGame()||g);
+  if(st.won.some(w=>w>0)) add('roulette', byId(st.teams,j=>st.won[j]),'desc');
+  // 1 on 1：マッチ勝利数（引分は勝利数に入れない）。個人配点 m1win/m1draw は computePoints 側で従来どおり別途加算
+  if(F.match1v1&&g.match1v1&&(g.match1v1.pairs||[]).length){ const v=m1Valid(g);
+    if(v){ let played=0; const w={[v.A.id]:0,[v.B.id]:0};
+      m1ValidPairs(g).forEach(([a,b])=>{ const r=m1Result(g,a,b); if(!r.played)return; played++;
+        if(r.diff>0)w[v.A.id]++; else if(r.diff<0)w[v.B.id]++; });
+      if(played) add('match1v1', teams.map(t=>w[t.id]!==undefined?w[t.id]:null),'desc'); } }
+  // ラスベガス：勝ちホール数（§3.3.2）。点差ではない。成立=資格チーム≥2 かつ 勝ちホール合計≥1
+  if(F.vegas){ const vw=vegasHoleWins(g);
+    if(vw.teams.length>=2&&vw.wins.some(w=>w>0)) add('vegas', byId(vw.teams,j=>vw.wins[j]),'desc'); }
+  // ニアドラ（§3.3.1）：他のチーム種目が1つ以上採用中（=チーム戦をやっている）かつ チームに数えた本数合計≥1
+  const anyTeamEvent=F.teamGross||F.teamNet||F.holeByHole||F.best2ball||F.vegas||F.match1v1||st.won.some(w=>w>0);
+  if(anyTeamEvent){ const nd=teams.map(t=>niadoraTeamCount(g,t));
+    if(nd.reduce((a,b)=>a+b,0)>=1) add('niadora', nd,'desc'); }
+  return {teams,wins,events};
+}
+
 /* ---- points & payout ---- */
 function computePoints(g){
   const parts=g.participants.filter(pid=>state.players.find(x=>x.id===pid));
@@ -155,21 +215,15 @@ function computePoints(g){
       else if(r.diff<0){ if(pts[b]!=null)pts[b]+=(P.m1win||0); }
       else { if(pts[a]!=null)pts[a]+=(P.m1draw||0); if(pts[b]!=null)pts[b]+=(P.m1draw||0); } });
   }
-  // teams（1人でも入力があるチームのみ配点）
-  const teamEntered=t=>t.memberIds.some(pid=>entered(pid));
-  const awardTeam=(cond,tr,arr)=>{ if(!cond||!arr||!arr.length)return; tr.forEach(r=>{ if(!teamEntered(r.t))return; const p=arr[r.rank-1]||0; r.t.memberIds.forEach(pid=>{ if(pts[pid]!=null)pts[pid]+=p; }); }); };
+  // teams（§11.15・team-points §3.4）：種目別勝ち点→総合順位（同点は同順位・満額＝1,1,3方式）→ teamRankPts をチーム各員に満額加算
   if(g.teams.length){
-    awardTeam(F.teamGross, teamRanked(g,t=>t.memberIds.reduce((a,pid)=>a+effGross(g,pid),0),'asc'), P.teamGross);
-    awardTeam(F.teamNet, teamRanked(g,t=>Math.round(t.memberIds.reduce((a,pid)=>a+netScore(g,pid),0)*10)/10,'asc'), P.teamNet);
-    awardTeam(F.best2ball, teamRanked(g,t=>best2(g,t),'asc'), P.best2ball);
-    if(F.holeByHole){ const {teams,won}=holesWon(g); const anyHole=won.some(w=>w>0);
-      if(anyHole){ const rows=teams.map((t,i)=>({t,v:won[i]})); rows.sort((a,b)=>b.v-a.v);
-        let rank=0,prev=null; rows.forEach((r,i)=>{ if(prev===null||r.v!==prev){rank=i+1;prev=r.v;} const p=(P.holeByHole||[])[rank-1]||0; r.t.memberIds.forEach(pid=>{ if(pts[pid]!=null)pts[pid]+=p; }); }); }
-    }
-    // ルーレット対抗（実プレイの取得H順・勝ちチーム各員に配点）
-    if(P.roulette && P.roulette.length){ const g0=curGame(); const st=rlStandings(g0);
-      if(st.won.some(w=>w>0)){ const rows=st.teams.map((t,i)=>({t,v:st.won[i]})); rows.sort((a,b)=>b.v-a.v);
-        let rank=0,prev=null; rows.forEach((r,i)=>{ if(prev===null||r.v!==prev){rank=i+1;prev=r.v;} if(r.v>0){ const p=(P.roulette||[])[rank-1]||0; r.t.memberIds.forEach(pid=>{ if(pts[pid]!=null)pts[pid]+=p; }); } }); }
+    const {teams,wins,events}=teamWinPoints(g);
+    if(events.length){   // 成立種目0なら配分しない
+      const rows=teams.map((t,i)=>({t,v:wins[i]})); rows.sort((a,b)=>b.v-a.v);
+      let rank=0,prev=null;
+      rows.forEach((r,i)=>{ if(prev===null||r.v!==prev){rank=i+1;prev=r.v;}
+        const p=(P.teamRankPts||[])[rank-1]||0;
+        r.t.memberIds.forEach(pid=>{ if(pts[pid]!=null)pts[pid]+=p; }); });
     }
   }
   return pts;
