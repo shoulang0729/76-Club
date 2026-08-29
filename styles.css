@@ -21,6 +21,8 @@
     --e2-bg:#efe7f5; --e2-ink:#7d3c98;   /* エブリE2バッジ（紫） */
     /* チーム識別色（塗りの上の文字は --bg。文字/枠にもそのまま使う） */
     --tm-red:#c0392b; --tm-blue:#2471a3; --tm-green:#186a3b; --tm-yellow:#b9770e; --tm-gray:#5d6d7e;
+    /* チームカラー淡色（ルーレット勝ちカード塗り・JS inline から参照。2026-08-20-roulette-standings.md §9.1） */
+    --tm-red-bg:#fbe3df; --tm-blue-bg:#dcecf7; --tm-green-bg:#daf0e2; --tm-yellow-bg:#f9ecd2; --tm-gray-bg:#e7ecf1;
     /* 角丸3段 / 太さ3段 / サイズ */
     --r-sm:6px; --r-md:10px; --r-pill:99px;
     --w-reg:400; --w-med:600; --w-bold:800;
@@ -41,6 +43,7 @@
     --red:#ff6a4d; --danger-bg:#3d1a16; --danger-line:#6b2f27;
     --e2-bg:#2e2440; --e2-ink:#d3b8ee;
     --tm-red:#ff8b7a; --tm-blue:#62b0e8; --tm-green:#4fcf8c; --tm-yellow:#e0b04a; --tm-gray:#9fb0c4;
+    --tm-red-bg:#45231d; --tm-blue-bg:#16344a; --tm-green-bg:#173f2b; --tm-yellow-bg:#423512; --tm-gray-bg:#242f40;
   }
   html,body{margin:0}
   body{font-family:"Noto Sans JP","Noto Sans",-apple-system,"Hiragino Kaku Gothic ProN",Meiryo,sans-serif;
@@ -277,28 +280,34 @@
   .rl-res-w{font-size:var(--f-rl-score);font-weight:var(--w-bold);line-height:1;color:var(--win)}
   .rl-res-tie{font-size:var(--f-rl-name);font-weight:var(--w-bold);line-height:1.1;color:var(--tie)}
   .rl-panels{display:flex;flex-wrap:wrap;gap:10px}
-  .rl-panel{flex:1 1 150px;min-width:140px;border:3px solid var(--line);border-radius:var(--r-md);padding:14px 10px;text-align:center;background:var(--card)}
-  /* 確定時の勝敗背景（#6）。機能色トークン（--win/--red/--tie）から導出＝意味は固定 */
-  .rl-panel.win{background:var(--win-bg);box-shadow:0 0 0 3px var(--win) inset}
-  .rl-panel.lose{background:var(--danger-bg);box-shadow:0 0 0 3px var(--red) inset}
+  /* 取得Hスタンディング行（カード外・中央・取得H降順。2026-08-20-roulette-standings.md／§11.14） */
+  .rl-standing{display:flex;justify-content:center;align-items:baseline;flex-wrap:wrap;
+    column-gap:clamp(14px,4vw,40px);row-gap:2px;text-align:center;margin-top:12px}
+  .rl-st{display:inline-flex;align-items:baseline;gap:6px;min-width:0;max-width:100%}
+  .rl-st-team{font-size:var(--f-rl-name);font-weight:var(--w-bold);line-height:1.15;overflow-wrap:anywhere;min-width:0}
+  .rl-st-h{font-size:var(--f-rl-score);font-weight:var(--w-bold);line-height:1;font-variant-numeric:tabular-nums;white-space:nowrap}
+  .rl-st-h small{font-size:var(--f-rl-name);font-weight:var(--w-bold);margin-left:1px}
+  .rl-panel{flex:1 1 150px;min-width:140px;border:3px solid var(--line);border-radius:var(--r-md);padding:14px 10px;text-align:center;background:var(--card);
+    --rl-tc:var(--win);--rl-tc-bg:var(--win-bg)}   /* 既定値＝verify の孤立var()対策兼フォールバック（§9.2） */
+  /* 確定時の勝敗背景：勝ち=自チームカラー淡色＋チームカラー inset 枠／負け=薄グレー・枠なし（2026-08-20-roulette-standings.md §9）。引分=橙は従来どおり */
+  .rl-panel.win{background:var(--rl-tc-bg);box-shadow:0 0 0 3px var(--rl-tc) inset}
+  .rl-panel.lose{background:var(--surface-2);box-shadow:none}
   .rl-panel.tie{background:var(--tie-bg);box-shadow:0 0 0 3px var(--tie) inset}
   /* 回転中のフラッシュ（#6）：今の候補で止まったら勝ち/負け/引分かをピカピカ予告 */
   @keyframes rlblink{from{filter:brightness(1)}to{filter:brightness(1.14)}}
   .rl-panel.fwin{background:var(--win-bg-strong);box-shadow:0 0 0 4px var(--win) inset;animation:rlblink .22s infinite alternate}
   .rl-panel.flose{background:var(--danger-bg);box-shadow:0 0 0 4px var(--red) inset;animation:rlblink .22s infinite alternate}
   .rl-panel.ftie{background:var(--tie-bg);box-shadow:0 0 0 4px var(--tie) inset;animation:rlblink .22s infinite alternate}
-  /* §11.12 J①: カード上段＝チーム名（左）＋取得H（右上・チームと同色・0Hから常時表示・ラベルはH据え置き） */
-  .rl-top{display:flex;align-items:baseline;justify-content:space-between;gap:6px}
+  /* カード上段＝チーム名のみ・中央寄せ（取得Hはカード外の .rl-standing へ移設。2026-08-20-roulette-standings.md §2） */
+  .rl-top{display:flex;align-items:baseline;justify-content:center;gap:6px}
   .rl-team{font-size:var(--f-body);font-weight:var(--w-bold);letter-spacing:.03em;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-  .rl-h{font-size:var(--f-title);font-weight:var(--w-bold);line-height:1;font-variant-numeric:tabular-nums;flex:0 0 auto}
-  .rl-final{padding:14px 12px}   /* 18H終了後のカード＝上段だけなので余白を詰める（§11.12 J③） */
   .rl-name{font-size:var(--f-rl-name);font-weight:var(--w-bold);margin:6px 0 2px;min-height:38px;line-height:1.1}
   .rl-scorebig{font-size:var(--f-rl-score);font-weight:var(--w-bold);color:var(--win);line-height:1;min-height:46px;font-variant-numeric:tabular-nums}
   .rl-ev{font-size:var(--f-small);color:var(--win);font-weight:var(--w-bold);min-height:16px;margin-top:2px}
   .rl-act{min-height:40px;display:flex;gap:6px;justify-content:center;align-items:center;flex-wrap:wrap;margin-top:6px}
   .rl-act .btn{padding:7px 10px;font-size:var(--f-small)}
-  .rl-ctrl{margin-top:12px}
-  .rl-info{text-align:center;font-weight:var(--w-bold);font-size:var(--f-name);min-height:24px;margin-bottom:8px}
+  .rl-ctrl{margin-top:4px}
+  .rl-info{text-align:center;font-weight:var(--w-bold);font-size:var(--f-name);line-height:1.3;min-height:calc(var(--f-name)*1.3);margin-bottom:4px}
   .rl-main{font-size:var(--f-val);padding:16px}
   .rl-dev{margin-bottom:10px}
   .sc2 .cur{background:var(--acc-bg) !important;color:var(--strong) !important}   /* 現在ホール列：黄地でも文字は最濃色に */
@@ -321,7 +330,6 @@
     .rlwrap{max-width:900px;margin:0 auto}
     .rl-name{min-height:50px} .rl-scorebig{min-height:66px}
     .rl-panel{flex:1 1 200px;padding:20px 14px} .rl-main{font-size:24px;padding:20px}
-    .rl-h{font-size:22px}
     .sc2.rlsc{font-size:15px}
   }
   /* 9:16 大画面投影：結果タブ全体を大きく見やすく */
@@ -369,7 +377,6 @@
     .rl-panel{flex:1 1 220px;padding:22px 16px}
     .rl-name{min-height:54px}
     .rl-scorebig{min-height:72px}
-    .rl-h{font-size:24px}
     .rl-main{min-height:56px;font-size:25px;padding:16px}
     .rl-act .btn{min-height:44px;padding:9px 14px;font-size:13px}
     .sc2.rlsc{font-size:16px}
