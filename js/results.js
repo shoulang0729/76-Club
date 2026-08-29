@@ -61,17 +61,19 @@ function renderResult(){
   const tabs=resGameTabs(resGrp,g0);
   if(tabs.length && !tabs.some(([k])=>k===resGame[resGrp])) resGame[resGrp]=tabs[0][0];   // タブ消失（形式OFF・α切替）→グループ先頭へフォールバック
   const g=viewGame(g0);   // 開封済みホールのみ反映
-  let body, m1Head='';
+  let body, stickyHead='';
   if(resGrp==='pts') body=renderStanding(g, parts);
   else if(resGrp==='ind') body=renderIndGame(g, parts, resGame.ind);
   else if(resGame.team==='m1'){ const P=renderMatch1v1Parts(g0);   // 生ゲームを渡す（マスクはモード別に内部で・§14.1）。head=サマリ＋操作バー（sticky 同居・D15）
-    m1Head=P.head; body=P.body; }
-  else body=renderTeamGame(g, g0, parts, resGame.team);            // roulette は g0（生・実スコアで動作）
+    stickyHead=P.head; body=P.body; }
+  else if(resGame.team==='roulette'){ const P=renderRouletteParts(g0);   // g0（生・実スコアで動作）。head=抽選カード一式（sticky 同居・roulette-standings §5）
+    stickyHead=P.head; body=P.body; }
+  else body=renderTeamGame(g, g0, parts, resGame.team);
   const grpBtn=k=>`<button class="${resGrp===k?'on':''}" onclick="setResGrp('${k}')">${t('result.sub.'+k)}</button>`;
   const sticky=`<div class="result-sticky">
     <div class="subtab4">${grpBtn('ind')}${grpBtn('team')}${grpBtn('pts')}</div>
     ${tabs.length?`<div class="subtab-games">${tabs.map(([k,lb])=>`<button class="${resGame[resGrp]===k?'on':''}" onclick="setResGame('${k}')">${lb}</button>`).join('')}</div>`:''}
-    ${m1Head}
+    ${stickyHead}
   </div>`;
   el.innerHTML = sticky + body;
   const on=el.querySelector('.subtab-games .on'); if(on) on.scrollIntoView({inline:'center',block:'nearest'});
@@ -92,12 +94,15 @@ function renderStanding(g, parts){
 }
 
 // 個人戦グループ（§5.1）: key ごとに バナー＋当該順位カード（上）＋共通スコアカード（下）＋当該ルール1行
+/* 個人賞の勝者登録 details の開閉（手動トグルのみ・勝者選択の再描画で閉じない）。揮発の表示状態＝localStorage に保存しない */
+let pzCfgOpen=false;
+function pzCfgToggle(open){ pzCfgOpen=open; }
 function renderIndGame(g, parts, key){
   if(key==='prize'){   // ニアドラ: ヒーロー主役＋勝者登録は details 内に控えめ（§5.1.1。prizes は viewGame 非依存＝g で同値）
     if(!niapinHolesOf(g).length && !draconHolesOf(g).length)
       return `<div class="card"><h2>${t('prize.title')}</h2><div class="empty">${t('prize.emptyCfg')}</div></div>`;
     return renderPrizeHero(g)
-      + `<details class="prize-edit mt10"><summary>${t('prize.recTitle')}</summary><div class="in">${renderPrizes(g)}</div></details>`;
+      + `<details class="prize-edit mt10"${pzCfgOpen?' open':''} ontoggle="pzCfgToggle(this.open)"><summary>${t('prize.recTitle')}</summary><div class="in">${renderPrizes(g)}</div></details>`;
   }
   const done=parts.filter(pid=>complete(g,pid)).length;
   const banner = allComplete(g)
@@ -223,10 +228,9 @@ function rankCardNS(title, pids, valFn, dir, fmt, table, hlMap){
 }
 
 /* チーム戦グループ（§5.2）: key ごとに 当該対抗カード（上）＋チーム別スコア表（下・グロス/ネット/HBH と総合のみ）。
-   'm1' は renderResult 側で renderMatch1v1Parts を直接使う（sticky 同居 D15）。
+   'm1'/'roulette' は renderResult 側で renderMatch1v1Parts / renderRouletteParts を直接使う（sticky 同居 D15・roulette-standings §5）。
    総合タブは現時点ではチーム別スコア表のみ（総合カード/勝ち点表は team-points PR-②・§6 で投入） */
 function renderTeamGame(g, g0, parts, key){
-  if(key==='roulette') return renderRouletteTab(g0);   // 現行そのまま（自前ガード rl.need2）
   const teams=g.teams.filter(t=>t.memberIds.length);
   if(!teams.length)
     return `<div class="card"><h2>${t('team.title')}</h2><div class="empty">${t('team.emptyTeams')}</div></div>`;

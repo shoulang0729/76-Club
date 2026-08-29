@@ -83,6 +83,9 @@ function rlMarks(g){
   }
   return mark;
 }
+/* スコアカードの開閉（§11.14: <details open> の控えめ操作・既定=表示）。揮発の表示状態＝localStorage に保存しない */
+let rlScOpen=true;
+function rlScToggle(open){ rlScOpen=open; }
 function rlScorecard(g){
   const teams=rTeams(g); const R=g.roulette; const h=R.cur<18?R.cur:-1; const cols=[...Array(18).keys()]; const mark=rlMarks(g);
   const cg=`<colgroup><col style="width:72px">${cols.map(()=>'<col>').join('')}</colgroup>`;
@@ -99,29 +102,32 @@ function rlScorecard(g){
     const byNet=ranked(mem, pid=>enteredCount(g,pid)?netScore(g,pid):null, 'asc').map(o=>o.pid);
     byNet.concat(mem.filter(pid=>!byNet.includes(pid))).forEach(pid=>{ const p=state.players.find(x=>x.id===pid); if(!p)return; const av=adjArr(g,pid); const mm=mark[pid]||{};
       body+=`<tr><td class="nm">${esc(p.name)}</td>${cols.map(i=>`<td class="${i===h?'cur':''} ${g.hidden[i]?'hh':''} ${mm[i]||''}">${av[i]??''}</td>`).join('')}</tr>`; }); });
-  return `<div class="card"><h2>${t('sc.title')} <span class="muted" style="font-weight:var(--w-med);font-size:11px">${t('rl.legend')}</span></h2>
-    <div class="scroll"><table class="sc2 rlsc">${cg}${head}${parRow}${body}</table></div></div>`;
+  return `<details class="rl-sc"${rlScOpen?' open':''} ontoggle="rlScToggle(this.open)"><summary>${t('sc.title')} <span class="muted" style="font-weight:var(--w-med);font-size:11px">${t('rl.legend')}</span></summary>
+    <div class="in"><div class="scroll"><table class="sc2 rlsc">${cg}${head}${parRow}${body}</table></div></div></details>`;
 }
 
-function renderRouletteTab(g){
+/* 返り値 {head, body}（2026-08-20-roulette-standings.md §5・renderMatch1v1Parts と同型）。
+   head=抽選カード一式（card rl-play）＝.result-sticky に同居して固定・body=スコア表＋開発者メニュー＝スクロール領域。
+   ガード（rl.need2）は {head:'', body:空状態カード}＝空状態は固定しない */
+function renderRouletteParts(g){
   const teams=rTeams(g);
-  if(teams.length<2) return `<div class="card"><h2>${t('rl.title')}</h2><div class="empty">${t('rl.need2')}</div></div>`;
+  if(teams.length<2) return {head:'', body:`<div class="card"><h2>${t('rl.title')}</h2><div class="empty">${t('rl.need2')}</div></div>`};
   const R=g.roulette;
   teams.forEach(t=>{ if(R.remChange[t.id]===undefined)R.remChange[t.id]=R.changeN; if(R.remChallenge[t.id]===undefined)R.remChallenge[t.id]=R.challengeM; });
   const {won,pending}=rlStandings(g);
   const wonH=ti=>Math.round((won[ti]||0)*10)/10;   // 0Hから常時表示（引分は0.5刻み）
-  /* 取得Hはカード外・中央の大型スタンディング行へ（2026-08-20-roulette-standings.md §2。§11.12 J①/J③ の右上H・最終カード群を置き換え）。
-     取得H降順（同点=登録順・Array#sort は安定）。won/wonH は既存のまま再利用＝計算不変 */
-  const standRow=`<div class="rl-standing">${
-    teams.map((tm,ti)=>({tm,ti,v:won[ti]||0})).sort((a,b)=>b.v-a.v)
-      .map(({tm,ti})=>{ const col=rColor(tm.name);
-        return `<span class="rl-st"><span class="rl-st-team" style="color:${col}">${esc(tm.name)}</span><span class="rl-st-h" style="color:${col}">${wonH(ti)}<small>H</small></span></span>`; }).join('')
-  }</div>`;
 
-  /* 18H終了後（#31）：抽選は終わっているのでカードは描かず、リセット head → スタンディング行（取得H降順）のみ */
+  /* 18H終了後（#31）：抽選は終わっているのでカードは描かず、リセット head → スタンディング行（取得H降順）のみ。
+     取得H降順（同点=登録順・Array#sort は安定）。won/wonH は既存のまま再利用＝計算不変。数値は濃色インク（--strong・CSS側） */
   if(R.cur>=18){
-    return `<div class="rlwrap">
-      <div class="card rl-play"><div class="rl-head"><button class="btn gray sm" style="margin-left:auto" onclick="rlReset()">${t('btn.reset')}</button></div>${standRow}</div>${rlScorecard(g)}</div>`;
+    const standRow=`<div class="rl-standing">${
+      teams.map((tm,ti)=>({tm,ti,v:won[ti]||0})).sort((a,b)=>b.v-a.v)
+        .map(({tm,ti})=>{ const col=rColor(tm.name);
+          return `<span class="rl-st"><span class="rl-st-team" style="color:${col}">${esc(tm.name)}</span><span class="rl-st-h">${wonH(ti)}<small>H</small></span></span>`; }).join('')
+    }</div>`;
+    return {head:`<div class="rlwrap">
+      <div class="card rl-play"><div class="rl-head"><button class="btn gray sm" style="margin-left:auto" onclick="rlReset()">${t('btn.reset')}</button></div>${standRow}</div></div>`,
+      body:`<div class="rlwrap">${rlScorecard(g)}</div>`};
   }
 
   const h=R.cur; const reps=R.reps[h]||{}; const drawn=rlHoleDrawn(g);
@@ -141,6 +147,8 @@ function renderRouletteTab(g){
     const sc=holeScores(); if(sc.some(s=>s==null))return none;
     const mn=Math.min(...sc); if(sc.every(s=>s===mn))return teams.map(()=>' tie');
     return sc.map(s=>s===mn?' win':' lose'); })();
+  /* 各チームの取得H（.rl-st）はカードの直上・カード幅中央に1つずつ（カードの並び順どおり・数値は濃色インク=CSS側）。
+     カード内はチーム名（.rl-team）を選手名と同じ行の左側へ（.rl-nmrow・--f-rl-name より小さいまま従属） */
   const panels=teams.map((tm,ti)=>{ const pid=reps[tm.id]; const p=pid?state.players.find(x=>x.id===pid):null;
     const av=pid?adjHole(g,pid,h):null; const sv=pid?(av==null?'—':av):'';
     const col=rColor(tm.name);
@@ -149,11 +157,13 @@ function renderRouletteTab(g){
     if(rl.spinning) act='';
     else if(rl.challengeFrom) act = (rl.challengeFrom!==tm.id)?`<button class="btn sm" onclick="rlChallengeDo('${rl.challengeFrom}','${tm.id}')">${t('rl.spinThis')}</button>`:`<span class="muted" style="font-size:11px">${t('rl.choosing')}</span>`;
     else if(drawn) act=`<button class="btn sec sm" ${(R.remChange[tm.id]||0)<=0?'disabled':''} onclick="rlChange('${tm.id}')">${t('roulette.change')} ${R.remChange[tm.id]||0}</button><button class="btn gray sm" ${(R.remChallenge[tm.id]||0)<=0?'disabled':''} onclick="rlChallengeStart('${tm.id}')">${t('roulette.challenge')} ${R.remChallenge[tm.id]||0}</button>`;
-    return `<div class="rl-panel${stCls[ti]}" id="rl-panel-${tm.id}" style="border-color:${col};--rl-tc:${col};--rl-tc-bg:${rColorBg(tm.name)}">
-      <div class="rl-top"><span class="rl-team" style="color:${col}">${esc(tm.name)}</span></div>
-      <div class="rl-name" id="rl-name-${tm.id}">${rl.spinning&&rl.spinTeams.includes(tm.id)?'…':(p?esc(p.name):'―')}</div>
-      <div class="rl-scorebig" id="rl-score-${tm.id}">${pid?sv:'&nbsp;'}</div>
-      <div class="rl-act">${act}</div>
+    return `<div class="rl-col">
+      <div class="rl-st"><span class="rl-st-team" style="color:${col}">${esc(tm.name)}</span><span class="rl-st-h">${wonH(ti)}<small>H</small></span></div>
+      <div class="rl-panel${stCls[ti]}" id="rl-panel-${tm.id}" style="border-color:${col};--rl-tc:${col};--rl-tc-bg:${rColorBg(tm.name)}">
+        <div class="rl-nmrow"><span class="rl-team" style="color:${col}">${esc(tm.name)}</span><span class="rl-name" id="rl-name-${tm.id}">${rl.spinning&&rl.spinTeams.includes(tm.id)?'…':(p?esc(p.name):'―')}</span></div>
+        <div class="rl-scorebig" id="rl-score-${tm.id}">${pid?sv:'&nbsp;'}</div>
+        <div class="rl-act">${act}</div>
+      </div>
     </div>`; }).join('');
   let mainBtn;
   if(rl.spinning) mainBtn=`<button class="btn danger wide rl-main" onclick="rlStop()">${t('rl.stop')}</button>`;
@@ -164,23 +174,21 @@ function renderRouletteTab(g){
       <select style="flex:1;max-width:52%" onchange="rlForceRep('${tm.id}',this.value)"><option value="">${t('rl.pickRep')}</option>${tm.memberIds.map(pid=>{const p=state.players.find(x=>x.id===pid);return `<option value="${pid}" ${reps[tm.id]===pid?'selected':''}>${esc(p&&p.name)}</option>`}).join('')}</select></div>`).join('')}
     <hr>${teams.map(tm=>`<div class="row between" style="margin:2px 0"><span style="color:${rColor(tm.name)};min-width:64px">${esc(tm.name)}</span><span><button class="btn gray sm" onclick="rlRefund('${tm.id}','change')">${t('rl.refundChange',{n:R.remChange[tm.id]||0})}</button> <button class="btn gray sm" onclick="rlRefund('${tm.id}','challenge')">${t('rl.refundChallenge',{n:R.remChallenge[tm.id]||0})}</button></span></div>`).join('')}
   </div></details>`;
-  return `<div class="rlwrap">
+  const head=`<div class="rlwrap">
     <div class="card rl-play">
       <div class="rl-head"><div class="rl-hole">${h+1}<small>H</small></div><div class="rl-par">Par ${g.par[h]}</div>
         ${holeRes}
         ${rl.challengeFrom?`<span class="muted">${t('rl.pickOpp')} <button class="btn gray sm" onclick="rlCancelChallenge()">${t('btn.cancel')}</button></span>`:''}
         <button class="btn gray sm" style="margin-left:auto" onclick="rlReset()">${t('btn.reset')}</button></div>
       <div class="rl-panels">${panels}</div>
-      ${standRow}
       <div class="rl-ctrl">
         <div class="rl-info">${(!rl.spinning&&drawn)?holeInfo:'&nbsp;'}</div>
         ${mainBtn}
         ${(!rl.spinning&&drawn&&!rlCanAdvance(g))?`<div class="muted" style="margin-top:6px;text-align:center">${t('rl.useChanges')}</div>`:''}
       </div>
     </div>
-    ${rlScorecard(g)}
-    ${devMenu}
   </div>`;
+  return {head, body:`<div class="rlwrap">${rlScorecard(g)}${devMenu}</div>`};
 }
 
 
