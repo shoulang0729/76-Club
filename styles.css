@@ -26,6 +26,7 @@
     --w-reg:400; --w-med:600; --w-bold:800;
     --f-hero:21px; --f-val:20px; --f-name:16px; --f-title:15px; --f-body:13px; --f-small:11px;
     --f-rl-hole:48px; --f-rl-name:30px; --f-rl-score:44px;   /* 投影用大型（§11.14。ルーレット・1 on 1 で共用） */
+    --h-tabrow:44px;   /* タブ段の高さ（1段目/2段目/結果発表サブタブ共通・2026-08-20-home-subtabs.md §5.2。≥1024px で48px） */
   }
   /* ダーク（§11.8）: 色トークンの値のみ上書き。構造・余白・角丸・サイズは :root と共通 */
   html[data-theme="dark"]{
@@ -56,27 +57,23 @@
   .chbadge{flex:0 0 auto;border:1px solid var(--line);border-radius:var(--r-pill);background:var(--surface-1);color:var(--sub);
     padding:5px 12px;font-size:var(--f-small);font-weight:var(--w-bold);white-space:nowrap;cursor:pointer}
   .chbadge.beta{background:var(--acc-bg);border-color:var(--acc-bg-strong);color:var(--acc-ink)}
-  /* 主ナビ: ホーム/結果発表の2タブ＋現在地 #navCur（表示専用）。作業画面へはホームの固定メニューから（2026-08-20-home-menu.md） */
-  .mainnav{position:sticky;top:50px;z-index:18;display:flex;gap:6px;align-items:center;background:var(--card);
-    border-bottom:1px solid var(--line);padding:0 12px}
-  .mainnav button{border:0;border-bottom:2px solid transparent;margin-bottom:-1px;background:transparent;color:var(--sub);
-    padding:11px 10px;font-size:var(--f-body);font-weight:var(--w-bold);cursor:pointer;letter-spacing:.02em}
+  /* 主ナビ: ホーム/結果発表の2タブ＋ホーム配下の全幅サブタブ（2026-08-20-home-subtabs.md）。
+     ヘッダ(top:0)＋タブ2段(.navwrap top:50px)の3層 sticky。タブ段の高さは --h-tabrow で1段目/2段目/結果発表側とも共通 */
+  .navwrap{position:sticky;top:50px;z-index:18}
+  .mainnav{display:flex;gap:6px;align-items:center;background:var(--card);border-bottom:1px solid var(--line);padding:0 12px}
+  .mainnav button{border:0;border-bottom:2px solid transparent;background:transparent;color:var(--sub);
+    padding:0 10px;min-height:var(--h-tabrow);font-size:var(--f-body);font-weight:var(--w-bold);cursor:pointer;letter-spacing:.02em}
   .mainnav button.on{color:var(--strong);border-bottom-color:var(--pri)}
+  .subnav{display:flex;gap:6px;background:var(--card);border-bottom:1px solid var(--line);padding:0 12px;
+    overflow-x:auto;scrollbar-width:none}
+  .subnav::-webkit-scrollbar{display:none}
+  .subnav button{flex:1 0 auto;border:0;border-bottom:2px solid transparent;background:transparent;color:var(--sub);
+    padding:0 2px;min-height:var(--h-tabrow);font-size:var(--f-body);font-weight:var(--w-bold);cursor:pointer;letter-spacing:.02em;white-space:nowrap}
+  .subnav button.on{color:var(--strong);border-bottom-color:var(--pri)}
+  @media(max-width:374px){ .subnav{gap:4px} .subnav button{font-size:12px} }
   .tagbeta{background:var(--acc-bg);color:var(--acc-ink)}
   /* トップ（ホーム）画面（§11.12 B） */
-  /* ホーム固定メニュー（2026-08-20-home-menu.md）: ドロワー廃止。広幅=左カラム固定・760px以下=最上部に縦積み */
-  .homegrid{display:grid;grid-template-columns:260px minmax(0,1fr);gap:12px;align-items:start}
-  .homemenu{margin-bottom:0;padding:12px 8px}
-  .homemenu h2{padding:2px 10px 8px}
-  .hm-item{display:flex;flex-direction:column;gap:3px;width:100%;text-align:left;border:0;background:transparent;
-    border-radius:var(--r-sm);padding:12px 10px;cursor:pointer}
-  .hm-item:active{background:var(--hl-bg)}
-  .hm-item .hm-t{font-size:var(--f-title);font-weight:var(--w-bold);color:var(--strong)}
-  .hm-item .hm-d{font-size:var(--f-small);color:var(--sub);line-height:1.4}
-  #navCur{cursor:default}
-  @media(max-width:760px){ .homegrid{grid-template-columns:1fr} }
-  @media(min-width:1024px){ .hm-item{padding:14px 12px} }
-  /* ホームのα/β 2カラム（右カラム内で左右50:50・560px以下で縦積み。game-split §2 の CSS を無改変で採用） */
+  /* ホームのα/β 2カラム（全幅で50:50・560px以下で縦積み。game-split §2 の CSS を無改変で採用） */
   .chwrap{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px}
   .chwrap>.card{margin-bottom:0;display:flex;flex-direction:column}
   .chwrap>.card>div:last-child{margin-top:auto}
@@ -93,7 +90,7 @@
     header .gamename{font-size:17px}   /* 狭幅はコンペ情報をやや縮小＝1行＋ellipsis（§11.12 K） */
     header h1{display:none}            /* 狭幅は Powered by 表記を非表示＝コンペ情報の可読を優先（#63） */
     .hdrsel{padding:8px 6px} }
-  @media(min-width:1024px){ .mainnav button{min-height:48px;font-size:15px} .chbadge{min-height:40px} }
+  @media(min-width:1024px){ :root{--h-tabrow:48px} .mainnav button{font-size:15px} .subnav button{font-size:15px} .chbadge{min-height:40px} }
   main{padding:12px;max-width:960px;margin:0 auto}
   /* cards（小角丸・フラット §11.4／見出しはSerif＋ハイライン区切り・余白拡張 §11.8） */
   .card{background:var(--card);border:1px solid var(--line);border-radius:var(--r-sm);padding:18px 16px;margin-bottom:12px}

@@ -8,8 +8,7 @@ function setSeenTop(v){ localStorage.setItem('golfCompe_seenTop', v?'1':'0'); }
 const ALPHA_GAMES=['fmt.net','fmt.gross','fmt.teamGross','fmt.teamNet','fmt.hbh','term.roulette','term.niapin','term.dracon'];
 const BETA_GAMES =['fmt.stableford','fmt.olympic','fmt.callaway','fmt.nassau','fmt.best2','fmt.vegas'];
 
-// ホーム固定メニュー（2026-08-20-home-menu.md §2・5項目＝2026-08-20-game-split.md）
-const HOME_MENU=['basic','game','course','players','score'];
+// 概要サブタブ（2026-08-20-home-subtabs.md §4）: 1カラム全幅。ガイド→α/β解説→α/βカード50:50→skip
 function renderHome(){
   const el=document.getElementById('view-home');
   const chCard=(c)=>{
@@ -22,28 +21,18 @@ function renderHome(){
       <div class="mt10"><button class="btn ${on?'gray':''} wide" ${on?'disabled':''} onclick="setChannel('${c}')">${t('ch.enter',{v:t('ch.'+c)})}</button></div>
     </div>`; };
 
-  const mi=tab=>`<button class="hm-item" onclick="go('${tab}')">
-    <span class="hm-t">${t('nav.'+tab)}</span><span class="hm-d">${t('home.d.'+tab)}</span></button>`;
-
-  el.innerHTML = `<div class="homegrid">
-    <nav class="card homemenu" aria-label="${t('home.menu')}">
-      <h2>${t('home.menu')}</h2>
-      ${HOME_MENU.map(mi).join('')}
-    </nav>
-    <div class="homemain">
-      <div class="card hometop">
-        <h2>${t('home.title')}</h2>
-        <div class="muted">${t('home.lead')}</div>
-        <ol class="homesteps">
-          <li>${t('home.step1')}</li><li>${t('home.step2')}</li><li>${t('home.step3')}</li><li>${t('home.step4')}</li>
-        </ol>
-      </div>
-      <div class="card"><h2>${t('ch.title')}</h2>
-        <div class="rule">${t('ch.note')}</div>
-        <div class="muted mt6">${t('ch.common')}</div>
-      </div>
-      <div class="chwrap">${chCard('a')}${chCard('b')}</div>
-      <label class="tgl seentop"><input type="checkbox" ${seenTop()?'checked':''} onchange="setSeenTop(this.checked)"> ${t('home.skip')}</label>
+  el.innerHTML = `
+    <div class="card hometop">
+      <h2>${t('home.title')}</h2>
+      <div class="muted">${t('home.lead')}</div>
+      <ol class="homesteps">
+        <li>${t('home.step1')}</li><li>${t('home.step2')}</li><li>${t('home.step3')}</li><li>${t('home.step4')}</li>
+      </ol>
     </div>
-  </div>`;
+    <div class="card"><h2>${t('ch.title')}</h2>
+      <div class="rule">${t('ch.note')}</div>
+      <div class="muted mt6">${t('ch.common')}</div>
+    </div>
+    <div class="chwrap">${chCard('a')}${chCard('b')}</div>
+    <label class="tgl seentop"><input type="checkbox" ${seenTop()?'checked':''} onchange="setSeenTop(this.checked)"> ${t('home.skip')}</label>`;
 }
