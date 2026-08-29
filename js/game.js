@@ -1,29 +1,10 @@
-/* ============================ GAME SETUP ============================ */
+/* ============================ GAME SETTINGS（何をどう集計するか・2026-08-20-game-split.md） ============================ */
 function renderGame(){
   const el=document.getElementById('view-game');
-  let html = `<div class="card"><h2>${t('game.title')}</h2>
-    <div class="row between">
-      <select id="gameSel" onchange="selectGame(this.value)" class="fx1">
-        <option value="">${t('game.selectPh')}</option>
-        ${state.games.map(g=>`<option value="${g.id}" ${g.id===state.currentGameId?'selected':''}>${esc(g.name)} (${g.date})</option>`).join('')}
-      </select>
-      <button class="btn" onclick="createGame()">${t('game.newBtn')}</button>
-    </div></div>`;
-
   const g=curGame();
-  if(!g){ el.innerHTML=html+`<div class="empty">${t('game.emptyCreate')}</div>`+hostMenuCard(); return; }
+  if(!g){ el.innerHTML=`<div class="empty">${t('msg.needGame')}</div>`; return; }
 
-  html += `<div class="card"><h2>${t('game.basic')}</h2>
-    <label class="fl">${t('game.compeName')}</label><input value="${esc(g.name)}" onchange="setG('name',this.value)">
-    <div class="row"><div class="fx1"><label class="fl">${t('game.date')}</label><input type="date" value="${g.date}" onchange="setG('date',this.value)"></div>
-    <div class="fx1"><label class="fl">${t('game.course')}</label><input value="${esc(g.course)}" placeholder="${t('game.coursePh')}" onchange="setG('course',this.value)"></div></div>
-    <div class="row" class="mt10">
-      <button class="btn danger sm" onclick="deleteGame()">${t('game.deleteBtn')}</button>
-      <button class="btn gray sm" onclick="dupGame()">${t('btn.dup')}</button>
-    </div>
-  </div>`;
-
-  html += `<div class="card"><h2>${t('game.periaCard')}</h2>
+  let html = `<div class="card"><h2>${t('game.periaCard')}</h2>
     <div class="muted">${t('game.periaFormula')}</div>
     <div class="row">
       <div class="fx1"><label class="fl">${t('game.coef')}</label><input type="number" step="0.05" value="${g.periaCoef}" onchange="setG('periaCoef',parseFloat(this.value))"></div>
@@ -45,14 +26,7 @@ function renderGame(){
     ${bchk('nassau',t('fmt.nassau'))}${bchk('olympic',t('fmt.olympic'))}
     ${bchk('callaway',t('fmt.callaway'))}${bchk('best2ball',t('fmt.best2'))}
     ${bchk('vegas',t('fmt.vegas'))}${bchk('match1v1',t('fmt.match1v1'))}
-  </div>${(CHANNEL==='b'&&F.vegas)?`<div style="margin-top:10px;border-top:1px solid var(--line);padding-top:10px">
-    <label style="display:flex;gap:8px;align-items:center;font-size:13px"><input type="checkbox" ${g.vegas.flip?'checked':''} onchange="setVegas('flip',this.checked)"> ${t('vegas.flip')}</label>
-    <div class="row" style="margin-top:8px;align-items:center"><span style="font-size:13px">${t('vegas.cap')}</span>
-      <select style="flex:1;max-width:220px" onchange="setVegas('cap',this.value)">
-        <option value="doublePar" ${g.vegas.cap!=='none'?'selected':''}>${t('vegas.capDouble')}</option>
-        <option value="none" ${g.vegas.cap==='none'?'selected':''}>${t('vegas.capNone')}</option>
-      </select></div>
-  </div>`:''}</div>`;
+  </div></div>`;
 
   html += `<div class="card"><h2>${t('game.rlCard')}</h2>
     <div class="muted">${t('game.rlNote')}</div>
@@ -60,6 +34,18 @@ function renderGame(){
       <div class="fx1"><label class="fl">${t('game.rlChangeN')}</label><input type="number" min="0" max="9" value="${g.roulette.changeN}" onchange="setRoulette('changeN',this.value)"></div>
       <div class="fx1"><label class="fl">${t('game.rlChallengeM')}</label><input type="number" min="0" max="9" value="${g.roulette.challengeM}" onchange="setRoulette('challengeM',this.value)"></div>
     </div></div>`;
+
+  // Vegas 個別設定（β且つチェックON時のみ表示・2026-08-20-game-split.md §3 #7b。setFmt→renderGame 再描画で出没）
+  if(CHANNEL==='b' && F.vegas){
+    html += `<div class="card"><h2>${t('fmt.vegas')} <span class="tag tagbeta">${t('ch.b')}</span></h2>
+    <label style="display:flex;gap:8px;align-items:center;font-size:13px"><input type="checkbox" ${g.vegas.flip?'checked':''} onchange="setVegas('flip',this.checked)"> ${t('vegas.flip')}</label>
+    <div class="row" style="margin-top:8px;align-items:center"><span style="font-size:13px">${t('vegas.cap')}</span>
+      <select style="flex:1;max-width:220px" onchange="setVegas('cap',this.value)">
+        <option value="doublePar" ${g.vegas.cap!=='none'?'selected':''}>${t('vegas.capDouble')}</option>
+        <option value="none" ${g.vegas.cap==='none'?'selected':''}>${t('vegas.capNone')}</option>
+      </select></div>
+  </div>`;
+  }
 
   // Points / prize pool
   const P=g.points;
@@ -84,16 +70,7 @@ function renderGame(){
     <div class="muted" class="mt6">${t('game.poolNote')}</div>
   </div>`;
 
-  html += hostMenuCard();
   el.innerHTML=html;
-}
-// 幹事メニュー（動作確認用・目立たせない。Phase2で幹事のみ表示に制限予定）
-function hostMenuCard(){
-  return `<details><summary>${t('host.summary')}</summary><div class="in">
-    <div class="muted" style="margin-bottom:8px">${t('host.note')}</div>
-    <button class="btn gold sm" onclick="seedTestData()">${t('host.seedBtn')}</button>
-    <div class="muted" class="mt6">${t('host.seedNote')}</div>
-  </div></details>`;
 }
 function setG(k,v){ const g=curGame(); g[k]=v; save(); if(k==='name'||k==='date'||k==='course')render(); }
 function setCap(v){ const g=curGame(); g.periaCap = v===''?null:parseFloat(v); save(); }
@@ -103,9 +80,3 @@ function setPoints(k,v){ curGame().points[k]=v.split(',').map(x=>parseInt(x.trim
 function setPointsNum(k,v){ curGame().points[k]=parseInt(v)||0; save(); }
 function setRoulette(k,v){ curGame().roulette[k]=Math.max(0,parseInt(v)||0); save(); }
 function setVegas(k,v){ curGame().vegas[k]=v; save(); }
-function createGame(){ const g=newGame(); state.games.push(g); state.currentGameId=g.id; save(); render(); toast(t('toast.gameCreated')); }
-function selectGame(id){ state.currentGameId=id||null; save(); render(); }
-function deleteGame(){ if(!confirm(t('confirm.deleteGame')))return;
-  state.games=state.games.filter(x=>x.id!==state.currentGameId); state.currentGameId=state.games[0]?.id||null; save(); render(); }
-function dupGame(){ const g=JSON.parse(JSON.stringify(curGame())); g.id=uid(); g.name=g.name+' (複製)'; state.games.push(g); state.currentGameId=g.id; save(); render(); }
-
