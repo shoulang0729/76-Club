@@ -19,7 +19,6 @@ let tgExcept={ teamGross:new Set(), teamNet:new Set(), best2ball:new Set(), hole
 function tgMasked(key,tid){ return (tgMode[key]==='hide') !== tgExcept[key].has(tid); }
 function toggleTgAll(key){ tgMode[key]= tgMode[key]==='show'?'hide':'show'; tgExcept[key].clear(); renderResult(); }
 function toggleTgRow(key,tid){ const s=tgExcept[key]; if(s.has(tid))s.delete(tid); else s.add(tid); renderResult(); }
-let resultSub='ind';   // 'pts' | 'ind' | 'prize' | 'team'
 /* スコア表の並べ替え指標（§11.12 I）。表示状態のみ＝計算には介入しない。既定はどちらもネット。
    個人=グロス/ネットの2択、チーム=グロス/ネット/ホールバイホールの3択。 */
 let scSortInd='net';    // 'gross' | 'net'
