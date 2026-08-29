@@ -13,7 +13,7 @@ const ok  = (m) => console.log('  ✅ ' + m);
 const bad = (m) => { console.log('  ❌ ' + m); fails++; };
 
 const html = fs.readFileSync(root + '/index.html', 'utf8');
-const order = [...html.matchAll(/<script src="js\/([^."]+)\.js">/g)].map(m => m[1]);
+const order = [...html.matchAll(/<script src="js\/([^."]+)\.js(?:\?[^"]*)?">/g)].map(m => m[1]);   // ?v=NN のキャッシュバスティング付きも検出（#75）
 const combined = order.map(n => fs.readFileSync(`${root}/js/${n}.js`, 'utf8')).join('\n');
 
 // 1) 構文
