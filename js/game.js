@@ -65,7 +65,6 @@ function renderGame(){
   const P=g.points;
   const ptsInd=(k,label)=> F[k]?`<div class="ptsrow"><span>${label}</span><span class="ptsedit"><input value="${(P[k]||[]).join(',')}" onchange="setPoints('${k}',this.value)" placeholder="5,3,1"></span></div>`:'';
   const ptsTeam=(k,label)=> F[k]?`<div class="ptsrow"><span>${label}${t('pts.each')}</span><span class="ptsedit"><input value="${(P[k]||[]).join(',')}" onchange="setPoints('${k}',this.value)" placeholder="3"></span></div>`:'';
-  const npdc=g.prizes.niapinHoles.length||g.prizes.draconHoles.length;
   html += `<div class="card prizewin"><h2>${t('game.ptsCard')}</h2>
     <div class="muted">${t('game.ptsNote')}</div>
     <h3>${t('game.h3Ind')}</h3>

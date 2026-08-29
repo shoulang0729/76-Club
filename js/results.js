@@ -179,8 +179,7 @@ function rankCardNS(title, pids, valFn, dir, fmt, table, hlMap){
 
 // ニアピン/ドラコン タブ
 function renderPrizeTab(g){
-  const P=g.prizes;
-  if(!P.niapinHoles.length && !P.draconHoles.length)
+  if(!niapinHolesOf(g).length && !draconHolesOf(g).length)
     return `<div class="card"><h2>${t('prize.title')}</h2><div class="empty">${t('prize.emptyCfg')}</div></div>`;
   return renderPrizes(g);
 }

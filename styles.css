@@ -167,9 +167,6 @@
   .seg button.on{background:var(--pri);color:var(--on-fill)}
   .fmtgrid{display:grid;grid-template-columns:1fr 1fr;gap:6px}
   .fmtgrid label{display:flex;align-items:center;gap:6px;font-size:var(--f-body);background:var(--surface-2);padding:8px;border-radius:var(--r-sm);cursor:pointer}
-  .holebtn{width:34px;height:34px;border-radius:var(--r-sm);border:1px solid var(--line);background:var(--card);margin:2px;font-size:var(--f-body);cursor:pointer;font-weight:var(--w-bold)}
-  .holebtn.np{background:var(--pri);color:var(--on-fill);border-color:var(--pri)}
-  .holebtn.dc{background:var(--red);color:var(--on-fill);border-color:var(--red)}
   .ptsedit input{width:78px;text-align:center;display:inline-block;padding:5px}
   .ptsrow{display:flex;align-items:center;justify-content:space-between;gap:8px;margin:5px 0}
   .ptsrow span{font-size:var(--f-body)}
@@ -356,7 +353,6 @@
     .eyebtn{min-width:44px;min-height:44px;display:inline-flex;align-items:center;justify-content:center;padding:0}
     .chip{min-height:44px;padding:9px 14px;font-size:14px}
     .subtab4 button{min-height:48px;font-size:15px}
-    .holebtn{width:46px;height:46px;font-size:15px}
     .scoregrid td input{min-height:44px;font-size:15px;padding:9px 2px}   /* 44ptタッチ（幅は fixed レイアウトで自動配分・§11.12 D） */
     .scoregrid td input:focus{outline:2px solid var(--pri);outline-offset:-1px}
     /* ルーレットのiPad中間スケール＋タッチ44pt（§11.9）: --f-rl-*は上の:rootで再定義 */

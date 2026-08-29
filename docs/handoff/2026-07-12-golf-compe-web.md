@@ -89,8 +89,8 @@ net(pid)      = effGross(pid) − periaHdcp(pid)     # ← ネット個人戦。
 - **ラスベガス（Vegas）**: 2人1組の2スコアを2桁合体→フリップ→点差累積（**★§11.11 が正本**・2026-08-16追加）。
 
 ### 3.6 ニアピン / ドラコン（個人賞）
-- ゲーム設定で対象ホールを指定（青=ニアピン / 赤=ドラコン、トグルで none→NP→DC→none）。
-- 結果タブで各対象ホールの勝者を選択して記録。
+- ~~ゲーム設定で対象ホールを指定（青=ニアピン / 赤=ドラコン、トグルで none→NP→DC→none）~~ **★2026-08-20 改訂: 手動指定を廃止。対象ホールはパー設定から自動導出（Par 3=ニアピン / Par 5=ドラコン・個数制限なし・par===3/5 の厳密一致）**。導出は純関数 `niapinHolesOf(g)`/`draconHolesOf(g)`（詳細・前後比較は `docs/handoff/2026-08-20-npdc-par.md` が正）。
+- 結果タブで各対象ホールの勝者を選択して記録。配点は**導出対象ホールの勝者のみ**加算（導出対象外ホールに残る勝者記録は保持するが集計・表示から無視＝パーを戻せば復活する非破壊・可逆挙動）。
 - ローカルルール注記：**女性はニアピン/ドラコンとも2打目を計測対象にできる**（計算ではなく運用注記として画面表示）。この判定に選手の性別（男/女）を使うため、選手マスターに性別が必須。
 
 ---
@@ -110,8 +110,8 @@ net(pid)      = effGross(pid) − periaHdcp(pid)     # ← ネット個人戦。
     "participants": ["xxx"],
     "scores": { "xxx": [4,5,null,...] },   // length 18, null=未入力
     "prizes": {
-      "niapinHoles":[2], "draconHoles":[4],
-      "niapinWinner": { "2":"xxx" }, "draconWinner": { "4":"yyy" }
+      "niapinHoles":[2], "draconHoles":[4],   // ★2026-08-20 廃止フィールド（非参照・後方互換のため残置。削除しない）。対象ホールは par から導出（§3.6 改訂）
+      "niapinWinner": { "2":"xxx" }, "draconWinner": { "4":"yyy" }   // キー=ホールindex。導出対象外ホールのエントリは保持するが集計・表示から無視（§3.6 改訂）
     },
     "formats": { "gross":true,"net":true,"teamGross":true,"teamNet":true,
       "holeByHole":true,"stableford":true,"nassau":true,"olympic":true,

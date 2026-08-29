@@ -27,10 +27,9 @@ function seedTestData(){
   const tnames=['レッド','ブルー','グリーン'];
   g.teams=tnames.map(n=>({id:uid(),name:'チーム'+n,memberIds:[]}));
   ids.forEach((pid,i)=>g.teams[i%3].memberIds.push(pid));
-  // ニアピン(par3)・ドラコン(par5)を対象に、勝者もランダム
-  g.par.forEach((par,i)=>{ if(par===3)g.prizes.niapinHoles.push(i); if(par===5)g.prizes.draconHoles.push(i); });
-  g.prizes.niapinHoles.forEach(h=>{ g.prizes.niapinWinner[h]=ids[Math.floor(Math.random()*ids.length)]; });
-  g.prizes.draconHoles.forEach(h=>{ g.prizes.draconWinner[h]=ids[Math.floor(Math.random()*ids.length)]; });
+  // ニアピン(par3)・ドラコン(par5)は par から自動導出（2026-08-20-npdc-par.md）。勝者だけランダム生成
+  niapinHolesOf(g).forEach(h=>{ g.prizes.niapinWinner[h]=ids[Math.floor(Math.random()*ids.length)]; });
+  draconHolesOf(g).forEach(h=>{ g.prizes.draconWinner[h]=ids[Math.floor(Math.random()*ids.length)]; });
   state.games.push(g); state.currentGameId=g.id; save(); render(); toast(t('toast.testCreated'));
 }
 

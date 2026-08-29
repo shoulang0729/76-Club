@@ -195,18 +195,19 @@ function leaderboard(title, pids, valFn, dir, fmt, note, key, hlMap, big){
 }
 
 function renderPrizes(g){
-  const P=g.prizes; if(!P.niapinHoles.length && !P.draconHoles.length) return '';
+  const P=g.prizes, NP=niapinHolesOf(g), DC=draconHolesOf(g);   // 対象ホールは par から導出（2026-08-20-npdc-par.md）
+  if(!NP.length && !DC.length) return '';
   const parts=g.participants.filter(pid=>state.players.find(x=>x.id===pid));
   const opts=(sel)=>`<option value="">—</option>${parts.map(pid=>{const p=state.players.find(x=>x.id===pid);
     return `<option value="${pid}" ${sel===pid?'selected':''}>${esc(p.name)}</option>`}).join('')}`;
   let html=`<div class="card prizewin"><h2>${t('prize.recTitle')}</h2>
     <div class="muted">${t('prize.recNote')}</div>`;
-  if(P.niapinHoles.length){ html+=`<h3>${t('term.niapin')}</h3>`;
-    P.niapinHoles.slice().sort((a,b)=>a-b).forEach(h=>{ html+=`<div class="row between" style="margin:4px 0">
+  if(NP.length){ html+=`<h3>${t('term.niapin')}</h3>`;
+    NP.forEach(h=>{ html+=`<div class="row between" style="margin:4px 0">
       <span class="pill e1">${h+1}H</span>
       <select style="flex:1;max-width:60%" onchange="setPrize('niapinWinner',${h},this.value)">${opts(P.niapinWinner[h])}</select></div>`; }); }
-  if(P.draconHoles.length){ html+=`<h3>${t('term.dracon')}</h3>`;
-    P.draconHoles.slice().sort((a,b)=>a-b).forEach(h=>{ html+=`<div class="row between" style="margin:4px 0">
+  if(DC.length){ html+=`<h3>${t('term.dracon')}</h3>`;
+    DC.forEach(h=>{ html+=`<div class="row between" style="margin:4px 0">
       <span class="pill f" style="background:var(--danger-bg);color:var(--red)">${h+1}H</span>
       <select style="flex:1;max-width:60%" onchange="setPrize('draconWinner',${h},this.value)">${opts(P.draconWinner[h])}</select></div>`; }); }
   html+=`</div>`; return html;
