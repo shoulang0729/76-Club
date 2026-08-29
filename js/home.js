@@ -8,8 +8,8 @@ function setSeenTop(v){ localStorage.setItem('golfCompe_seenTop', v?'1':'0'); }
 const ALPHA_GAMES=['fmt.net','fmt.gross','fmt.teamGross','fmt.teamNet','fmt.hbh','term.roulette','term.niapin','term.dracon'];
 const BETA_GAMES =['fmt.stableford','fmt.olympic','fmt.callaway','fmt.nassau','fmt.best2','fmt.vegas'];
 
-// ホーム固定メニュー（2026-08-20-home-menu.md §2）。#61 実装後は先頭に 'basic' を追加（5項目化）
-const HOME_MENU=['game','course','players','score'];
+// ホーム固定メニュー（2026-08-20-home-menu.md §2・5項目＝2026-08-20-game-split.md）
+const HOME_MENU=['basic','game','course','players','score'];
 function renderHome(){
   const el=document.getElementById('view-home');
   const chCard=(c)=>{

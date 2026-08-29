@@ -1,5 +1,5 @@
 /* ============================ TAB NAV ============================ */
-const views = { home:'view-home', game:'view-game', course:'view-course', players:'view-players', score:'view-score', result:'view-result' };
+const views = { home:'view-home', basic:'view-basic', game:'view-game', course:'view-course', players:'view-players', score:'view-score', result:'view-result' };
 let activeTab='home';   // 起動時はトップ（§11.12 B）。init.js で golfCompe_seenTop を見て上書き
 let revealHoles=18;            // 個人戦で開封済みのホール数(0-18)。18=全開（既定）
 let rl={ spinning:false, spinTeams:[], timer:null, challengeFrom:null };  // ルーレットの実行時状態（非保存）
@@ -45,7 +45,7 @@ const SC_NARROW_MQ = window.matchMedia('(max-width:1023px)');
 function scNarrow(){ return SC_NARROW_MQ.matches; }
 SC_NARROW_MQ.addEventListener('change', ()=>{ if(activeTab==='score'||activeTab==='course') render(); });
 const tabLabel=k=>t('tab.'+k);
-const WORK_TABS=['game','course','players','score'];   // ホーム固定メニュー項目＝幹事の作業画面（2026-08-20-home-menu.md）
+const WORK_TABS=['basic','game','course','players','score'];   // ホーム固定メニュー項目＝幹事の作業画面（2026-08-20-home-menu.md）
 function go(tab){ rlStopTimer(); activeTab=tab; render(); }
 function render(){
   Object.entries(views).forEach(([k,id])=> document.getElementById(id).style.display = k===activeTab?'':'none');
@@ -56,6 +56,7 @@ function render(){
   document.querySelectorAll('#mainNav button').forEach(b=>b.classList.toggle('on', b.dataset.tab===activeTab));
   const cb=document.getElementById('chBadge'); if(cb){ cb.textContent=t('ch.'+CHANNEL); cb.classList.toggle('beta', CHANNEL==='b'); }
   if(activeTab==='home') renderHome();
+  if(activeTab==='basic') renderBasic();
   if(activeTab==='game') renderGame();
   if(activeTab==='course') renderCourse();
   if(activeTab==='players') renderPlayers();
