@@ -45,13 +45,13 @@
   body{font-family:"Noto Sans JP","Noto Sans",-apple-system,"Hiragino Kaku Gothic ProN",Meiryo,sans-serif;
     background:var(--bg);color:var(--ink);font-size:var(--f-body);line-height:1.45;padding-bottom:24px}
   html[lang="zh-CN"] body{font-family:"Noto Sans SC","Noto Sans",system-ui,sans-serif}   /* 簡体字の字形最適化（i18n §3.5） */
-  /* header（§11.8・§11.12 K）: 面は --card（白）＋下罫線。濃色ベタ塗りは廃止。コンペ情報（#hdrGame）が主・ワードマークは小さく下段（下線なし） */
+  /* header（§11.8・§11.12 K・#63）: 面は --card（白）＋下罫線。濃色ベタ塗りは廃止。コンペ情報（#hdrGame）が主・Powered by 表記（h1）はバッジ左に控えめ */
   header{background:var(--card);color:var(--strong);padding:12px 15px;position:sticky;top:0;z-index:20;border-bottom:1px solid var(--line)}
   .hdr-row{display:flex;align-items:center;justify-content:space-between;gap:8px}
   .hdr-title{min-width:0;flex:0 1 auto;overflow:hidden}
-  header .gamename{font-family:"Noto Serif JP","Noto Serif",serif;font-size:var(--f-val);font-weight:700;color:var(--strong);
+  header .gamename{font-size:var(--f-val);font-weight:700;color:var(--strong);
     letter-spacing:.02em;line-height:1.2;margin-top:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-  header h1{font-size:var(--f-small);font-weight:var(--w-med);color:var(--sub);letter-spacing:.06em;line-height:1.2;margin-top:2px}
+  header h1{flex:0 0 auto;font-size:var(--f-small);font-weight:var(--w-med);color:var(--sub);letter-spacing:.06em;line-height:1.2;white-space:nowrap}
   /* 現在版バッジ（§11.12 C/L）: ヘッダのタイトル右隣・クリックでα/β切替 */
   .chbadge{flex:0 0 auto;border:1px solid var(--line);border-radius:var(--r-pill);background:var(--surface-1);color:var(--sub);
     padding:5px 12px;font-size:var(--f-small);font-weight:var(--w-bold);white-space:nowrap;cursor:pointer}
@@ -88,6 +88,7 @@
   .seentop{margin-top:2px}
   @media(max-width:560px){
     header .gamename{font-size:17px}   /* 狭幅はコンペ情報をやや縮小＝1行＋ellipsis（§11.12 K） */
+    header h1{display:none}            /* 狭幅は Powered by 表記を非表示＝コンペ情報の可読を優先（#63） */
     .hdrsel{padding:8px 6px} }
   @media(min-width:1024px){ .mainnav button{min-height:48px;font-size:15px} .chbadge{min-height:40px} }
   main{padding:12px;max-width:960px;margin:0 auto}
