@@ -45,15 +45,20 @@ const SC_NARROW_MQ = window.matchMedia('(max-width:1023px)');
 function scNarrow(){ return SC_NARROW_MQ.matches; }
 SC_NARROW_MQ.addEventListener('change', ()=>{ if(activeTab==='score'||activeTab==='course') render(); });
 const tabLabel=k=>t('tab.'+k);
-const WORK_TABS=['basic','game','course','players','score'];   // ホーム固定メニュー項目＝幹事の作業画面（2026-08-20-home-menu.md）
+let lastHome='home';   // ホーム系で最後に居たサブタブ（揮発・非保存）。結果発表からの復帰先（2026-08-20-home-subtabs.md §3.3）
+function goHome(){ go(lastHome); }
 function go(tab){ rlStopTimer(); activeTab=tab; render(); }
 function render(){
   Object.entries(views).forEach(([k,id])=> document.getElementById(id).style.display = k===activeTab?'':'none');
   const g=curGame();
   document.getElementById('hdrGame').textContent = g? `${g.name}　${g.date}${g.course?'　@'+g.course:''}` : t('hdr.noGame');
-  const nc=document.getElementById('navCur'), isWork=WORK_TABS.includes(activeTab);
-  nc.style.display=isWork?'':'none'; nc.dataset.tab=isWork?activeTab:''; if(isWork) nc.textContent=t('nav.'+activeTab);
-  document.querySelectorAll('#mainNav button').forEach(b=>b.classList.toggle('on', b.dataset.tab===activeTab));
+  if(activeTab!=='result') lastHome=activeTab;
+  const hs=document.getElementById('homeSub');
+  hs.style.display = activeTab==='result' ? 'none' : '';
+  hs.querySelectorAll('button').forEach(b=>b.classList.toggle('on', b.dataset.tab===activeTab));
+  if(activeTab!=='result') hs.querySelector('button.on').scrollIntoView({block:'nearest',inline:'nearest'});
+  const par = activeTab==='result' ? 'result' : 'home';             // 上段タブは「親」を点灯
+  document.querySelectorAll('#mainNav button').forEach(b=>b.classList.toggle('on', b.dataset.tab===par));
   const cb=document.getElementById('chBadge'); if(cb){ cb.textContent=t('ch.'+CHANNEL); cb.classList.toggle('beta', CHANNEL==='b'); }
   if(activeTab==='home') renderHome();
   if(activeTab==='basic') renderBasic();
