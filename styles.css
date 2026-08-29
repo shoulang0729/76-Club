@@ -56,28 +56,31 @@
   .chbadge{flex:0 0 auto;border:1px solid var(--line);border-radius:var(--r-pill);background:var(--surface-1);color:var(--sub);
     padding:5px 12px;font-size:var(--f-small);font-weight:var(--w-bold);white-space:nowrap;cursor:pointer}
   .chbadge.beta{background:var(--acc-bg);border-color:var(--acc-bg-strong);color:var(--acc-ink)}
-  /* 主ナビ: ☰ドロワー（作業4画面）＋ホーム/結果発表の2タブ＋現在地 #navCur（本ファイル＝2026-08-20-home-drawer.md） */
+  /* 主ナビ: ホーム/結果発表の2タブ＋現在地 #navCur（表示専用）。作業画面へはホームの固定メニューから（2026-08-20-home-menu.md） */
   .mainnav{position:sticky;top:50px;z-index:18;display:flex;gap:6px;align-items:center;background:var(--card);
     border-bottom:1px solid var(--line);padding:0 12px}
   .mainnav button{border:0;border-bottom:2px solid transparent;margin-bottom:-1px;background:transparent;color:var(--sub);
     padding:11px 10px;font-size:var(--f-body);font-weight:var(--w-bold);cursor:pointer;letter-spacing:.02em}
   .mainnav button.on{color:var(--strong);border-bottom-color:var(--pri)}
-  /* ドロワー（幹事の作業導線・§11.14 原則3。開閉は揮発＝JSが display 切替・アニメなし） */
-  .mainnav .menubtn{font-size:18px;padding:9px 12px;color:var(--strong);line-height:1}
-  .drawer-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.3);z-index:35}
-  .drawer{display:none;position:fixed;left:0;top:0;bottom:0;width:min(78vw,300px);background:var(--card);
-    border-right:1px solid var(--line);box-shadow:0 10px 30px rgba(0,0,0,.25);z-index:40;padding:10px;overflow-y:auto}
-  .drawer-h{font-family:"Noto Serif JP","Noto Serif",serif;font-size:var(--f-title);font-weight:700;color:var(--strong);
-    padding:6px 8px 10px;border-bottom:1px solid var(--line);margin-bottom:8px}
-  .drawer button{display:flex;flex-direction:column;gap:3px;width:100%;text-align:left;border:0;background:var(--card);
-    border-radius:var(--r-sm);padding:12px 10px;cursor:pointer}
-  .drawer button .hl-t{font-size:var(--f-title);font-weight:var(--w-bold);color:var(--strong)}
-  .drawer button .hl-d{font-size:var(--f-small);color:var(--sub);line-height:1.4}
-  .drawer button.on{background:var(--hl-bg)}
-  .drawer button.on .hl-t{color:var(--prid)}
-  @media(min-width:1024px){ .drawer{width:300px} .drawer button{padding:14px 12px} .mainnav .menubtn{min-height:48px;min-width:48px} }
   .tagbeta{background:var(--acc-bg);color:var(--acc-ink)}
   /* トップ（ホーム）画面（§11.12 B） */
+  /* ホーム固定メニュー（2026-08-20-home-menu.md）: ドロワー廃止。広幅=左カラム固定・760px以下=最上部に縦積み */
+  .homegrid{display:grid;grid-template-columns:260px minmax(0,1fr);gap:12px;align-items:start}
+  .homemenu{margin-bottom:0;padding:12px 8px}
+  .homemenu h2{padding:2px 10px 8px}
+  .hm-item{display:flex;flex-direction:column;gap:3px;width:100%;text-align:left;border:0;background:transparent;
+    border-radius:var(--r-sm);padding:12px 10px;cursor:pointer}
+  .hm-item:active{background:var(--hl-bg)}
+  .hm-item .hm-t{font-size:var(--f-title);font-weight:var(--w-bold);color:var(--strong)}
+  .hm-item .hm-d{font-size:var(--f-small);color:var(--sub);line-height:1.4}
+  #navCur{cursor:default}
+  @media(max-width:760px){ .homegrid{grid-template-columns:1fr} }
+  @media(min-width:1024px){ .hm-item{padding:14px 12px} }
+  /* ホームのα/β 2カラム（右カラム内で左右50:50・560px以下で縦積み。game-split §2 の CSS を無改変で採用） */
+  .chwrap{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px}
+  .chwrap>.card{margin-bottom:0;display:flex;flex-direction:column}
+  .chwrap>.card>div:last-child{margin-top:auto}
+  @media(max-width:560px){ .chwrap{grid-template-columns:1fr} }
   .hometop .homesteps{margin:8px 0 0 20px;padding:0}
   .hometop .homesteps li{margin:5px 0;font-size:var(--f-body);line-height:1.6}
   .chcard{border-top:3px solid var(--pri)}

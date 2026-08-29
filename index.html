@@ -32,18 +32,9 @@
   </div>
 </header>
 <nav id="mainNav" class="mainnav">
-  <button id="menuBtn" class="menubtn" onclick="drawerToggle()" data-i18n-title="home.menu">☰</button>
   <button data-tab="home" onclick="go('home')" data-i18n="nav.home">ホーム</button>
   <button data-tab="result" onclick="go('result')" data-i18n="nav.result">結果発表</button>
-  <button id="navCur" style="display:none" onclick="drawerToggle()"></button>
-</nav>
-<div id="drawerOverlay" class="drawer-overlay" onclick="drawerToggle(false)"></div>
-<nav id="appDrawer" class="drawer">
-  <div class="drawer-h" data-i18n="home.menu">メニュー</div>
-  <button data-tab="game" onclick="go('game')"><span class="hl-t" data-i18n="nav.game">ゲーム</span><span class="hl-d" data-i18n="home.d.game">コンペ作成・ゲーム選択・ポイント設定</span></button>
-  <button data-tab="course" onclick="go('course')"><span class="hl-t" data-i18n="nav.course">コース</span><span class="hl-d" data-i18n="home.d.course">パー・隠しホール・ニアピン/ドラコン対象ホール</span></button>
-  <button data-tab="players" onclick="go('players')"><span class="hl-t" data-i18n="nav.players">選手</span><span class="hl-d" data-i18n="home.d.players">選手の登録・参加者とチームの設定</span></button>
-  <button data-tab="score" onclick="go('score')"><span class="hl-t" data-i18n="nav.score">スコア</span><span class="hl-d" data-i18n="home.d.score">ラウンド中の打数入力</span></button>
+  <button id="navCur" style="display:none"></button>
 </nav>
 <main>
   <div id="view-home"></div>

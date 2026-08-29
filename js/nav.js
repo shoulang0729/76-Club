@@ -45,19 +45,15 @@ const SC_NARROW_MQ = window.matchMedia('(max-width:1023px)');
 function scNarrow(){ return SC_NARROW_MQ.matches; }
 SC_NARROW_MQ.addEventListener('change', ()=>{ if(activeTab==='score'||activeTab==='course') render(); });
 const tabLabel=k=>t('tab.'+k);
-/* ドロワー開閉（2026-08-20-home-drawer.md §3）。開閉状態は style.display のみ＝揮発（§11.14 原則4・localStorage 非接触） */
-function drawerToggle(force){ const d=document.getElementById('appDrawer'), o=document.getElementById('drawerOverlay');
-  const open = (force!==undefined)? force : (d.style.display!=='block');
-  d.style.display=open?'block':'none'; o.style.display=open?'block':'none'; }
-const WORK_TABS=['game','course','players','score'];   // ドロワー項目＝幹事の作業画面
-function go(tab){ rlStopTimer(); drawerToggle(false); activeTab=tab; render(); }
+const WORK_TABS=['game','course','players','score'];   // ホーム固定メニュー項目＝幹事の作業画面（2026-08-20-home-menu.md）
+function go(tab){ rlStopTimer(); activeTab=tab; render(); }
 function render(){
   Object.entries(views).forEach(([k,id])=> document.getElementById(id).style.display = k===activeTab?'':'none');
   const g=curGame();
   document.getElementById('hdrGame').textContent = g? `${g.name}　${g.date}${g.course?'　@'+g.course:''}` : t('hdr.noGame');
   const nc=document.getElementById('navCur'), isWork=WORK_TABS.includes(activeTab);
   nc.style.display=isWork?'':'none'; nc.dataset.tab=isWork?activeTab:''; if(isWork) nc.textContent=t('nav.'+activeTab);
-  document.querySelectorAll('#mainNav button,#appDrawer button').forEach(b=>b.classList.toggle('on', b.dataset.tab===activeTab));
+  document.querySelectorAll('#mainNav button').forEach(b=>b.classList.toggle('on', b.dataset.tab===activeTab));
   const cb=document.getElementById('chBadge'); if(cb){ cb.textContent=t('ch.'+CHANNEL); cb.classList.toggle('beta', CHANNEL==='b'); }
   if(activeTab==='home') renderHome();
   if(activeTab==='game') renderGame();
