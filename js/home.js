@@ -10,8 +10,6 @@ const BETA_GAMES =['fmt.stableford','fmt.olympic','fmt.callaway','fmt.nassau','f
 
 function renderHome(){
   const el=document.getElementById('view-home');
-  const link=(tab,key,desc)=>`<button class="homelink" onclick="go('${tab}')">
-    <span class="hl-t">${t(key)}</span><span class="hl-d">${t(desc)}</span></button>`;
   const chCard=(c)=>{
     const on = CHANNEL===c;
     const games=(c==='a'?ALPHA_GAMES:BETA_GAMES).map(k=>`<span class="pill">${t(k)}</span>`).join(' ');
@@ -28,14 +26,8 @@ function renderHome(){
       <ol class="homesteps">
         <li>${t('home.step1')}</li><li>${t('home.step2')}</li><li>${t('home.step3')}</li><li>${t('home.step4')}</li>
       </ol>
+      <div class="mt10"><button class="btn sec wide" onclick="drawerToggle(true)">☰ ${t('home.menu')}</button></div>
     </div>
-    <div class="card"><h2>${t('home.menu')}</h2><div class="homelinks">
-      ${link('game','nav.game','home.d.game')}
-      ${link('course','nav.course','home.d.course')}
-      ${link('players','nav.players','home.d.players')}
-      ${link('score','nav.score','home.d.score')}
-      ${link('result','nav.result','home.d.result')}
-    </div></div>
     <div class="card"><h2>${t('ch.title')}</h2>
       <div class="rule">${t('ch.note')}</div>
       <div class="muted mt6">${t('ch.common')}</div>

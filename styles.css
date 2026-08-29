@@ -56,31 +56,39 @@
   .chbadge{flex:0 0 auto;border:1px solid var(--line);border-radius:var(--r-pill);background:var(--surface-1);color:var(--sub);
     padding:5px 12px;font-size:var(--f-small);font-weight:var(--w-bold);white-space:nowrap;cursor:pointer}
   .chbadge.beta{background:var(--acc-bg);border-color:var(--acc-bg-strong);color:var(--acc-ink)}
-  /* 主ナビ（§11.12 L/N）: ゲーム/コース/選手/スコア/結果/ホームの6タブ常時表示（☰は廃止） */
+  /* 主ナビ: ☰ドロワー（作業4画面）＋ホーム/結果発表の2タブ＋現在地 #navCur（本ファイル＝2026-08-20-home-drawer.md） */
   .mainnav{position:sticky;top:50px;z-index:18;display:flex;gap:6px;align-items:center;background:var(--card);
     border-bottom:1px solid var(--line);padding:0 12px}
   .mainnav button{border:0;border-bottom:2px solid transparent;margin-bottom:-1px;background:transparent;color:var(--sub);
     padding:11px 10px;font-size:var(--f-body);font-weight:var(--w-bold);cursor:pointer;letter-spacing:.02em}
   .mainnav button.on{color:var(--strong);border-bottom-color:var(--pri)}
+  /* ドロワー（幹事の作業導線・§11.14 原則3。開閉は揮発＝JSが display 切替・アニメなし） */
+  .mainnav .menubtn{font-size:18px;padding:9px 12px;color:var(--strong);line-height:1}
+  .drawer-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.3);z-index:35}
+  .drawer{display:none;position:fixed;left:0;top:0;bottom:0;width:min(78vw,300px);background:var(--card);
+    border-right:1px solid var(--line);box-shadow:0 10px 30px rgba(0,0,0,.25);z-index:40;padding:10px;overflow-y:auto}
+  .drawer-h{font-family:"Noto Serif JP","Noto Serif",serif;font-size:var(--f-title);font-weight:700;color:var(--strong);
+    padding:6px 8px 10px;border-bottom:1px solid var(--line);margin-bottom:8px}
+  .drawer button{display:flex;flex-direction:column;gap:3px;width:100%;text-align:left;border:0;background:var(--card);
+    border-radius:var(--r-sm);padding:12px 10px;cursor:pointer}
+  .drawer button .hl-t{font-size:var(--f-title);font-weight:var(--w-bold);color:var(--strong)}
+  .drawer button .hl-d{font-size:var(--f-small);color:var(--sub);line-height:1.4}
+  .drawer button.on{background:var(--hl-bg)}
+  .drawer button.on .hl-t{color:var(--prid)}
+  @media(min-width:1024px){ .drawer{width:300px} .drawer button{padding:14px 12px} .mainnav .menubtn{min-height:48px;min-width:48px} }
   .tagbeta{background:var(--acc-bg);color:var(--acc-ink)}
   /* トップ（ホーム）画面（§11.12 B） */
   .hometop .homesteps{margin:8px 0 0 20px;padding:0}
   .hometop .homesteps li{margin:5px 0;font-size:var(--f-body);line-height:1.6}
-  .homelinks{display:grid;grid-template-columns:1fr 1fr;gap:8px}
-  .homelink{display:flex;flex-direction:column;gap:3px;text-align:left;border:1px solid var(--line);border-radius:var(--r-sm);
-    background:var(--card);padding:12px 13px;cursor:pointer;min-height:44px}
-  .homelink .hl-t{font-size:var(--f-title);font-weight:var(--w-bold);color:var(--strong)}
-  .homelink .hl-d{font-size:var(--f-small);color:var(--sub);line-height:1.4}
   .chcard{border-top:3px solid var(--pri)}
   .chcard.beta{border-top-color:var(--acc)}
   .chcard.on{box-shadow:0 0 0 2px var(--pri) inset}
   .chcard.beta.on{box-shadow:0 0 0 2px var(--acc) inset}
   .chcard .pill{margin:2px 2px 0 0}
   .seentop{margin-top:2px}
-  @media(max-width:560px){ .homelinks{grid-template-columns:1fr}
+  @media(max-width:560px){
     header .gamename{font-size:17px}   /* 狭幅はコンペ情報をやや縮小＝1行＋ellipsis（§11.12 K） */
-    .hdrsel{padding:8px 6px}
-    .mainnav{padding:0 6px;gap:2px} .mainnav button{padding:11px 5px;font-size:12px;letter-spacing:0} }
+    .hdrsel{padding:8px 6px} }
   @media(min-width:1024px){ .mainnav button{min-height:48px;font-size:15px} .chbadge{min-height:40px} }
   main{padding:12px;max-width:960px;margin:0 auto}
   /* cards（小角丸・フラット §11.4／見出しはSerif＋ハイライン区切り・余白拡張 §11.8） */
