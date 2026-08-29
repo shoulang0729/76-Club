@@ -33,9 +33,13 @@ function migrate(s){
 }
 /* changeN/challengeM は「ハーフ9Hあたり」の回数（§11.3・2026-08-16に意味変更。既存ゲームの値もハーフあたりとして解釈） */
 function newRoulette(){ return { changeN:2, challengeM:2, reps:{}, pool:{}, remChange:{}, remChallenge:{}, cur:0 }; }
+/* teamRankPts＝チーム総合順位配分（§11.15・2026-08-20-team-points.md §4）。
+   旧・種目別チーム配点 teamGross/teamNet/holeByHole/best2ball/roulette は廃止フィールド
+   （既定から削除・既存データは残置・非参照。niapinHoles と同じ後方互換パターン。
+    既存ゲームへの teamRankPts 補完は migrate の既定マージで自動）。 */
 function defaultPoints(){ return {
   net:[5,3,1], gross:[5,3,1], stableford:[5,3,1], olympic:[5,3,1], callaway:[5,3,1], nassauTotal:[5,3,1],
-  teamGross:[3], teamNet:[3], holeByHole:[3], best2ball:[3], roulette:[3], niapin:2, dracon:2,
+  teamRankPts:[10,5], niapin:2, dracon:2,
   m1win:2, m1draw:1 }; }   // 1 on 1 マッチプレー（§11.13）：勝者+2pt/引分両者+1pt（個人にのみ加算）
 function save(){ localStorage.setItem(LS_KEY, JSON.stringify(state)); }
 function uid(){ return Math.random().toString(36).slice(2,9); }
