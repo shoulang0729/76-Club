@@ -314,14 +314,17 @@
   .rl-res-w{font-size:var(--f-rl-score);font-weight:var(--w-bold);line-height:1;color:var(--win)}
   .rl-res-tie{font-size:var(--f-rl-name);font-weight:var(--w-bold);line-height:1.1;color:var(--tie)}
   .rl-panels{display:flex;flex-wrap:wrap;gap:10px}
-  /* 取得Hスタンディング行（カード外・中央・取得H降順。2026-08-20-roulette-standings.md／§11.14） */
+  /* チーム列（取得H＋カードの縦積み）: プレー中は各チームカードの直上・カード幅中央に取得Hを1つずつ表示 */
+  .rl-col{flex:1 1 150px;min-width:140px;display:flex;flex-direction:column;gap:4px}
+  .rl-col>.rl-st{justify-content:center}
+  /* 取得Hスタンディング行（18H終了後・カード外・中央・取得H降順。2026-08-20-roulette-standings.md／§11.14） */
   .rl-standing{display:flex;justify-content:center;align-items:baseline;flex-wrap:wrap;
     column-gap:clamp(14px,4vw,40px);row-gap:2px;text-align:center;margin-top:12px}
   .rl-st{display:inline-flex;align-items:baseline;gap:6px;min-width:0;max-width:100%}
   .rl-st-team{font-size:var(--f-rl-name);font-weight:var(--w-bold);line-height:1.15;overflow-wrap:anywhere;min-width:0}
-  .rl-st-h{font-size:var(--f-rl-score);font-weight:var(--w-bold);line-height:1;font-variant-numeric:tabular-nums;white-space:nowrap}
+  .rl-st-h{font-size:var(--f-rl-score);font-weight:var(--w-bold);line-height:1;font-variant-numeric:tabular-nums;white-space:nowrap;color:var(--strong)}   /* 数値は濃色インク（チームカラーにしない・ユーザー確定） */
   .rl-st-h small{font-size:var(--f-rl-name);font-weight:var(--w-bold);margin-left:1px}
-  .rl-panel{flex:1 1 150px;min-width:140px;border:3px solid var(--line);border-radius:var(--r-md);padding:14px 10px;text-align:center;background:var(--card);
+  .rl-panel{flex:1;border:3px solid var(--line);border-radius:var(--r-md);padding:14px 10px;text-align:center;background:var(--card);
     --rl-tc:var(--win);--rl-tc-bg:var(--win-bg)}   /* 既定値＝verify の孤立var()対策兼フォールバック（§9.2） */
   /* 確定時の勝敗背景：勝ち=自チームカラー淡色＋チームカラー inset 枠／負け=薄グレー・枠なし（2026-08-20-roulette-standings.md §9）。引分=橙は従来どおり */
   .rl-panel.win{background:var(--rl-tc-bg);box-shadow:0 0 0 3px var(--rl-tc) inset}
@@ -332,10 +335,10 @@
   .rl-panel.fwin{background:var(--win-bg-strong);box-shadow:0 0 0 4px var(--win) inset;animation:rlblink .22s infinite alternate}
   .rl-panel.flose{background:var(--danger-bg);box-shadow:0 0 0 4px var(--red) inset;animation:rlblink .22s infinite alternate}
   .rl-panel.ftie{background:var(--tie-bg);box-shadow:0 0 0 4px var(--tie) inset;animation:rlblink .22s infinite alternate}
-  /* カード上段＝チーム名のみ・中央寄せ（取得Hはカード外の .rl-standing へ移設。2026-08-20-roulette-standings.md §2） */
-  .rl-top{display:flex;align-items:baseline;justify-content:center;gap:6px}
-  .rl-team{font-size:var(--f-body);font-weight:var(--w-bold);letter-spacing:.03em;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-  .rl-name{font-size:var(--f-rl-name);font-weight:var(--w-bold);margin:6px 0 2px;min-height:38px;line-height:1.1}
+  /* 名前行＝チーム名（左・小さめ）＋選手名（--f-rl-name・従属関係は保つ）を同じ行に中央寄せ */
+  .rl-nmrow{display:flex;align-items:baseline;justify-content:center;gap:8px;margin:6px 0 2px;min-height:38px}
+  .rl-team{font-size:var(--f-name);font-weight:var(--w-bold);letter-spacing:.03em;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:0 1 auto}
+  .rl-name{font-size:var(--f-rl-name);font-weight:var(--w-bold);line-height:1.1;min-width:0;overflow-wrap:anywhere}
   .rl-scorebig{font-size:var(--f-rl-score);font-weight:var(--w-bold);color:var(--win);line-height:1;min-height:46px;font-variant-numeric:tabular-nums}
   .rl-ev{font-size:var(--f-small);color:var(--win);font-weight:var(--w-bold);min-height:16px;margin-top:2px}
   .rl-act{min-height:40px;display:flex;gap:6px;justify-content:center;align-items:center;flex-wrap:wrap;margin-top:6px}
@@ -344,6 +347,11 @@
   .rl-info{text-align:center;font-weight:var(--w-bold);font-size:var(--f-name);line-height:1.3;min-height:calc(var(--f-name)*1.3);margin-bottom:4px}
   .rl-main{font-size:var(--f-val);padding:16px}
   .rl-dev{margin-bottom:10px}
+  /* 抽選カード sticky（roulette-standings §5。コンテナは .result-sticky を共用＝top/z-index の新設なし）。
+     max-height=フォールバック: 固定領域が画面高を超える低背環境はカード内スクロール（sticky は解除しない）。
+     26px = top補正1px＋sticky上pad8＋subtab4下罫線1＋subtab-games上下pad(6+2)＋sticky下pad8。タブ2段＋主ナビで 3*--h-tabrow */
+  .result-sticky .rl-play{margin-bottom:0;
+    max-height:calc(100dvh - var(--hdr-h,50px) - 3*var(--h-tabrow) - 26px);overflow-y:auto;overscroll-behavior:contain}
   .sc2 .cur{background:var(--acc-bg) !important;color:var(--strong) !important}   /* 現在ホール列：黄地でも文字は最濃色に */
   .sc2 th.cur{background:var(--acc-bg-strong) !important;color:var(--strong) !important}
   .sc2 .adopt{outline:2px solid var(--sub);outline-offset:-2px;font-weight:var(--w-bold);color:var(--strong) !important}
@@ -362,8 +370,8 @@
   @media(min-width:820px){
     :root{--f-rl-hole:66px;--f-rl-name:40px;--f-rl-score:64px}
     .rlwrap{max-width:900px;margin:0 auto}
-    .rl-name{min-height:50px} .rl-scorebig{min-height:66px}
-    .rl-panel{flex:1 1 200px;padding:20px 14px} .rl-main{font-size:24px;padding:20px}
+    .rl-nmrow{min-height:50px} .rl-scorebig{min-height:66px}
+    .rl-col{flex:1 1 200px} .rl-panel{padding:20px 14px} .rl-main{font-size:24px;padding:20px}
     .sc2.rlsc{font-size:15px}
   }
   /* 9:16 大画面投影：結果タブ全体を大きく見やすく */
@@ -408,8 +416,9 @@
     .scoregrid td input:focus{outline:2px solid var(--pri);outline-offset:-1px}
     /* ルーレットのiPad中間スケール＋タッチ44pt（§11.9）: --f-rl-*は上の:rootで再定義 */
     .rlwrap{max-width:1100px}
-    .rl-panel{flex:1 1 220px;padding:22px 16px}
-    .rl-name{min-height:54px}
+    .rl-col{flex:1 1 220px}
+    .rl-panel{padding:22px 16px}
+    .rl-nmrow{min-height:54px}
     .rl-scorebig{min-height:72px}
     .rl-main{min-height:56px;font-size:25px;padding:16px}
     .rl-act .btn{min-height:44px;padding:9px 14px;font-size:13px}
@@ -426,7 +435,7 @@
     /* ルーレット横持ち一段拡大（§11.9） */
     :root{--f-rl-hole:76px;--f-rl-name:48px;--f-rl-score:76px}
     .rlwrap{max-width:1280px}
-    .rl-name{min-height:58px}
+    .rl-nmrow{min-height:58px}
     .rl-scorebig{min-height:80px}
     .rl-main{font-size:27px}
     .sc2.rlsc{font-size:17px}
