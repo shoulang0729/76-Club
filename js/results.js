@@ -196,26 +196,9 @@ function renderTeamTab(g){
   return renderScorecard(g, g.participants, teams) + `<div class="rank-wrap">${renderTeams(g)}</div>`;
 }
 
-/* ---- 1 on 1 マッチプレー タブ（§11.13・docs/handoff/2026-08-20-1on1-match.md §13 が正。一組ずつモードの開封は §14 が正）----
-   組合せ=幹事の手動作成（§13.1・抽選は廃止）。判定/配点/データ構造（§3/§5/§6）は不変。
-   投影原則（正本 §11.14）適用第1号: 大型UP表示が主役・幹事の編集UIは details 折りたたみ。 */
-// 組合せ編集（§13.1）: いずれも save() → renderResult()。唯一のブロック=同一カードの重複（m1.dupPair）
-function m1AddPair(){ const g=curGame(); if(!g)return;
-  const T=m1Teams(g); if(T.length!==2)return;
-  const selA=document.getElementById('m1selA'), selB=document.getElementById('m1selB');
-  if(!selA||!selB)return; const a=selA.value, b=selB.value; if(!a||!b)return;
-  const m=g.match1v1||(g.match1v1={teamA:null,teamB:null,pairs:[]});
-  if((m.pairs||[]).some(([x,y])=>x===a&&y===b)){ toast(t('m1.dupPair')); return; }   // 重複カードのみ弾く。同一選手の複数回は可
-  if(!m1Valid(g)){ m.teamA=T[0].id; m.teamB=T[1].id; }   // 初回追加（有効な保存がない）時に現在の2チームで確定（以後 §4.3 の stale 判定が機能）
-  m.pairs.push([a,b]); save(); renderResult(); }
-function m1DelPair(idx){ const g=curGame(); if(!g||!g.match1v1)return;
-  g.match1v1.pairs.splice(idx,1); save(); renderResult(); }
-function m1MovePair(idx,dir){ const g=curGame(); if(!g||!g.match1v1)return;
-  const p=g.match1v1.pairs, j=idx+dir; if(j<0||j>=p.length)return;
-  [p[idx],p[j]]=[p[j],p[idx]]; save(); renderResult(); }   // 並び順＝カード表示順＝「次の組」のめくり順
-function m1ClearAll(){ const g=curGame(); if(!g||!g.match1v1)return;
-  if(!confirm(t('m1.confirmClear')))return;
-  g.match1v1={teamA:null,teamB:null,pairs:[]}; m1Opened.clear(); save(); renderResult(); }
+/* ---- 1 on 1 マッチプレー タブ（§11.13・docs/handoff/2026-08-20-1on1-match.md §13 が正。一組ずつモードの開封は §14・編集UIの置き場所とサマリ表示は §15 が正）----
+   組合せ=幹事の手動作成（編集UIは §15.1 で選手タブ js/players.js へ移設＝本タブは閲覧・オープン演出専用）。判定/配点/データ構造（§3/§5/§6）は不変。
+   投影原則（正本 §11.14）適用第1号: 大型UP表示が主役。 */
 // オープン演出（§13.2/§14.1）: 表示状態のみを更新（save() しない＝localStorage 非保存）
 function m1Key(a,b){ return a+':'+b; }
 function m1SetMode(mode){ if(mode!==m1RevealMode) m1Opened.clear(); m1RevealMode=mode; renderResult(); }   // モード切替で組状態リセット（§14.1）
@@ -250,14 +233,15 @@ function renderMatch1v1Tab(g){
   const appeared=new Set(); raw.forEach(([a,b])=>{ appeared.add(a); appeared.add(b); });
   const notPlayed=[...m1MemberIds(g,T[0]),...m1MemberIds(g,T[1])].filter(pid=>!appeared.has(pid));
   const npNote=(raw.length&&notPlayed.length)?`<div class="muted mt6" style="color:var(--red)">${t('m1.notPlayed',{name:notPlayed.map(nameOf).join(', ')})}</div>`:'';
-  // 上部カード：チーム対抗サマリ（表示のみ・配点には使わない。一組ずつモードではオープン済みカードの現在開封数のみ集計 §14.2。n/18H タグは revealHoles が効かない一組ずつでは非表示）
-  let top=`<div class="card"><h2 class="lbh"><span>${t('term.match1v1')}${one?'':` <span class="tag tagtie">${n>=18?t('sc.allHoles'):n+'/18H'}</span>`}</span></h2>`;
+  // 上部カード：h2 見出し行なし＝チームサマリ行から始まる（§15.2。開封状況 pill は開封バーカード側に表示）。
+  // チーム対抗サマリ（表示のみ・配点には使わない。一組ずつモードではオープン済みカードの現在開封数のみ集計 §14.2）
+  let top=`<div class="card">`;
   if(v && pairs.length){
     const rs=one
       ? pairs.filter(([a,b])=>m1Opened.has(m1Key(a,b))).map(([a,b])=>m1Result(viewGameN(g,m1Opened.get(m1Key(a,b))||0),a,b))
       : pairs.map(([a,b])=>m1Result(gAll,a,b));
     const wA=rs.filter(r=>r.played&&r.diff>0).length, wB=rs.filter(r=>r.played&&r.diff<0).length, dr=rs.filter(r=>r.played&&r.diff===0).length;
-    top+=`<div class="mt8" style="font-size:var(--f-rl-name);font-weight:var(--w-bold);line-height:1.15">
+    top+=`<div class="m1-teamsum">
       <span style="color:${tmColor(v.A.name)}">${esc(v.A.name)}</span> <b>${wA}</b> – <b>${wB}</b> <span style="color:${tmColor(v.B.name)}">${esc(v.B.name)}</span>
       ${dr?`<span class="tag tagtie">AS ${dr}</span>`:''}</div>`;
   }
@@ -265,23 +249,7 @@ function renderMatch1v1Tab(g){
   top+=npNote;
   if(stale) top+=`<div class="muted mt6" style="color:var(--red)">${t('m1.stale')}</div>`;
   top+=`</div>`;
-  // 編集UI（幹事用・§13.1）: カード群の下・pairs 0件のときだけ初期展開（投影原則3＝閲覧の邪魔をしない）
-  const cA={}, cB={}; raw.forEach(([a,b])=>{ cA[a]=(cA[a]||0)+1; cB[b]=(cB[b]||0)+1; });
-  const mkSel=(id,ids,cnt)=>{ const def=ids.find(pid=>!appeared.has(pid))||ids[0];   // 既定=未出場の先頭（全員出場済みなら先頭）
-    return `<select id="${id}">${ids.map(pid=>`<option value="${pid}"${pid===def?' selected':''}>${nameOf(pid)}${cnt[pid]?` ×${cnt[pid]}`:''}</option>`).join('')}</select>`; };
-  const rows=raw.map((p,i)=>{ const [a,b]=p; const invalid=!pairs.includes(p);   // 無効組=赤字＋タグ・×で削除可（§13.1）
-    return `<div class="row mt6"><span${invalid?' style="color:var(--red)"':''}>#${i+1} ${nameOf(a)} vs ${nameOf(b)}</span>
-      ${invalid?`<span class="tag" style="background:var(--danger-bg);color:var(--red)">${t('m1.invalidPair')}</span>`:''}
-      <button class="btn gray sm" onclick="m1MovePair(${i},-1)" ${i===0?'disabled':''}>↑</button>
-      <button class="btn gray sm" onclick="m1MovePair(${i},1)" ${i===raw.length-1?'disabled':''}>↓</button>
-      <button class="btn gray sm" onclick="m1DelPair(${i})">×</button></div>`; }).join('');
-  const editUI=`<details class="m1-editwrap"${raw.length?'':' open'}><summary>${t('m1.edit')}</summary><div class="in">
-    <div class="row mt6">${mkSel('m1selA',m1MemberIds(g,T[0]),cA)} vs ${mkSel('m1selB',m1MemberIds(g,T[1]),cB)}
-      <button class="btn gold sm" onclick="m1AddPair()">${t('m1.addPair')}</button></div>
-    ${rows}${npNote}
-    ${raw.length?`<div class="row mt8"><button class="btn gray sm" onclick="m1ClearAll()">${t('m1.clearAll')}</button></div>`:''}
-  </div></details>`;
-  if(!pairs.length) return top + editUI;
+  if(!pairs.length) return top;   // 編集UIは選手タブ側（§15.1。m1.noPairs / m1.stale が選手タブへ誘導）
   // 共通開封バー：全組一括=従来どおり4ボタン＋タグ（revealHoles）。一組ずつ=ホール開封は組ローカルに一本化するため4ボタン・タグ非表示（§14.2）
   const allOpen=pairs.every(([a,b])=>m1Opened.has(m1Key(a,b)));
   const bar=`<div class="card"><div class="reveal-bar">
@@ -327,6 +295,6 @@ function renderMatch1v1Tab(g){
       <table class="sc2">${colg}<tr><th class="nm"></th>${H.map(i=>`<th>${i+1}</th>`).join('')}</tr>
       ${row(a,'A',colA)}${row(b,'B',colB)}</table></div>`;
   }).join('');
-  return top + bar + cards + editUI;
+  return top + bar + cards;
 }
 

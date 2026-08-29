@@ -306,15 +306,15 @@
   .sc2 .rwin{background:var(--win-bg-strong) !important;font-weight:var(--w-bold);color:var(--win-ink) !important}   /* 勝ち：濃緑文字で高コントラスト */
   .sc2 .rtie{background:var(--tie-bg) !important;font-weight:var(--w-bold);color:var(--tie-ink) !important}   /* 引分：濃橙文字 */
   .rlsc td.nm,.rlsc th.nm{width:72px}
-  /* 1 on 1 大型UP表示（投影原則 §11.14 適用第1号・§13.3。中央寄せは §14.3）。--f-rl-* の @media 再定義に自動追従 */
+  /* 1 on 1 大型UP表示（投影原則 §11.14 適用第1号・§13.3。中央寄せは §14.3・UP縮小/サマリは §15.3）。--f-rl-* の @media 再定義に自動追従 */
   .m1-hero{display:flex;justify-content:center;align-items:center;flex-wrap:wrap;
     column-gap:clamp(12px,4vw,48px);row-gap:4px;text-align:center;margin:4px 0 8px}
   .m1-nm{font-size:var(--f-rl-name);font-weight:var(--w-bold);line-height:1.15;overflow-wrap:anywhere;max-width:38%}
-  .m1-big{font-size:var(--f-rl-score);font-weight:var(--w-bold);line-height:1;font-variant-numeric:tabular-nums;white-space:nowrap}
+  .m1-big{font-size:var(--f-rl-name);font-weight:var(--w-bold);line-height:1;font-variant-numeric:tabular-nums;white-space:nowrap}   /* 選手名と同サイズ（§15.3） */
   .m1-big.w{color:var(--win)}   /* 勝ち=緑（矢印がリード側を指す＝文字併記） */
   .m1-big.d{color:var(--tie)}   /* AS=橙 */
   .m1-big.n{color:var(--sub)}   /* 未プレー */
-  .m1-editwrap{margin-top:10px}   /* 幹事用編集UI（details 折りたたみ＝投影の邪魔をしない） */
+  .m1-teamsum{font-size:var(--f-rl-name);font-weight:var(--w-bold);line-height:1.15;text-align:center;margin-top:8px}   /* チーム対抗サマリ行（中央寄せ・§15.3） */
   @media(min-width:820px){
     :root{--f-rl-hole:66px;--f-rl-name:40px;--f-rl-score:64px}
     .rlwrap{max-width:900px;margin:0 auto}
