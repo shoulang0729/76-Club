@@ -12,12 +12,15 @@ function renderCourse(){
       <button class="btn gray sm" onclick="clearHidden()">${t('btn.clear')}</button></div>
     ${(scNarrow()? [[0,9],[9,18]] : [[0,18]]).map(([s,e])=>courseGrid(g,s,e)).join('')}</div>`;
 
+  /* NPDC は par から自動導出（Par3=NP / Par5=DC）の読み取り専用一覧。setPar→renderCourse で即時追従（2026-08-20-npdc-par.md §6） */
+  const NP=niapinHolesOf(g), DC=draconHolesOf(g);
   html += `<div class="card"><h2>${t('game.npdcCard')}</h2>
     <div class="muted">${t('game.npdcNote')}</div>
-    <div class="mt6">${g.par.map((_,i)=>{
-      const np=g.prizes.niapinHoles.includes(i), dc=g.prizes.draconHoles.includes(i);
-      return `<button class="holebtn ${np?'np':''} ${dc?'dc':''}" onclick="cyclePrize(${i})">${i+1}</button>`}).join('')}</div>
-    <div class="muted" class="mt6">${t('game.npdcLocal')}</div></div>`;
+    ${(NP.length||DC.length)?`
+    <div class="mt6"><span class="pill e1">${t('term.niapin')}</span> ${NP.length?NP.map(h=>`${h+1}H`).join('・'):'—'}</div>
+    <div class="mt6"><span class="pill f" style="background:var(--danger-bg);color:var(--red)">${t('term.dracon')}</span> ${DC.length?DC.map(h=>`${h+1}H`).join('・'):'—'}</div>`
+    :`<div class="empty">${t('game.npdcNone')}</div>`}
+    <div class="muted mt6">${t('game.npdcLocal')}</div></div>`;
 
   el.innerHTML=html;
 }
@@ -46,8 +49,3 @@ function courseGrid(g,s,e){
       <tr><td class="name">${t('game.rowHidden')}</td>${H.map(i=>`<td class="${g.hidden[i]?'hidden-h':''}"><input type="checkbox" ${g.hidden[i]?'checked':''} onchange="toggleHidden(${i})"></td>`).join('')}${cols.map(()=>`<td class="sum">-</td>`).join('')}</tr>
     </table></div>`;
 }
-function cyclePrize(i){ const p=curGame().prizes;
-  const np=p.niapinHoles.includes(i), dc=p.draconHoles.includes(i);
-  p.niapinHoles=p.niapinHoles.filter(x=>x!==i); p.draconHoles=p.draconHoles.filter(x=>x!==i);
-  if(!np&&!dc)p.niapinHoles.push(i); else if(np)p.draconHoles.push(i);
-  save(); renderCourse(); }

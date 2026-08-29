@@ -43,6 +43,11 @@ function toast(m){ const t=document.getElementById('toast'); t.textContent=m; t.
   clearTimeout(t._t); t._t=setTimeout(()=>t.classList.remove('show'),1600); }
 function curGame(){ return state.games.find(g=>g.id===state.currentGameId)||null; }
 
+/* NPDC 対象ホールはパーから導出（Par3=ニアピン / Par5=ドラコン・2026-08-20-npdc-par.md）。
+   g.prizes.niapinHoles/draconHoles は廃止フィールド（後方互換のため残置・非参照） */
+function niapinHolesOf(g){ return g.par.map((p,i)=>p===3?i:-1).filter(i=>i>=0); }
+function draconHolesOf(g){ return g.par.map((p,i)=>p===5?i:-1).filter(i=>i>=0); }
+
 function newGame(){
   return {
     id:uid(), name:"新しいコンペ", date:new Date().toISOString().slice(0,10), course:"",
