@@ -15,9 +15,8 @@ function seedTestData(){
   const g=newGame();
   g.name='テストコンペ'; g.course='テスト国際CC';
   g.par=[4,4,3,5,4,4,3,4,5, 4,4,3,4,5,4,4,3,5];  // 72
-  // 隠し12ホールをランダム
-  const idx=[...Array(18).keys()].sort(()=>Math.random()-0.5).slice(0,12);
-  g.hidden=Array(18).fill(false); idx.forEach(i=>g.hidden[i]=true);
+  // 隠し12ホールをランダム（前後半×パー帯 均等・course.js の pickHidden12）
+  g.hidden=pickHidden12(g.par);
   g.womenEvery.enabled=true;
   g.prizePool=24000;
   g.participants=ids.slice();

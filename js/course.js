@@ -26,14 +26,23 @@ function renderCourse(){
 }
 function setPar(i,v){ curGame().par[i]=parseInt(v)||0; save(); renderCourse(); }
 function toggleHidden(i){ const g=curGame(); g.hidden[i]=!g.hidden[i]; save(); document.getElementById('hidCount').textContent=g.hidden.filter(Boolean).length; }
-/* 隠し12H＝ショート(Par3)2・ミドル(Par4)8・ロング(Par5)2（隠しPar合計48の標準新ペリア構成）。
-   非標準コースは各グループ数でクリップし、不足はミドル→ロング→ショート順に補充（§11.1） */
-function randomHidden(){ const g=curGame();
+/* 隠し12H＝前後半×パー帯で均等抽選: 各半分(1-9H/10-18H)から Par3×2・Par5×2・Par4×2 の計6ずつ。
+   帯分類は par===3→P3 / par===4→P4 / par>=5→P5（Par6はP5扱い）/ par<3→未設定U。
+   非標準コースは各帯 min(2,n) でクリップし、不足は同じ半分の P4残→P5残→P3残→U 順に無作為補充して必ず各半6
+   （2026-08-20-hidden12-balance.md §2。true は常にちょうど12個） */
+function pickHidden12(par){
   const pick=(arr,n)=>arr.slice().sort(()=>Math.random()-0.5).slice(0,Math.max(0,n));
-  const p3=[],p4=[],p5=[]; g.par.forEach((p,i)=>{ (p<=3?p3:p===4?p4:p5).push(i); });
-  const sel=[...pick(p3,Math.min(2,p3.length)), ...pick(p4,Math.min(8,p4.length)), ...pick(p5,Math.min(2,p5.length))];
-  [p4,p5,p3].forEach(grp=>{ pick(grp,grp.length).forEach(i=>{ if(sel.length<12 && !sel.includes(i)) sel.push(i); }); });
-  g.hidden=Array(18).fill(false); sel.forEach(i=>g.hidden[i]=true); save(); renderCourse(); }
+  const hidden=Array(18).fill(false);
+  [0,9].forEach(s=>{
+    const p3=[],p4=[],p5=[],u=[];
+    for(let i=s;i<s+9;i++){ const p=par[i]; (p===3?p3:p===4?p4:p>=5?p5:u).push(i); }
+    const sel=[...pick(p3,Math.min(2,p3.length)), ...pick(p5,Math.min(2,p5.length)), ...pick(p4,Math.min(2,p4.length))];
+    [p4,p5,p3,u].forEach(grp=>{ pick(grp,grp.length).forEach(i=>{ if(sel.length<6 && !sel.includes(i)) sel.push(i); }); });
+    sel.forEach(i=>hidden[i]=true);
+  });
+  return hidden;
+}
+function randomHidden(){ const g=curGame(); g.hidden=pickHidden12(g.par); save(); renderCourse(); }
 function clearHidden(){ curGame().hidden=Array(18).fill(false); save(); renderCourse(); }
 /* コース設定のホール表（§11.12 D）: 狭幅は OUT(1-9)/IN(10-18) の2段、iPad/PC は18列1段。
    合計列は区間で決まる（前半=OUT小計 / 後半=IN小計＋合計、1段時は合計のみ＝従来どおり）。 */
