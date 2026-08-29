@@ -44,6 +44,12 @@ const isBetaFmt=k=>BETA_FMT.includes(k);
 const SC_NARROW_MQ = window.matchMedia('(max-width:1023px)');
 function scNarrow(){ return SC_NARROW_MQ.matches; }
 SC_NARROW_MQ.addEventListener('change', ()=>{ if(activeTab==='score'||activeTab==='course') render(); });
+/* #76: ヘッダ実高を CSS 変数 --hdr-h へ反映（.navwrap / .result-sticky の sticky 位置が追従）。
+   初期化(load)・resize・render 時に更新（言語切替・ゲーム名変更でヘッダ高が変わっても追従） */
+function syncHdrH(){ const h=document.querySelector('header');
+  if(h) document.documentElement.style.setProperty('--hdr-h', h.getBoundingClientRect().height+'px'); }
+window.addEventListener('resize', syncHdrH);
+window.addEventListener('load', syncHdrH);
 const tabLabel=k=>t('tab.'+k);
 let lastHome='home';   // ホーム系で最後に居たサブタブ（揮発・非保存）。結果発表からの復帰先（2026-08-20-home-subtabs.md §3.3）
 function goHome(){ go(lastHome); }
@@ -67,6 +73,7 @@ function render(){
   if(activeTab==='players') renderPlayers();
   if(activeTab==='score') renderScore();
   if(activeTab==='result') renderResult();
+  syncHdrH();   // ヘッダ内容の更新後に実高を再反映（#76）
 }
 function esc(s){ return (s||'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
 const everyLabel=k=> k==='none'?t('every.s.none'):k==='every1'?'E1(−18)':'E2(−36)';

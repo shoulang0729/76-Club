@@ -29,6 +29,7 @@
     --f-hero:21px; --f-val:20px; --f-name:16px; --f-title:15px; --f-body:13px; --f-small:11px;
     --f-rl-hole:48px; --f-rl-name:30px; --f-rl-score:44px;   /* 投影用大型（§11.14。ルーレット・1 on 1 で共用） */
     --h-tabrow:44px;   /* タブ段の高さ（1段目/2段目/結果発表サブタブ共通・2026-08-20-home-subtabs.md §5.2。≥1024px で48px） */
+    --hdr-h:50px;      /* ヘッダ実高のフォールバック。実測値は nav.js の syncHdrH() が上書き（#76） */
   }
   /* ダーク（§11.8）: 色トークンの値のみ上書き。構造・余白・角丸・サイズは :root と共通 */
   html[data-theme="dark"]{
@@ -61,17 +62,18 @@
     padding:5px 12px;font-size:var(--f-small);font-weight:var(--w-bold);white-space:nowrap;cursor:pointer}
   .chbadge.beta{background:var(--acc-bg);border-color:var(--acc-bg-strong);color:var(--acc-ink)}
   /* 主ナビ: ホーム/結果発表の2タブ＋ホーム配下の全幅サブタブ（2026-08-20-home-subtabs.md）。
-     ヘッダ(top:0)＋タブ2段(.navwrap top:50px)の3層 sticky。タブ段の高さは --h-tabrow で1段目/2段目/結果発表側とも共通 */
-  .navwrap{position:sticky;top:50px;z-index:18}
+     ヘッダ(top:0)＋タブ2段(.navwrap top:ヘッダ実高)の3層 sticky。ヘッダ実高は nav.js が --hdr-h に反映（#76）。
+     タブ段の高さは --h-tabrow で1段目/2段目/結果発表側とも共通（各段=--h-tabrow＋下罫線1px で厳密一致） */
+  .navwrap{position:sticky;top:var(--hdr-h,50px);z-index:18}
   .mainnav{display:flex;gap:6px;align-items:center;background:var(--card);border-bottom:1px solid var(--line);padding:0 12px}
   .mainnav button{border:0;border-bottom:2px solid transparent;background:transparent;color:var(--sub);
-    padding:0 10px;min-height:var(--h-tabrow);font-size:var(--f-body);font-weight:var(--w-bold);cursor:pointer;letter-spacing:.02em}
+    padding:0 10px;height:var(--h-tabrow);font-size:var(--f-body);font-weight:var(--w-bold);cursor:pointer;letter-spacing:.02em}
   .mainnav button.on{color:var(--strong);border-bottom-color:var(--pri)}
-  .subnav{display:flex;gap:6px;background:var(--card);border-bottom:1px solid var(--line);padding:0 12px;
+  .subnav{display:flex;gap:6px;align-items:center;background:var(--card);border-bottom:1px solid var(--line);padding:0 12px;
     overflow-x:auto;scrollbar-width:none}
   .subnav::-webkit-scrollbar{display:none}
   .subnav button{flex:1 0 auto;border:0;border-bottom:2px solid transparent;background:transparent;color:var(--sub);
-    padding:0 2px;min-height:var(--h-tabrow);font-size:var(--f-body);font-weight:var(--w-bold);cursor:pointer;letter-spacing:.02em;white-space:nowrap}
+    padding:0 2px;height:var(--h-tabrow);font-size:var(--f-body);font-weight:var(--w-bold);cursor:pointer;letter-spacing:.02em;white-space:nowrap}
   .subnav button.on{color:var(--strong);border-bottom-color:var(--pri)}
   @media(max-width:374px){ .subnav{gap:4px} .subnav button{font-size:12px} }
   .tagbeta{background:var(--acc-bg);color:var(--acc-ink)}
@@ -196,10 +198,11 @@
   .toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:var(--strong);color:var(--bg);
     padding:10px 18px;border-radius:var(--r-pill);font-size:var(--f-body);z-index:50;opacity:0;transition:.3s;pointer-events:none}
   .toast.show{opacity:.96}
-  /* result sub-nav（§11.8: ベタ塗りピル → 下線アクティブ。地は --card） */
-  .result-sticky{position:sticky;top:95px;z-index:15;background:var(--bg);padding:8px 0 8px;margin:-4px 0 10px;box-shadow:0 8px 8px -8px rgba(0,0,0,.15)}
-  .subtab4{display:flex;gap:6px;border-bottom:1px solid var(--line)}
-  .subtab4 button{flex:1;border:0;border-bottom:2px solid transparent;margin-bottom:-1px;background:var(--card);color:var(--sub);padding:9px 2px;border-radius:0;font-size:var(--f-body);font-weight:var(--w-bold);cursor:pointer;letter-spacing:.02em}
+  /* result sub-nav（§11.8: ベタ塗りピル → 下線アクティブ。地は --card）。
+     行高は #homeSub と同じく --h-tabrow＋下罫線1px で厳密一致（2段目タブの高さ統一） */
+  .result-sticky{position:sticky;top:calc(var(--hdr-h,50px) + var(--h-tabrow) + 1px);z-index:15;background:var(--bg);padding:8px 0 8px;margin:-4px 0 10px;box-shadow:0 8px 8px -8px rgba(0,0,0,.15)}
+  .subtab4{display:flex;gap:6px;align-items:center;border-bottom:1px solid var(--line)}
+  .subtab4 button{flex:1;border:0;border-bottom:2px solid transparent;background:var(--card);color:var(--sub);padding:0 2px;min-height:var(--h-tabrow);border-radius:0;font-size:var(--f-body);font-weight:var(--w-bold);cursor:pointer;letter-spacing:.02em}
   .subtab4 button.on{color:var(--strong);border-bottom-color:var(--pri)}
   /* reveal bar */
   .reveal-bar{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:6px;background:var(--surface-2);border:1px solid var(--line);border-radius:var(--r-sm);padding:7px 9px}

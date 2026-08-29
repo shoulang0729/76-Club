@@ -43,3 +43,4 @@ node tools/verify.mjs         # 構文/ i18n パリティ / 使用キー未定�
 - **gh CLI が無い環境（クラウドセッション等）**: Issue/PR/マージ操作は PM（親）が GitHub MCP で代行する。サブエージェントは Issue/PR 本文を**ドラフトファイル**（親指定のパス）に書き出して渡し、git は **commit まで**（push は親）。公開反映確認は github.io へ直接アクセスできない場合、GitHub Actions「pages build and deployment」の success で代替する。
 - マージは **squash＋ブランチ削除**。スタックPRを squash する場合、子PRのベースが消えると自動クローズされるので、**子は main へリベースして新規PR再作成**する。
 - main 直コミットは docs/設計・CI設定のみ。アプリ実装は必ずPR。
+- js/**・styles.css を変更する PR は index.html の `?v=` を PR 番号に一括更新する（キャッシュ混在防止・reviewer が確認）。
