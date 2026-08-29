@@ -215,7 +215,8 @@ function renderPrizes(g){
 function setPrize(k,h,v){ curGame().prizes[k][h]=v; save(); renderResult(); }
 
 // チーム対抗の各結果を「個別カード」で返す。ゲームごとに master トグル＋チームごとの目隠しボタン（名前＋合計をまとめて隠す）
-function renderTeams(g){
+// only（省略可・2026-08-20-results-regroup.md §5.2）: 指定時は当該フォーマットのカード1枚だけ返す。無指定は現行どおり全カード＝後方互換
+function renderTeams(g, only){
   const F=chFormats(g); const teams=g.teams.filter(t=>t.memberIds.length);   // αではβゲームのカードを出さない（§11.12 C）
   const teamGross=t=>t.memberIds.reduce((a,pid)=>a+effGross(g,pid),0);
   const teamNet=t=>Math.round(t.memberIds.reduce((a,pid)=>a+netScore(g,pid),0)*10)/10;
@@ -228,12 +229,12 @@ function renderTeams(g){
         const val = m ? '<span class="mask">？</span>' : `<b>${Math.round(r.v*10)/10}</b>`;
         return `<tr class="rank"><td class="c-eye"><button class="eyebtn ${m?'off':'on'}" onclick="toggleTgRow('${key}','${r.t.id}')">${m?EYEOFF:EYE}</button></td><td class="c-pos">${posBadge(i+1,i===0)}</td><td class="nmc">${nm}</td><td class="c-val">${val}</td></tr>`; }).join('')}</table></div>`; };
   let out='';
-  if(F.teamGross) out+=card('teamGross',t('term.teamGross'),teamGross,'asc',t('team.noteLow'));
-  if(F.teamNet) out+=card('teamNet',t('term.teamNet'),teamNet,'asc',t('team.noteLow'));
-  if(F.best2ball) out+=card('best2ball',t('term.best2'),tm=>best2(g,tm),'asc',t('team.noteBest2'));
-  if(F.holeByHole && teams.length>=2){ const {won}=holesWon(g);
+  if(F.teamGross && (!only||only==='teamGross')) out+=card('teamGross',t('term.teamGross'),teamGross,'asc',t('team.noteLow'));
+  if(F.teamNet && (!only||only==='teamNet')) out+=card('teamNet',t('term.teamNet'),teamNet,'asc',t('team.noteLow'));
+  if(F.best2ball && (!only||only==='best2ball')) out+=card('best2ball',t('term.best2'),tm=>best2(g,tm),'asc',t('team.noteBest2'));
+  if(F.holeByHole && (!only||only==='holeByHole') && teams.length>=2){ const {won}=holesWon(g);
     out+=card('holeByHole',t('term.hbh'),(tm)=>{const i=teams.indexOf(tm);return won[i];},'desc',t('team.noteHbh')); }
-  if(F.vegas){ const vs=vegasStandings(g);
+  if(F.vegas && (!only||only==='vegas')){ const vs=vegasStandings(g);
     if(vs.teams.length<2){ out+=`<div class="card tight"><h2>${t('term.vegas')}</h2><div class="muted">${t('vegas.needTeams')}</div></div>`; }
     else{ const rows=vs.teams.map((T,i)=>({t:T,v:vs.tot[i]})).sort((a,b)=>b.v-a.v);
       const on = tgMode.vegas==='show';

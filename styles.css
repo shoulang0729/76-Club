@@ -204,6 +204,37 @@
   .subtab4{display:flex;gap:6px;align-items:center;border-bottom:1px solid var(--line)}
   .subtab4 button{flex:1;border:0;border-bottom:2px solid transparent;background:var(--card);color:var(--sub);padding:0 2px;min-height:var(--h-tabrow);border-radius:0;font-size:var(--f-body);font-weight:var(--w-bold);cursor:pointer;letter-spacing:.02em}
   .subtab4 button.on{color:var(--strong);border-bottom-color:var(--pri)}
+  /* 結果発表 下段ゲームタブ（横スクロールチップ・2026-08-20 results-regroup §8.2。段高=--h-tabrow で上段と一致。
+     overflow-x はこの子要素にだけ付ける＝.result-sticky/main に付けると sticky が無効化される（§8.1） */
+  .subtab-games{display:flex;gap:6px;overflow-x:auto;padding:6px 2px 2px;scrollbar-width:none}
+  .subtab-games::-webkit-scrollbar{display:none}
+  .subtab-games button{flex:0 0 auto;white-space:nowrap;min-height:var(--h-tabrow);
+    display:inline-flex;align-items:center;border:1px solid var(--line);background:var(--card);
+    color:var(--sub);border-radius:var(--r-pill);padding:0 12px;font-size:var(--f-small);
+    font-weight:var(--w-bold);cursor:pointer;letter-spacing:.02em}
+  .subtab-games button.on{background:var(--pri);color:var(--on-fill);border-color:var(--pri)}
+  /* 1 on 1 タブ: サマリ＋操作バーカードを .result-sticky に同居（§8.3 D15）。カード下マージンで sticky 底に隙間が出ないよう詰める */
+  .result-sticky .card{margin-bottom:0}
+  .result-sticky .card+.card{margin-top:6px}
+  /* ニアドラ ヒーロー表示（個人戦＞ニアドラ。§5.1.1・投影トークン共用）
+     列数固定: 〜767px=2列 / ≥768px=4列（モック承認時のユーザー修正） */
+  .npdc-hero{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}
+  .npdc-cell{border:2px solid var(--line);border-radius:var(--r-sm);background:var(--card);
+    padding:10px 12px;text-align:center;cursor:pointer}
+  .npdc-cell.np{border-color:var(--info-line)}
+  .npdc-cell.dc{border-color:var(--danger-line)}
+  .npdc-top{display:flex;justify-content:center;align-items:baseline;gap:8px}
+  .npdc-hole{font-size:var(--f-rl-hole);font-weight:var(--w-bold);line-height:1;color:var(--ink)}
+  .npdc-hole small{font-size:.35em;font-weight:var(--w-bold)}
+  .npdc-kind{font-size:var(--f-small);font-weight:var(--w-bold);letter-spacing:.04em}
+  .np .npdc-kind{color:var(--prid)}  .dc .npdc-kind{color:var(--red)}
+  .npdc-name{font-size:var(--f-rl-name);font-weight:var(--w-bold);line-height:1.15;margin-top:4px;
+    overflow-wrap:anywhere;min-height:1.15em}
+  .npdc-name.empty{color:var(--sub);font-size:var(--f-title);font-weight:var(--w-med);cursor:default}
+  @media(min-width:768px){
+    .npdc-hero{grid-template-columns:repeat(4,1fr)}
+    #view-result .subtab-games button{font-size:14px;padding:0 14px}
+  }
   /* reveal bar */
   .reveal-bar{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:6px;background:var(--surface-2);border:1px solid var(--line);border-radius:var(--r-sm);padding:7px 9px}
   .reveal-bar .hole{font-weight:var(--w-bold);color:var(--prid);font-size:var(--f-title)}
