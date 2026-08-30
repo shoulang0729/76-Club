@@ -351,15 +351,16 @@
   .rl-panel.win{background:var(--rl-tc-bg);box-shadow:0 0 0 3px var(--rl-tc) inset}
   .rl-panel.lose{background:var(--surface-2);box-shadow:none}
   .rl-panel.tie{background:var(--tie-bg);box-shadow:0 0 0 3px var(--tie) inset}
-  /* 回転中のフラッシュ（#6）：今の候補で止まったら勝ち/負け/引分かをピカピカ予告 */
+  /* 回転中のフラッシュ（#6）：今の候補で止まったら勝ち/負け/引分かをピカピカ予告。
+     色は確定時の勝敗表示（§9.5）と同じ言語＝勝ち予告:チームカラー淡地＋チームカラー枠／負け予告:薄グレー（2026-08-30 Sレーン④・タイミング/進行は不変） */
   @keyframes rlblink{from{filter:brightness(1)}to{filter:brightness(1.14)}}
-  .rl-panel.fwin{background:var(--win-bg-strong);box-shadow:0 0 0 4px var(--win) inset;animation:rlblink .22s infinite alternate}
-  .rl-panel.flose{background:var(--danger-bg);box-shadow:0 0 0 4px var(--red) inset;animation:rlblink .22s infinite alternate}
+  .rl-panel.fwin{background:var(--rl-tc-bg);box-shadow:0 0 0 4px var(--rl-tc) inset;animation:rlblink .22s infinite alternate}
+  .rl-panel.flose{background:var(--surface-2);box-shadow:none;animation:rlblink .22s infinite alternate}
   .rl-panel.ftie{background:var(--tie-bg);box-shadow:0 0 0 4px var(--tie) inset;animation:rlblink .22s infinite alternate}
   /* 名前行＝選手名のみ（--f-rl-name・中央寄せ）。チーム名ラベルはカード直上の .rl-st と重複のため撤去（#87 指示⑥） */
   .rl-nmrow{display:flex;align-items:baseline;justify-content:center;gap:8px;margin:6px 0 2px;min-height:38px}
   .rl-name{font-size:var(--f-rl-name);font-weight:var(--w-bold);line-height:1.1;min-width:0;overflow-wrap:anywhere}
-  .rl-scorebig{font-size:var(--f-rl-score);font-weight:var(--w-bold);color:var(--win);line-height:1;min-height:46px;font-variant-numeric:tabular-nums}
+  .rl-scorebig{font-size:var(--f-rl-score);font-weight:var(--w-bold);color:var(--strong);line-height:1;min-height:46px;font-variant-numeric:tabular-nums}   /* 数字は濃色インク（x.xH と同じ扱い・2026-08-30 Sレーン③）。勝敗はカード塗り/枠/WIN で示す */
   .rl-ev{font-size:var(--f-small);color:var(--win);font-weight:var(--w-bold);min-height:16px;margin-top:2px}
   .rl-act{min-height:40px;display:flex;gap:6px;justify-content:center;align-items:center;flex-wrap:wrap;margin-top:2px}   /* カード外・直下（指示①）。中央寄せはカード幅基準（.rl-col が stretch） */
   .rl-act .btn{padding:7px 10px;font-size:var(--f-small)}
