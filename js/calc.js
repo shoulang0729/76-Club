@@ -235,14 +235,17 @@ function computePayout(g){
   const out={}; parts.forEach(pid=>{ out[pid]= (total>0&&pool>0)? Math.round(pool*pts[pid]/total) : 0; });
   return {pts,payout:out,total,pool};
 }
-/* next kanji: 2位 と ブービー(下から2番目)、幹事対象外は飛ばす */
+/* next kanji（§11.17・2026-08-29-host-option.md §11）: 対象順位 kanjiRanks（1位/2位/ブービー）を
+   順位ごとの dir 方向（down=下位方向/up=上位方向）に免除(kanjiExempt)スキップして解決。
+   端を越えたらその対象は該当なし・同一人物への重複はバッジ1個（pid 重複排除）。表示専用・配点非関与 */
 function nextKanji(g){
   const parts=g.participants.filter(pid=>{const p=state.players.find(x=>x.id===pid); return p && gross(g,pid)>0;});
   const order=ranked(parts,pid=>netScore(g,pid),'asc').map(r=>r.pid);
-  const eligible=order.filter(pid=>{const p=state.players.find(x=>x.id===pid); return p && !p.kanjiExempt;});
-  if(eligible.length<2) return null;
-  const nikai=eligible[1];
-  const booby=eligible[eligible.length-2];
-  return {nikai, booby, sameCount:eligible.length};
+  const N=order.length, R=g.kanjiRanks;
+  const exempt=pid=>{const p=state.players.find(x=>x.id===pid); return !p||p.kanjiExempt;};
+  const resolve=(i0,dir)=>{ const step=dir==='up'?-1:1;
+    for(let i=i0; i>=0&&i<N; i+=step){ if(!exempt(order[i])) return order[i]; } return null; };
+  const T=[]; if(R.r1.enabled)T.push([0,R.r1.dir]); if(R.r2.enabled)T.push([1,R.r2.dir]); if(R.booby.enabled)T.push([N-2,R.booby.dir]);
+  return [...new Set(T.filter(([i])=>i>=0&&i<N).map(([i,d])=>resolve(i,d)).filter(Boolean))];
 }
 

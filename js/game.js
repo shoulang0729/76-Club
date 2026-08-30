@@ -15,10 +15,24 @@ function renderGame(){
     <label style="display:flex;gap:8px;align-items:center;font-size:14px"><input type="checkbox" ${g.womenEvery.enabled?'checked':''} onchange="setWE(this.checked)"> ${t('game.everyApply')}</label>
     <div class="muted" class="mt6">${t('game.everyNote')}</div></div>`;
 
-  // 次回幹事バッジ（コンペごと・既定OFF・2026-08-29-host-option.md §5）
+  // 次回幹事バッジ（コンペごと・既定OFF・2026-08-29-host-option.md §5/§14）。サブ設定＝対象順位＋順位ごと方向（マスターON時のみ表示）
   html += `<div class="card"><h2>${t('game.kanjiCard')}</h2>
-    <label style="display:flex;gap:8px;align-items:center;font-size:14px"><input type="checkbox" ${g.kanjiBadge?'checked':''} onchange="setKanjiBadge(this.checked)"> ${t('game.kanjiTgl')}</label>
-    <div class="muted" class="mt6">${t('game.kanjiNote')}</div></div>`;
+    <label style="display:flex;gap:8px;align-items:center;font-size:14px"><input type="checkbox" ${g.kanjiBadge?'checked':''} onchange="setKanjiBadge(this.checked)"> ${t('game.kanjiTgl')}</label>`;
+  if(g.kanjiBadge){
+    const R=g.kanjiRanks;
+    const krow=(k,label,down,up)=>`<div class="row" style="margin-top:8px;align-items:center">
+      <label style="display:flex;gap:8px;align-items:center;font-size:14px;min-width:96px"><input type="checkbox" ${R[k].enabled?'checked':''} onchange="setKanjiRank('${k}',this.checked)"> ${label}</label>
+      <select style="flex:1;max-width:340px" ${R[k].enabled?'':'disabled'} onchange="setKanjiRankDir('${k}',this.value)">
+        <option value="down" ${R[k].dir!=='up'?'selected':''}>${down}</option>
+        <option value="up" ${R[k].dir==='up'?'selected':''}>${up}</option>
+      </select></div>`;
+    html += `<div style="font-size:13px;margin-top:10px">${t('game.kanjiRanks')}</div>
+      ${krow('r1',t('game.kanjiR1'),t('game.kanjiR1Down'),t('game.kanjiR1Up'))}
+      ${krow('r2',t('game.kanjiR2'),t('game.kanjiR2Down'),t('game.kanjiR2Up'))}
+      ${krow('booby',t('game.kanjiBooby'),t('game.kanjiBoobyDown'),t('game.kanjiBoobyUp'))}
+      <div class="muted" class="mt6">${t('game.kanjiNote')}</div>`;
+  }
+  html += `</div>`;
 
   const F=g.formats;
   const fchk=(k,label)=>`<label><input type="checkbox" ${F[k]?'checked':''} onchange="setFmt('${k}',this.checked)"> ${label}</label>`;
@@ -78,7 +92,9 @@ function renderGame(){
 function setG(k,v){ const g=curGame(); g[k]=v; save(); if(k==='name'||k==='date'||k==='course')render(); }
 function setCap(v){ const g=curGame(); g.periaCap = v===''?null:parseFloat(v); save(); }
 function setWE(v){ curGame().womenEvery.enabled=v; save(); }
-function setKanjiBadge(v){ curGame().kanjiBadge=v; save(); }
+function setKanjiBadge(v){ curGame().kanjiBadge=v; save(); renderGame(); }   // 再描画でサブ設定の出没を追従（§14）
+function setKanjiRank(k,v){ curGame().kanjiRanks[k].enabled=v; save(); renderGame(); }   // 再描画で select の disabled を追従
+function setKanjiRankDir(k,v){ curGame().kanjiRanks[k].dir = v==='up'?'up':'down'; save(); }
 function setFmt(k,v){ curGame().formats[k]=v; save(); renderGame(); }
 function setPoints(k,v){ curGame().points[k]=v.split(',').map(x=>parseInt(x.trim())).filter(x=>!isNaN(x)); save(); }
 function setPointsNum(k,v){ curGame().points[k]=parseInt(v)||0; save(); }
