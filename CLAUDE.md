@@ -32,7 +32,7 @@
   - 現行の重要仕様（§11.12 H・2026-08-19）: **ペリアHDCP はエブリ適用後スコア(`adjHole`)基準**で隠し12ホール合計を取る。
 - **localStorage キー**: データ=`golfCompe_v1`（`state`）／表示状態=`golfCompe_lang`・`golfCompe_theme`・`golfCompe_channel`・`golfCompe_seenTop`。**データと表示状態は分離**（表示状態を `golfCompe_v1` に入れない）。
 - **i18n 辞書**（`js/i18n.js` の `I18N`）は **ja/zh/en のキー集合が完全一致**であること。追加時は3言語同時。
-- **inline `onclick`/`onchange` はグローバル関数依存** → **ESM 化しない**（通常 `<script src>` 順次読込）。読込順は `index.html` の並び（state→i18n→nav→home→basic→players→game→course→score→testdata→calc→results→roulette→backup→init）。
+- **inline `onclick`/`onchange` はグローバル関数依存** → **ESM 化しない**（通常 `<script src>` 順次読込）。読込順は `index.html` の並び（state→i18n→nav→home→basic→players→game→course→score→testdata→calc→results→results-team→results-m1→roulette→backup→init）。
 - **機能色の"意味"**（勝ち=緑/引分=橙/採用=枠/危険=赤）は保持。デザインは**トークン**（`styles.css` の `:root` ＋ `html[data-theme="dark"]`）で管理。面に濃色ベタ塗りを使わない（黒＝文字・罫線）。
 - **投影前提の表示原則**（2026-08-20 制定・正本 §11.14 が詳細）: 結果・閲覧系画面はプロジェクター投影が既定ユース。後方席から読める**大型表示を主役**に（投影用トークン `--f-rl-hole/--f-rl-name/--f-rl-score` を共用）、**幹事の操作UIは控えめ配置**（`<details>` 折りたたみ・`sm` ボタン）。機能色の意味は大型表示でも保持し色だけに頼らず文字併記。演出の進行状態（開封・めくり）は揮発の表示状態にし localStorage に保存しない。新規の閲覧系画面は必須・既存画面は個別Issueで順次適用。
 
