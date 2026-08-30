@@ -113,8 +113,9 @@ function renderIndGame(g, parts, key){
   let card='', rule='';
   if(key==='gross'){ card=rankCardNS(g.womenEvery.enabled?t('result.grossEvery'):t('term.gross'), parts, pid=>effGross(g,pid), 'asc', v=>v, 'gross', null); rule='rule.gross'; }
   else if(key==='net'){
-    // 次回幹事（ネットで決定）：バッジをネット順位の2位/ブービー行に表示（ネットタブのみ・現行どおり）
-    const nk=nextKanji(g); const hl={};
+    // 次回幹事（ネットで決定）：バッジをネット順位の2位/ブービー行に表示（ネットタブのみ）。
+    // ゲーム設定 g.kanjiBadge で ON/OFF（既定OFF・2026-08-29-host-option.md §2。OFF は判定自体を行わず hlMap=null）
+    const nk = g.kanjiBadge ? nextKanji(g) : null; const hl = nk ? {} : null;
     if(nk){ hl[nk.nikai]=t('term.organizer'); hl[nk.booby]=t('term.organizer'); }
     card=rankCardNS(t('term.net'), parts, pid=>netScore(g,pid), 'asc', v=>v, 'net', hl); rule='rule.net'; }
   else if(key==='stb'){ card=leaderboard(t('term.stableford'), parts, pid=>stablefordPts(g,pid), 'desc', v=>v+'pt', '', 'stb'); rule='rule.stableford'; }
