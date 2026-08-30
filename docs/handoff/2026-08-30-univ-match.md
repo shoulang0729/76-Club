@@ -232,7 +232,9 @@ if(F.univMatch){ const uv=uvStanding(g);
 
 ### 6.2 大学対抗タブのレイアウト（モック承認用・/feature 手順1.5 の材料）
 
-`renderTeamGame` に `if(key==='univ') return renderTeamUniv(g);` を追加（viewGame マスク後の g を渡す＝開封演出は他タブと同じ挙動。共通スコアカード sc() は付けない＝メンバー表が代替）。
+`renderTeamGame` に `if(key==='univ') return renderTeamUniv(g0);` を追加（**g0=生ゲームを渡す**。共通スコアカード sc() は付けない＝メンバー表が代替）。
+
+> **★2026-08-30 追補（PR #106 実装時に確定・当初案の「viewGame マスク後の g」から変更）**: マスク後の g だと `revealHoles` 既定0（#97）のリロード直後に `uvMembers` の入力済み判定が全滅し `uvStanding().rows.length===0` → 本タブは開封バー非併設のため**復旧不能の空**になる（headless 実証）。総合タブ `renderTeamOverall(g0)`（#98）と同じ前例に合わせ g0 基準とする。ネタバレ保護は `announced.univMatch` ゲート（順位バッジ・勝ち点タグは連携後のみ）で担保。
 
 ```
 ┌ card ──────────────────────────────────────────────┐
