@@ -161,11 +161,11 @@ function teamWinPoints(g){
   const wins=teams.map(()=>0), events=[];
   if(teams.length<2) return {teams,wins,events};   // 成立条件（共通）：対象チーム2以上
   const F=chFormats(g);   // αではβ種目（best2ball/vegas）を懸けない（§11.12 C）
-  /* 確定判定（winpoints-reveal §3.2/§3.3＋追補§11.1）: 勝ち点算入＝成立 かつ 確定(on) の AND（D9）。
-     ルーレットは 18H終了(cur>=18)の自動確定 または 手動連携 announced.roulette のどちらかで on（§11.1）。
-     他7種目は連携フラグ g.announced（データ保存・D1/D2）。viewGame の Object.assign コピーでも announced は素通しで参照できる */
+  /* 確定判定（winpoints-reveal §3.2/§3.3・2026-08-30 ユーザー確定で自動確定廃止）: 勝ち点算入＝成立 かつ 確定(on) の AND（D9）。
+     全8種目とも連携フラグ g.announced のみで確定（ルーレットの cur>=18 自動確定は廃止＝他種目と同じ手動連携・可逆）。
+     連携フラグはデータ保存（D1/D2）。viewGame の Object.assign コピーでも announced は素通しで参照できる */
   const A=g.announced||{};
-  const evOn=key=> key==='roulette' ? (((curGame()||g).roulette.cur>=18)||!!A[key]) : !!A[key];
+  const evOn=key=>!!A[key];
   const add=(key,vals,dir)=>{   // 種目の成立判定＋勝ち点1（同点は 1/同点チーム数 で山分け・§3.2）
     const live=vals.map((v,i)=>v!=null?i:-1).filter(i=>i>=0);
     if(live.length<2)return;   // 種目の対象チームが1以下＝不成立
