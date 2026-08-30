@@ -17,7 +17,7 @@ function renderBasic(){
     <label class="fl">${t('game.compeName')}</label><input value="${esc(g.name)}" onchange="setG('name',this.value)">
     <div class="row"><div class="fx1"><label class="fl">${t('game.date')}</label><input type="date" value="${g.date}" onchange="setG('date',this.value)"></div>
     <div class="fx1"><label class="fl">${t('game.course')}</label><input value="${esc(g.course)}" placeholder="${t('game.coursePh')}" onchange="setG('course',this.value)"></div></div>
-    <div class="row" class="mt10">
+    <div class="row">
       <button class="btn danger sm" onclick="deleteGame()">${t('game.deleteBtn')}</button>
       <button class="btn gray sm" onclick="dupGame()">${t('btn.dup')}</button>
     </div>
@@ -31,7 +31,7 @@ function hostMenuCard(){
   return `<details><summary>${t('host.summary')}</summary><div class="in">
     <div class="muted" style="margin-bottom:8px">${t('host.note')}</div>
     <button class="btn gold sm" onclick="seedTestData()">${t('host.seedBtn')}</button>
-    <div class="muted" class="mt6">${t('host.seedNote')}</div>
+    <div class="muted">${t('host.seedNote')}</div>
   </div></details>`;
 }
 function createGame(){ const g=newGame(); state.games.push(g); state.currentGameId=g.id; save(); render(); toast(t('toast.gameCreated')); }

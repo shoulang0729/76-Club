@@ -5,7 +5,7 @@ function renderScore(){
   if(!g.participants.length){ el.innerHTML=`<div class="empty">${t('score.pickParts')}</div>`; return; }
   let html=`<div class="card"><h2>${t('score.title')}</h2>
     <div class="muted">${t('score.note')}</div>
-    <div class="row" class="mt8"><button class="btn sec sm" onclick="fillRandomScores()">${t('score.fillRandom')}</button>
+    <div class="row"><button class="btn sec sm" onclick="fillRandomScores()">${t('score.fillRandom')}</button>
       <button class="btn gray sm" onclick="clearScores()">${t('score.clearBtn')}</button></div>
   </div>`;
   // §11.12 D: 狭幅は OUT(1-9)/IN(10-18) の2段に折り返す。iPad/PCは従来どおり18列1段

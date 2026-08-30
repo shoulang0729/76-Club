@@ -17,7 +17,6 @@ function enteredCount(g,pid){ return (g.scores[pid]||[]).filter(v=>v!=null&&v!==
    18H入力時は従来どおりE1=−18/E2=−36。ペリアHDCPもこのエブリ後スコアを基準に算定する（§11.12 H）。 */
 function everyStrokes(g,pid){ return evPer(g,pid)*enteredCount(g,pid); }
 function womenEvery(g,pid){ return everyStrokes(g,pid); }
-function gross_(g,pid){ return gross(g,pid); }
 function effGross(g,pid){ return gross(g,pid) - womenEvery(g,pid); }
 // エブリ支給（各ホール−1/−2）。表示用のホール別スコアは「エブリ適用後」に統一（入力タブのみ生スコア）
 function evPer(g,pid){ if(!g.womenEvery.enabled)return 0; const p=state.players.find(x=>x.id===pid); return p?(p.everyType==='every1'?1:p.everyType==='every2'?2:0):0; }
