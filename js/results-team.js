@@ -17,7 +17,7 @@ function renderTeamGame(g, g0, parts, key){
      本PRで sc()（開封バー・合計値トグル）を併設したため復旧経路ができ、'net'/'hbh' と同型に戻した。
      結果、ヒーロー・タイブレーク表が開封済みホールまでで再計算される＝段階開封（§14.2）。
      スコア表には足切り情報（uvScSel）を渡す＝対象外はグレーアウト・対象者は「対象」併記（PR#3 指示⑤。他タブは引数なし＝不変）*/
-  if(key==='univ')  return renderTeamUniv(g) + renderScorecard(g, g.participants, teams, uvScSel(g));
+  if(key==='univ')  return renderTeamUniv(g) + renderScorecard(g, g.participants, teams, uvScSel(g)) + ruleBox('rule.univ');   // ルール解説は最下部（2026-08-30 指示）
   if(key==='nd')    return renderTeamNiadora(g);
   if(key==='gross') return `<div class="rank-wrap">${renderTeams(g,'teamGross')}</div>` + sc();
   if(key==='net')   return `<div class="rank-wrap">${renderTeams(g,'teamNet')}</div>` + sc();
@@ -198,9 +198,8 @@ function renderTeamUniv(g){
   const card1=`<div class="card">${head}
     <div class="rl-standing tp-ovh-wrap">${hero}</div>
     <div class="scroll mt10"><table class="lb uv-tb">${tbHead}${tbRows}</table></div>
-    <div class="muted mt6">${t('univ.note')}</div>
-    <div class="muted">${t('univ.calcNote')}</div></div>`;
-  return card1 + ruleBox('rule.univ');   // メンバー表カードは PR#3 指示④で廃止（併設スコア表と重複）
+    </div>`;   // 注記2行（univ.note/calcNote）は 2026-08-30 指示で削除＝ルール解説（最下部 ruleBox）に集約
+  return card1;   // メンバー表カードは PR#3 指示④で廃止（併設スコア表と重複）。ルール解説は最下部（renderTeamGame でスコア表の後ろに付与）
 }
 
 /* 併設スコア表に渡す足切り情報（PR#3 指示⑤）: uvStanding の各校 sel（対象pid）を集合化し、
