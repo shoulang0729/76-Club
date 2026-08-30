@@ -125,8 +125,10 @@ function renderRouletteParts(g){
         .map(({tm,ti})=>{ const col=rColor(tm.name);
           return `<span class="rl-st"><span class="rl-st-team" style="color:${col}">${esc(tm.name)}</span><span class="rl-st-h">${wonH(ti)}<small>H</small></span></span>`; }).join('')
     }</div>`;
+    /* 連携ボタン（2026-08-30 ユーザー確定・自動確定廃止）: 18H終了後も進行中と同じ tpAnnounceUI を
+       リセットの右（右端）に設置＝未連携なら「結果を連携する」・連携済みなら取り消し可（他種目と同じ可逆動作） */
     return {head:`<div class="rlwrap">
-      <div class="card rl-play"><div class="rl-head"><button class="btn gray sm" style="margin-left:auto" onclick="rlReset()">${t('btn.reset')}</button></div>${standRow}</div></div>`,
+      <div class="card rl-play"><div class="rl-head"><button class="btn gray sm" style="margin-left:auto" onclick="rlReset()">${t('btn.reset')}</button>${tpAnnounceUI(g,'roulette',true)}</div>${standRow}</div></div>`,
       body:`<div class="rlwrap">${rlScorecard(g)}</div>`};
   }
 
