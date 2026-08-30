@@ -162,8 +162,8 @@ function renderRouletteParts(g){
       <div class="rl-panel${stCls[ti]}" id="rl-panel-${tm.id}" style="border-color:${col};--rl-tc:${col};--rl-tc-bg:${rColorBg(tm.name)}">
         <div class="rl-nmrow"><span class="rl-name" id="rl-name-${tm.id}">${rl.spinning&&rl.spinTeams.includes(tm.id)?'…':(p?esc(p.name):'―')}</span></div>
         <div class="rl-scorebig" id="rl-score-${tm.id}">${pid?sv:'&nbsp;'}</div>
-        <div class="rl-act">${act}</div>
       </div>
+      <div class="rl-act">${act}</div>
     </div>`; }).join('');
   let mainBtn;
   if(rl.spinning) mainBtn=`<button class="btn danger wide rl-main" onclick="rlStop()">${t('rl.stop')}</button>`;

@@ -2,6 +2,9 @@
 function renderPlayers(){
   const el=document.getElementById('view-players');
   const g=curGame();
+  /* カラースウォッチ行のラベル（2026-08-30-team-colors.md §5.2 ★）:
+     下の g.teams.map の map 変数 t が i18n の t() を隠蔽するため、map の前に hoist しておく */
+  const TL={label:t('team.colorLabel'),auto:t('team.colorAuto'),red:t('tmc.red'),blue:t('tmc.blue'),green:t('tmc.green'),yellow:t('tmc.yellow'),gray:t('tmc.gray')};
   // 参加者・チーム対抗カード（ゲーム未選択時は msg.needGame を1つ表示）（§11.12 N）
   const gameCards = !g ? `<div class="empty">${t('msg.needGame')}</div>`
     : `<div class="card"><h2>${t('game.partsCard')}</h2>
@@ -13,8 +16,11 @@ function renderPlayers(){
       <button class="btn gray sm" onclick="autoTeams(2)">${t('game.auto2')}</button>
       <button class="btn gray sm" onclick="autoTeams(3)">${t('game.auto3')}</button></div>
     ${g.teams.map(t=>`<div style="border:1px solid var(--line);border-radius:var(--r-md);padding:10px;margin-top:8px">
-      <div class="row between"><input value="${esc(t.name)}" onchange="setTeamName('${t.id}',this.value)" style="flex:1;font-weight:var(--w-bold)">
+      <div class="row between"><input value="${esc(t.name)}" onchange="setTeamName('${t.id}',this.value)" style="flex:1;font-weight:var(--w-bold);color:var(--tm-${tmKey(t)})">
         <button class="btn sm danger" onclick="delTeam('${t.id}')">×</button></div>
+      <div class="row tm-swatch-row"><span class="muted">${TL.label}</span>
+        <span class="chip ${t.color?'':'on'}" onclick="setTeamColor('${t.id}',null)">${TL.auto} <span class="tm-dot" style="background:var(--tm-${tmKeyByName(t.name)})"></span></span>
+        ${TM_KEYS.map(k=>`<button class="tm-swatch ${t.color===k?'on':''}" title="${TL[k]}" style="background:var(--tm-${k})" onclick="setTeamColor('${t.id}','${k}')"></button>`).join('')}</div>
       <div class="mt6">${g.participants.map(pid=>{const p=state.players.find(x=>x.id===pid);if(!p)return'';
         return `<span class="chip ${t.memberIds.includes(pid)?'on':''}" onclick="toggleTeamMember('${t.id}','${pid}')">${esc(p.name)}</span>`}).join('')}</div>
     </div>`).join('') || `<div class="muted">${t('game.teamEmpty')}</div>`}
@@ -136,7 +142,11 @@ function addTeam(){ const g=curGame(); const names=['レッド','ブルー','グ
 function autoTeams(n){ const g=curGame(); const names=['レッド','ブルー','グリーン'];
   g.teams=[]; for(let i=0;i<n;i++)g.teams.push({id:uid(),name:'チーム'+names[i],memberIds:[]});
   g.participants.forEach((pid,i)=>g.teams[i%n].memberIds.push(pid)); save(); renderPlayers(); }
-function setTeamName(id,v){ curGame().teams.find(t=>t.id===id).name=v; save(); }
+function setTeamName(id,v){ curGame().teams.find(t=>t.id===id).name=v; save(); renderPlayers(); }   // 再描画＝名前プレビュー色・自動ドットの追従（team-colors §5.1）
+/* チームカラー設定（team-colors §5）: 自動=フィールド削除（JSON を汚さない）。色は tmColor が全画面で解決 */
+function setTeamColor(id,key){ const tm=curGame().teams.find(t=>t.id===id);
+  if(key) tm.color=key; else delete tm.color;
+  save(); renderPlayers(); }
 function delTeam(id){ const g=curGame(); g.teams=g.teams.filter(t=>t.id!==id); save(); renderPlayers(); }
 function toggleTeamMember(tid,pid){ const g=curGame();
   g.teams.forEach(t=>{ if(t.id!==tid) t.memberIds=t.memberIds.filter(x=>x!==pid); });
