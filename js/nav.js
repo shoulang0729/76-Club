@@ -14,8 +14,8 @@ function nsMasked(table,pid){ return (nsMode[table]==='hide') !== nsExcept[table
 function toggleNSAll(table){ nsMode[table]= nsMode[table]==='show'?'hide':'show'; nsExcept[table].clear(); renderResult(); }
 function toggleNSRow(table,pid){ const s=nsExcept[table]; if(s.has(pid))s.delete(pid); else s.add(pid); renderResult(); }
 // チーム対抗の各ゲーム：ゲームごと master ＋チームごと個別ボタン。チーム名＋合計をまとめて表示/非表示
-let tgMode={ teamGross:'show', teamNet:'show', best2ball:'show', holeByHole:'show', vegas:'show', overall:'show', niadora:'show' };
-let tgExcept={ teamGross:new Set(), teamNet:new Set(), best2ball:new Set(), holeByHole:new Set(), vegas:new Set(), overall:new Set(), niadora:new Set() };
+let tgMode={ teamGross:'show', teamNet:'show', best2ball:'show', holeByHole:'show', vegas:'show', overall:'show' };
+let tgExcept={ teamGross:new Set(), teamNet:new Set(), best2ball:new Set(), holeByHole:new Set(), vegas:new Set(), overall:new Set() };
 function tgMasked(key,tid){ return (tgMode[key]==='hide') !== tgExcept[key].has(tid); }
 function toggleTgAll(key){ tgMode[key]= tgMode[key]==='show'?'hide':'show'; tgExcept[key].clear(); renderResult(); }
 function toggleTgRow(key,tid){ const s=tgExcept[key]; if(s.has(tid))s.delete(tid); else s.add(tid); renderResult(); }

@@ -328,30 +328,28 @@ function renderTeamOverall(g){
 
 /* ---- チーム戦ニアドラ・ヒーローカード（team-points.md §6.2③）----
    .rl-standing/.rl-st 共用＋縦積みバリアント .tp-nd。本数=niadoraTeamCount（calc と同値保証）・本数降順（同数=登録順の安定ソート）。
-   勝ち点タグ=文字併記（勝者に緑 +1・同数に橙 +0.5/+1/3）＝総合タブの種目別勝ち点表セルと同じ値。master 目隠しのみ（チーム名は出したまま）。
-   下部にホール別勝者カード群を併設（renderPrizeHero(g,true)＝チーム名併記・#87 指示⑤）。伏せ状態は個人戦ニアドラと共有。
+   勝ち点タグ=文字併記（勝者に緑 +1・同数に橙 +0.5/+1/3）＝総合タブの種目別勝ち点表セルと同じ値。
+   ヒーローは常時表示＝目隠しなし（#87 指示⑨で master トグル撤去・総合カード④と同じ扱い）。
+   下部にホール別勝者カード群を併設（renderPrizeHero(g,true)＝チーム名併記・#87 指示⑤）。伏せ状態は個人戦ニアドラと共有＝開封演出はこちら側で行う。
    勝者登録パネル（prize-edit details）は個人戦側のみ＝ここには置かない（幹事操作の重複配置はしない） */
 function renderTeamNiadora(g){
   const teams=g.teams.filter(t=>t.memberIds.length);
   const {teams:wt,events}=teamWinPoints(g);
   const ev=events.find(e=>e.key==='niadora');
   const winIds=ev?ev.winners.map(i=>wt[i].id):[];
-  const masked=tgMode.niadora==='hide';
   const npOf=T=>niapinHolesOf(g).filter(h=>{const pid=(g.prizes.niapinWinner||{})[h];return !!pid&&T.memberIds.includes(pid);}).length;
   const dcOf=T=>draconHolesOf(g).filter(h=>{const pid=(g.prizes.draconWinner||{})[h];return !!pid&&T.memberIds.includes(pid);}).length;
   const rows=teams.map(tm=>({tm,n:niadoraTeamCount(g,tm),np:npOf(tm),dc:dcOf(tm)})).sort((a,b)=>b.n-a.n);
-  const tools=`<div class="cardtools mt8"><span class="tgl ${masked?'off':'on'}" onclick="toggleTgAll('niadora')">${masked?t('ns.allHide'):t('ns.allShow')}</span></div>`;   // hero の下（追加指示⑪・⑧と同趣旨）
   const blocks=rows.map(({tm,n,np,dc})=>{
     const col=tmColor(tm.name);
-    const num=masked?'<span class="mask">？</span>':String(n);
-    const sub=masked?'<span class="mask">？</span>':`NP ${np} ・ DC ${dc}`;   // NP/DC はリテラル略号（言語非依存）
-    const tag=(!masked&&winIds.includes(tm.id))
+    const sub=`NP ${np} ・ DC ${dc}`;   // NP/DC はリテラル略号（言語非依存）
+    const tag=winIds.includes(tm.id)
       ?`<span class="tp-nd-tagrow"><span class="tag ${ev.winners.length>1?'tagtie':'tagwin'}">${t('team.winpt')} +${tpShare(ev.winners.length)}</span></span>`:'';
-    return `<span class="rl-st tp-nd"><span class="rl-st-team" style="color:${col}">${esc(tm.name)}</span><span class="rl-st-h">${num}</span><span class="tp-nd-sub">${sub}</span>${tag}</span>`; }).join('');
+    return `<span class="rl-st tp-nd"><span class="rl-st-team" style="color:${col}">${esc(tm.name)}</span><span class="rl-st-h">${n}</span><span class="tp-nd-sub">${sub}</span>${tag}</span>`; }).join('');
   const holeCards=(niapinHolesOf(g).length||draconHolesOf(g).length)? renderPrizeHero(g,true) : '';   // 対象ホールなしは併設カードも省略
   return `<div class="card"><h2 class="lbh"><span>${t('term.niadora')}</span></h2>
     <div class="rl-standing">${blocks}</div>
-    <div class="muted mt6">${t('team.noteNiadora')}</div>${tools}</div>` + holeCards;
+    <div class="muted mt6">${t('team.noteNiadora')}</div></div>` + holeCards;
 }
 
 /* ---- 1 on 1 マッチプレー タブ（§11.13・docs/handoff/2026-08-20-1on1-match.md §13 が正。一組ずつモードの開封は §14・編集UIの置き場所とサマリ表示は §15 が正）----
