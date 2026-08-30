@@ -321,6 +321,10 @@ function tpShare(w,n){ const v=w/n;
 function setTeamEventPts(key,v){ const g=curGame(); if(!g)return;
   (g.points.teamEventPts=g.points.teamEventPts||{})[key]=Math.max(0,parseInt(v)||0);
   save(); renderResult(); }
+/* 種目別勝ち点の配点設定 details の開閉（手動トグルのみ・重み入力の再描画で閉じない）。
+   pzCfgOpen と同方式＝揮発の表示状態・localStorage に保存しない（既定=閉・リロードで閉に戻る） */
+let tpEvPtsOpen=false;
+function tpEvPtsToggle(open){ tpEvPtsOpen=open; }
 const TP_EV_LABEL={teamGross:'term.teamGross',teamNet:'term.teamNet',holeByHole:'term.hbh',best2ball:'term.best2',
   roulette:'term.roulette',match1v1:'term.match1v1',vegas:'term.vegas',niadora:'term.niadora'};
 /* 種目別勝ち点表の行順（#87 指示③）＝チーム戦下段タブの生成順（resGameTabs grp='team'・総合を除く）:
@@ -358,11 +362,12 @@ function renderTeamOverall(g){
     return '<td></td>'; }).join('')}</tr>`).join('');
   // 重み設定 details（winpoints-reveal §13.5・D14/D15・投影原則 §11.14「幹事操作は控えめ配置」）:
   // 採用中の種目のみ TP_EV_ORDER 順（niadora は F.niadoraTeam・βはαチャネルで自動除外）。成立前でも事前設定可。
-  // ゲーム設定タブには置かない（teamRankPts と同居させず重複配置回避）
+  // ゲーム設定タブには置かない（teamRankPts と同居させず重複配置回避）。
+  // 開閉は手動トグルのみ＝tpEvPtsOpen（揮発）で再描画をまたいで維持（pzCfgOpen と同方式・重み入力の再描画で閉じない）
   const F=chFormats(g), W=P.teamEventPts||{};
   const evPtsRows=TP_EV_ORDER.filter(k=> k==='niadora'?F.niadoraTeam:F[k]).map(k=>
     `<div class="ptsrow"><span>${t(TP_EV_LABEL[k]||k)}</span><span class="ptsedit"><input type="number" min="0" step="1" value="${W[k]===undefined?1:W[k]}" onchange="setTeamEventPts('${k}',this.value)"></span></div>`).join('');
-  const evPts=evPtsRows?`<details class="mt10"><summary>${t('team.evPtsTitle')}</summary><div class="in">
+  const evPts=evPtsRows?`<details class="mt10"${tpEvPtsOpen?' open':''} ontoggle="tpEvPtsToggle(this.open)"><summary>${t('team.evPtsTitle')}</summary><div class="in">
       <div class="muted">${t('team.evPtsNote')}</div>${evPtsRows}</div></details>`:'';
   return `<div class="card"><h2 class="lbh"><span>${t('team.overallTitle')} ${prog}</span></h2>
     <div class="rl-standing tp-ovh-wrap">${hero}</div>
@@ -379,7 +384,9 @@ function renderTeamOverall(g){
    勝ち点タグ=文字併記（勝者に緑 +1・同数に橙 +0.5/+1/3）＝総合タブの種目別勝ち点表セルと同じ値。
    ヒーローは常時表示＝目隠しなし（#87 指示⑨で master トグル撤去・総合カード④と同じ扱い）。
    下部にホール別勝者カード群を併設（renderPrizeHero(g,true)＝チーム名併記・#87 指示⑤）。伏せ状態は個人戦ニアドラと共有＝開封演出はこちら側で行う。
-   勝者登録パネル（prize-edit details）は個人戦側のみ＝ここには置かない（幹事操作の重複配置はしない） */
+   勝者登録パネル（prize-edit details）は最下部にも配置（2026-08-30 指示②で #87⑤「個人戦のみ」を上書き）:
+   formats.niadoraInd OFF で個人戦ニアドラタブが消えても登録場所を確保。個人戦側と同一パネル（renderPrizes 流用＝同じ g.prizes を読み書き・
+   どちらで登録しても両方に反映）。開閉状態 pzCfgOpen も個人戦側と共有（手動トグルのみ・再描画で維持・localStorage 非保存） */
 function renderTeamNiadora(g){
   const teams=g.teams.filter(t=>t.memberIds.length);
   const {teams:wt,events}=teamWinPoints(g);
@@ -400,11 +407,13 @@ function renderTeamNiadora(g){
     const tag=(ev&&ev.on&&allOpen&&winIds.includes(tm.id))   // 勝ち点タグは「発表済み(on)かつ全開封」でのみ表示（winpoints-reveal §5.2＝マスクと整合）
       ?`<span class="tp-nd-tagrow"><span class="tag ${ev.winners.length>1?'tagtie':'tagwin'}">${t('team.winpt')} +${tpShare(ev.w,ev.winners.length)}</span></span>`:'';
     return `<span class="rl-st tp-nd"><span class="rl-st-team" style="color:${col}">${esc(tm.name)}</span><span class="rl-st-h">${n}</span><span class="tp-nd-sub">${sub}</span>${tag}</span>`; }).join('');
-  const holeCards=(niapinHolesOf(g).length||draconHolesOf(g).length)? renderPrizeHero(g,true) : '';   // 対象ホールなしは併設カードも省略
+  const hasHoles=niapinHolesOf(g).length||draconHolesOf(g).length;
+  const holeCards=hasHoles? renderPrizeHero(g,true) : '';   // 対象ホールなしは併設カード・登録パネルとも省略
+  const editPanel=hasHoles? `<details class="prize-edit mt10"${pzCfgOpen?' open':''} ontoggle="pzCfgToggle(this.open)"><summary>${t('prize.recTitle')}</summary><div class="in">${renderPrizes(g)}</div></details>` : '';
   return `<div class="card"><h2 class="lbh"><span>${t('term.niadora')}</span></h2>
     <div class="rl-standing">${blocks}</div>
     <div class="muted mt6">${t('team.noteNiadora')}</div>
-    <div class="cardtools mt8">${tpAnnounceUI(g,'niadora')}</div></div>` + holeCards;
+    <div class="cardtools mt8">${tpAnnounceUI(g,'niadora')}</div></div>` + holeCards + editPanel;
 }
 
 /* ---- 1 on 1 マッチプレー タブ（§11.13・docs/handoff/2026-08-20-1on1-match.md §13 が正。一組ずつモードの開封は §14・編集UIの置き場所とサマリ表示は §15 が正）----
