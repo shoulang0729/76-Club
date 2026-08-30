@@ -48,7 +48,7 @@ function renderGame(){
   </div>
     <h3>${t('game.h3Team')}</h3><div class="fmtgrid">
     ${fchk('niadoraTeam',t('fmt.niadoraTeam'))}${fchk('teamGross',t('fmt.teamGross'))}${fchk('teamNet',t('fmt.teamNet'))}
-    ${bchk('univMatch',t('fmt.univMatch'))}${fchk('holeByHole',t('fmt.hbh'))}${bchk('best2ball',t('fmt.best2'))}
+    ${fchk('univMatch',t('fmt.univMatch'))}${fchk('holeByHole',t('fmt.hbh'))}${bchk('best2ball',t('fmt.best2'))}
     ${bchk('vegas',t('fmt.vegas'))}${fchk('match1v1',t('fmt.match1v1'))}
     ${fchk('roulette',t('fmt.roulette'))}
   </div></div>`;
@@ -77,8 +77,8 @@ function renderGame(){
 
   // 大学対抗 設定カード（β且つON時のみ・univ-match §6.3。Vegas 設定カードと同型・setFmt→renderGame 再描画で出没。
   // 設定はエブリ適用オプションの1項目のみ＝上限36/40・係数0.8・Wパーカットは規定固定値でUI化しない）
-  if(CHANNEL==='b' && F.univMatch){
-    html += `<div class="card"><h2>${t('fmt.univMatch')} <span class="tag tagbeta">${t('ch.b')}</span></h2>
+  if(F.univMatch){
+    html += `<div class="card"><h2>${t('fmt.univMatch')}</h2>
     <label style="display:flex;gap:8px;align-items:center;font-size:13px"><input type="checkbox" ${g.univ.every?'checked':''} onchange="setUniv('every',this.checked)"> ${t('univ.everyTgl')}</label>
     <div class="muted mt6">${t('univ.everyNote')}</div>
     <div class="muted">${t('univ.calcNote')}</div>

@@ -386,3 +386,8 @@ if(F.univMatch){ const uv=uvStanding(g);
   - チーム区切り行に `対象 n/P`（`univ.selOf` 流用）を併記してよい。
 - 判定は `uvStanding(g)` の各校 `sel`（対象 pid 集合）。**開封が進むと対象者が入れ替わるため、再描画のたびに追随**する（§14.2 と整合）。
 - **適用は大学対抗タブで描画されるスコア表のみ**。`renderScorecard` に省略可能引数（対象 pid マップ）を追加し、**引数省略時の出力は現行とバイト一致**とする（net/gross/hbh のスコア表は不変）。
+
+### 14.6 α版昇格・ルール解説の位置・注記削除（2026-08-30・ユーザー確定）
+- **α昇格**: `BETA_FMT` から `univMatch` を削除（§6.3 の「β開始」＝§12 既定事項2 を撤回）。ゲーム設定のチェックは `bchk`→`fchk`、大学対抗 設定カードのゲートも `CHANNEL==='b' &&` を外し βタグを撤去。ホームの α カード一覧（`ALPHA_GAMES`）に `fmt.univMatch` を追加（`fmt.hbh` の後＝タブ順）。1 on 1（#87）と同じ昇格手順。
+- **ルール解説は最下部**: `ruleBox('rule.univ')` を `renderTeamUniv` から外し、`renderTeamGame` の 'univ' 分岐で **カード→スコア表→ルール解説** の順に付与する（実測 DOM 順: `div.card` → `details.sc-tgl` → `details.mt10`）。
+- **注記2行を削除**: タイブレーク表下の `univ.note`／`univ.calcNote` の muted 2行を廃止（内容はルール解説に集約）。両キーは他所（空状態カード／ゲーム設定カード）で使用継続のため i18n からは削除しない。
