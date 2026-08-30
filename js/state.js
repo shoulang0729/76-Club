@@ -19,6 +19,8 @@ function migrate(s){
     if(!g.womenEvery) g.womenEvery={enabled:false};
     if(g.womenEvery.enabled===undefined) g.womenEvery.enabled=false;
     if(g.kanjiBadge===undefined) g.kanjiBadge=false;   // 次回幹事バッジ表示（既定OFF・§11.16 / 2026-08-29-host-option.md）
+    // 対象順位＋順位ごとシフト方向（§11.17 / 2026-08-29-host-option.md §12）。既定＝旧filter方式の挙動を保存（2位=下・ブービー=上・1位=OFF）
+    if(!g.kanjiRanks) g.kanjiRanks={r1:{enabled:false,dir:'down'},r2:{enabled:true,dir:'down'},booby:{enabled:true,dir:'up'}};
     if(!g.points) g.points=defaultPoints();
     else { const d=defaultPoints(); for(const k in d) if(g.points[k]===undefined) g.points[k]=d[k]; }
     if(g.prizePool===undefined) g.prizePool=0;
@@ -61,6 +63,7 @@ function newGame(){
     periaCoef:0.8, periaCap:null,
     womenEvery:{enabled:false},
     kanjiBadge:false,   // 次回幹事バッジ表示（既定OFF・§11.16 / 2026-08-29-host-option.md）
+    kanjiRanks:{r1:{enabled:false,dir:'down'},r2:{enabled:true,dir:'down'},booby:{enabled:true,dir:'up'}},   // 対象順位＋順位ごと方向（§11.17）
     teams:[],
     participants:[],
     scores:{},

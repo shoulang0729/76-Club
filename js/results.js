@@ -133,10 +133,10 @@ function renderIndGame(g, parts, key){
   let card='', rule='';
   if(key==='gross'){ card=rankCardNS(g.womenEvery.enabled?t('result.grossEvery'):t('term.gross'), parts, pid=>effGross(g,pid), 'asc', v=>v, 'gross', null); rule='rule.gross'; }
   else if(key==='net'){
-    // 次回幹事（ネットで決定）：バッジをネット順位の2位/ブービー行に表示（ネットタブのみ）。
-    // ゲーム設定 g.kanjiBadge で ON/OFF（既定OFF・2026-08-29-host-option.md §2。OFF は判定自体を行わず hlMap=null）
-    const nk = g.kanjiBadge ? nextKanji(g) : null; const hl = nk ? {} : null;
-    if(nk){ hl[nk.nikai]=t('term.organizer'); hl[nk.booby]=t('term.organizer'); }
+    // 次回幹事（ネットで決定）：ゲーム設定の対象順位 kanjiRanks の行にバッジ表示（ネットタブのみ・§11.17）。
+    // マスター g.kanjiBadge で ON/OFF（既定OFF・2026-08-29-host-option.md §2。OFF は判定自体を行わず hlMap=null）
+    const kpids = g.kanjiBadge ? nextKanji(g) : [];
+    const hl = kpids.length ? {} : null; kpids.forEach(pid=>hl[pid]=t('term.organizer'));
     card=rankCardNS(t('term.net'), parts, pid=>netScore(g,pid), 'asc', v=>v, 'net', hl); rule='rule.net'; }
   else if(key==='stb'){ card=leaderboard(t('term.stableford'), parts, pid=>stablefordPts(g,pid), 'desc', v=>v+'pt', '', 'stb'); rule='rule.stableford'; }
   else if(key==='oly'){ card=leaderboard(t('term.olympic'), parts, pid=>olympicPts(g,pid), 'desc', v=>v+'pt', '', 'oly'); rule='rule.olympic'; }
