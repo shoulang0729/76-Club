@@ -179,7 +179,7 @@ function renderRouletteParts(g){
       <div class="rl-head"><div class="rl-hole">${h+1}<small>H</small></div><div class="rl-par">Par ${g.par[h]}</div>
         ${holeRes}
         ${rl.challengeFrom?`<span class="muted">${t('rl.pickOpp')} <button class="btn gray sm" onclick="rlCancelChallenge()">${t('btn.cancel')}</button></span>`:''}
-        <button class="btn gray sm" style="margin-left:auto" onclick="rlReset()">${t('btn.reset')}</button></div>
+        <button class="btn gray sm" style="margin-left:auto" onclick="rlReset()">${t('btn.reset')}</button>${tpAnnounceUI(g,'roulette',true)}</div>
       <div class="rl-panels">${panels}</div>
       <div class="rl-ctrl">
         <div class="rl-info">${(!rl.spinning&&drawn)?holeInfo:'&nbsp;'}</div>

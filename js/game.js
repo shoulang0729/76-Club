@@ -38,12 +38,16 @@ function renderGame(){
   const fchk=(k,label)=>`<label><input type="checkbox" ${F[k]?'checked':''} onchange="setFmt('${k}',this.checked)"> ${label}</label>`;
   // β系フォーマットのトグルは β版でだけ表示・選択可（§11.12 C）。α版でも g.formats の値自体は保持する
   const bchk=(k,label)=> CHANNEL==='b' ? fchk(k,label) : '';
-  // 並び順=結果発表のタブ順（個人戦タブ順→チーム戦下段タブ順 TP_EV_ORDER。表示順のみ・#94）
-  html += `<div class="card"><h2>${t('game.fmtCard')} ${CHANNEL==='b'?`<span class="tag tagbeta">${t('ch.b')}</span>`:''}</h2><div class="fmtgrid">
-    ${fchk('gross',t('fmt.gross'))}${fchk('net',t('fmt.net'))}
+  // グループ表示（バッチ95追加5・ユーザー確定順）: 結果発表のグループ構成（個人戦/チーム戦）と同じ小見出し付き。
+  // 個人戦=gross→net→niadoraInd→β4種／チーム戦=niadoraTeam→gross→net→hbh→b2(β)→vegas(β)→m1→roulette。見出しは配点カードの h3 キーを流用
+  html += `<div class="card"><h2>${t('game.fmtCard')} ${CHANNEL==='b'?`<span class="tag tagbeta">${t('ch.b')}</span>`:''}</h2>
+    <h3>${t('game.h3Ind')}</h3><div class="fmtgrid">
+    ${fchk('gross',t('fmt.gross'))}${fchk('net',t('fmt.net'))}${fchk('niadoraInd',t('fmt.niadoraInd'))}
     ${bchk('stableford',t('fmt.stableford'))}${bchk('olympic',t('fmt.olympic'))}
     ${bchk('callaway',t('fmt.callaway'))}${bchk('nassau',t('fmt.nassau'))}
-    ${fchk('teamGross',t('fmt.teamGross'))}${fchk('teamNet',t('fmt.teamNet'))}
+  </div>
+    <h3>${t('game.h3Team')}</h3><div class="fmtgrid">
+    ${fchk('niadoraTeam',t('fmt.niadoraTeam'))}${fchk('teamGross',t('fmt.teamGross'))}${fchk('teamNet',t('fmt.teamNet'))}
     ${fchk('holeByHole',t('fmt.hbh'))}${bchk('best2ball',t('fmt.best2'))}
     ${bchk('vegas',t('fmt.vegas'))}${fchk('match1v1',t('fmt.match1v1'))}
     ${fchk('roulette',t('fmt.roulette'))}

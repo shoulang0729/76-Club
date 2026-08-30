@@ -23,7 +23,7 @@ function setResGame(k){ if(k!=='roulette') rlStopTimer();
 /* 下段ゲームタブのリスト（§4.3。表示条件=採用中フォーマット連動 D9。'pts' は []＝下段なし） */
 function resGameTabs(grp,g){ const F=chFormats(g); const T=[];
   if(grp==='ind'){
-    T.push(['prize', t('result.sub.prize')]);                    // 常時（対象ホールなしは中身の empty）
+    if(F.niadoraInd) T.push(['prize', t('result.sub.prize')]);   // ニアドラ個人トグル連動（バッチ95追加5。対象ホールなしは中身の empty）
     if(F.gross)      T.push(['gross', t('term.gross')]);
     if(F.net)        T.push(['net',   t('term.net')]);
     if(F.stableford) T.push(['stb',   t('term.stableford')]);
@@ -33,7 +33,7 @@ function resGameTabs(grp,g){ const F=chFormats(g); const T=[];
   } else if(grp==='team'){
     T.push(['overall', t('result.sub.overall')]);                // 常時（空状態は §5.2）
     const anyTeam=F.teamGross||F.teamNet||F.holeByHole||F.best2ball||F.vegas||F.match1v1;
-    if(anyTeam && typeof niadoraTeamCount==='function')          // チーム戦ニアドラ（team-points §3.1・regroup §4.3。calc の関数存在がゲート）
+    if(F.niadoraTeam && anyTeam && typeof niadoraTeamCount==='function')   // ニアドラチームトグル連動（バッチ95追加5）＋チーム戦ニアドラ従来条件（team-points §3.1・regroup §4.3）
                      T.push(['nd',    t('term.niadora')]);       // ラベルは「ニアドラ」（result.sub.prize は個人戦チップ用のフル表記に変更のため）
     if(F.teamGross)  T.push(['gross', t('term.gross')]);
     if(F.teamNet)    T.push(['net',   t('term.net')]);
@@ -283,16 +283,17 @@ function renderTeamGame(g, g0, parts, key){
   return '';
 }
 
-/* ---- 発表ボタン（winpoints-reveal §5.2・D1/D8・投影原則 §11.14「幹事操作は控えめ配置」）----
+/* ---- 連携ボタン（winpoints-reveal §5.2＋追補§11.2・D1/D8・投影原則 §11.14「幹事操作は控えめ配置」）----
    g.announced はデータ（幹事の運営記録）＝save() で golfCompe_v1 に保存（開封・めくり演出の揮発状態とは別物）。
-   ボタンは常時活性・不成立種目の発表フラグは休眠（算入は 成立∧on の AND・D9）。取り消しは可逆・confirm なし（D8） */
+   ボタンは常時活性・不成立種目の連携フラグは休眠（算入は 成立∧on の AND・D9）。取り消しは可逆・confirm なし（D8）。
+   配置は各カード内の右寄せ（§11.2）＝flex 親の中で margin-left:auto。flush=true は右寄せ済み要素の直後に置く場合（ルーレット head） */
 function tpAnnounce(key,on){ const g=curGame(); if(!g)return;
   (g.announced=g.announced||{})[key]=!!on; save(); renderResult(); }
-function tpAnnounceUI(g,key){ const on=!!(g.announced||{})[key];
-  return on
-    ? `<span class="tag" style="background:var(--win);color:var(--on-fill)">${t('team.announced')}</span>
-       <button class="btn gray sm" onclick="tpAnnounce('${key}',false)">${t('team.unannounce')}</button>`
-    : `<button class="btn gold sm" onclick="tpAnnounce('${key}',true)">${t('team.announce')}</button>`; }
+function tpAnnounceUI(g,key,flush){ const on=!!(g.announced||{})[key];
+  const inner = on
+    ? `<span class="tag" style="background:var(--win);color:var(--on-fill)">${t('team.announced')}</span><button class="btn gray sm" onclick="tpAnnounce('${key}',false)">${t('team.unannounce')}</button>`
+    : `<button class="btn gold sm" onclick="tpAnnounce('${key}',true)">${t('team.announce')}</button>`;
+  return `<span style="display:inline-flex;gap:6px;align-items:center${flush?'':';margin-left:auto'}">${inner}</span>`; }
 
 /* ---- チーム総合カード＋種目別勝ち点表（team-points.md §6.2①・winpoints-reveal §5.1・投影原則 §11.14）----
    総合順位・勝ち点は calc.js の teamWinPoints(g) だけを正とする（表示側で再計算しない）。
@@ -450,8 +451,7 @@ function renderMatch1v1Parts(g){
     <span class="seg"><button class="${one?'':'on'}" onclick="m1SetMode('all')">${t('m1.modeAll')}</button><button class="${one?'on':''}" onclick="m1SetMode('one')">${t('m1.modeOne')}</button></span>
     ${one?`<button class="btn gold sm" onclick="m1OpenNext()" ${allOpen?'disabled':''}>${t('m1.openNext')}</button>
       <button class="btn gray sm" onclick="m1OpenAllCards()">${t('m1.openAllCards')}</button>
-      <button class="btn gray sm" onclick="m1CoverAll()">${t('m1.coverAll')}</button>`:''}</div>
-    <div class="cardtools mt8">${tpAnnounceUI(g,'match1v1')}</div></div>`;   // 発表ボタン（winpoints-reveal §5.2。開封演出 m1Opened は揮発のまま・発表だけがデータに残る）
+      <button class="btn gray sm" onclick="m1CoverAll()">${t('m1.coverAll')}</button>`:''}${tpAnnounceUI(g,'match1v1')}</div></div>`;   // 連携ボタン=操作バー右端（§11.2。開封演出 m1Opened は揮発のまま・連携だけがデータに残る）
   // 対戦カード（1試合=1カード・登録リスト順）: hero=大型UP表示（§13.3）＋[一組ずつ: カード内開封バー §14.2]＋ホール表（値=adjHole・勝ち=rwin・ハーフ=rtie・未開封=空欄）
   const H=[...Array(18).keys()];
   const colg=`<colgroup><col class="cnm">${H.map(()=>'<col class="ch">').join('')}</colgroup>`;
