@@ -12,10 +12,11 @@ function renderTeamGame(g, g0, parts, key){
      （総合タブに開封バーは無く復旧不能）だった。勝ち点・種目別勝ち点表は announced（連携）ゲートで既に守られている
      ＝未連携行は？マスクのままなのでネタバレなし。他タブ（gross/net/hbh 等）の viewGame マスクは意図どおり不変 */
   if(key==='overall') return renderTeamOverall(g0);
-  /* 大学対抗も g0（総合と同じ #98 前例・univ-match PR#2）: revealHoles 既定0のリロード直後はマスク済み g だと
-     uvMembers（entered 判定）が全滅→対象校0で必ず空。大学対抗タブには開封バーが無い（sc() 非併設＝設計 §6.2）ため
-     総合タブと同じ「復旧不能の空」になる。順位バッジ・勝ち点タグは announced.univMatch ゲートで保護済み */
-  if(key==='univ')  return renderTeamUniv(g0);
+  /* 大学対抗は g（viewGame マスク後）＋スコア表併設（univ-match §14.1・PR#3 でユーザー確定）:
+     g0 にしていた唯一の根拠は「開封バーが無く revealHoles=0 の空から復旧できない」ことだったが、
+     本PRで sc()（開封バー・合計値トグル）を併設したため復旧経路ができ、'net'/'hbh' と同型に戻した。
+     結果、ヒーロー・タイブレーク表・メンバー表が開封済みホールまでで再計算される＝段階開封（§14.2）*/
+  if(key==='univ')  return renderTeamUniv(g) + sc();
   if(key==='nd')    return renderTeamNiadora(g);
   if(key==='gross') return `<div class="rank-wrap">${renderTeams(g,'teamGross')}</div>` + sc();
   if(key==='net')   return `<div class="rank-wrap">${renderTeams(g,'teamNet')}</div>` + sc();
@@ -155,9 +156,9 @@ function renderTeamNiadora(g){
 }
 
 /* ---- 大学対抗タブ（univMatch・docs/handoff/2026-08-30-univ-match.md §6.2・投影原則 §11.14・モック承認 2026-08-30）----
-   計算・表示は g0 基準（renderTeamGame 側コメント＝総合タブ #98 前例）。値の正は calc.js の uvStanding/teamWinPoints（表示側で再計算しない）。
+   計算・表示は g 基準＝viewGame マスク後（§14.1/§14.2・renderTeamGame 側コメント）。値の正は calc.js の uvStanding/teamWinPoints（表示側で再計算しない）。
    ①学校ヒーロー（.rl-st.tp-nd 共用・r4 順位順で1位が左・校名=チームカラー --f-rl-name・平均ネット=--f-rl-score）
-   ②タイブレーク明細表（4段・決着した段の1位セル=winc 緑・決着後の段は—/muted）
+   ②タイブレーク明細表（4段・①〜④を常に数値表示＝§14.3・決着した段の1位セルのみ winc 緑）
    ③学校別メンバー表（ネット順・対象者=枠＋「対象」文字併記＝色のみに依存しない・対象外=muted）。
    順位バッジ・勝ち点タグは連携（announced.univMatch）後のみ。表示は平均系 toFixed(2)/個人ネット 0.1桁。
    大学対抗固有の進行状態は持たない（揮発変数も localStorage 保存もなし・§6.2） */
@@ -188,11 +189,10 @@ function renderTeamUniv(g){
   // タイブレーク明細表（通常サイズ .lb・列=校は r4 順位順）。G は言語非依存のリテラル略号（NP/DC と同じ扱い）
   const tbLabels=['univ.avgNetSel','univ.avgGrossSel','univ.avgNetAll','univ.avgGrossAll'];
   const tbHead=`<tr><th class="tal"></th>${uv.rows.map(r=>`<th style="color:${tmColor(r.t.name)}">${esc(r.t.name)}</th>`).join('')}</tr>`;
+  // §14.3: ①〜④すべて常に数値表示（決着後の段も参考値として見せる）。決着段の1位セルだけ winc 緑＝どの段で決まったかを示す
   const tbRows=tbLabels.map((k,i)=>{
-    const off=dstage>=0&&i>dstage;   // 決着後の段=未使用（—・muted）
-    const cells=uv.rows.map(r=> off?`<td><span class="muted">—</span></td>`
-      :`<td${(i===dstage&&r.rank===1)?' class="winc"':''}>${f2(r.r4[i])}</td>`).join('');
-    return `<tr${off?' class="uv-off"':''}><td class="tal">${'①②③④'[i]} ${t(k)}</td>${cells}</tr>`; }).join('');
+    const cells=uv.rows.map(r=>`<td${(i===dstage&&r.rank===1)?' class="winc"':''}>${f2(r.r4[i])}</td>`).join('');
+    return `<tr><td class="tal">${'①②③④'[i]} ${t(k)}</td>${cells}</tr>`; }).join('');
   const card1=`<div class="card">${head}
     <div class="rl-standing tp-ovh-wrap">${hero}</div>
     <div class="scroll mt10"><table class="lb uv-tb">${tbHead}${tbRows}</table></div>

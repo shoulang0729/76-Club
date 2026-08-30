@@ -428,10 +428,11 @@
   .tp-nd-tagrow .tag{margin-left:0}
   /* 大学対抗（univ-match §6.2・モック承認 2026-08-30）: ヒーローは .rl-st/.tp-nd/.tp-ovh を全面流用＝新規なし。
      エブリ適用中タグ=アクセント淡地（濃色ベタ塗りなし）。明細表の決着セル=winc 緑（.tp-mx と同パターン・!important はゼブラ対策）。
-     メンバー表の対象者=枠（機能色「採用=枠」・青枠＋「対象」文字併記で色のみに依存しない）・対象外/未使用段=muted */
+     メンバー表の対象者=枠（機能色「採用=枠」・青枠＋「対象」文字併記で色のみに依存しない）・対象外=muted。
+     明細表は §14.3 で①〜④を常に数値表示にしたため、表側の .uv-off 用途は廃止（.uv-mem のみ使用） */
   .uv-tagev{background:var(--acc-bg);color:var(--acc-ink)}
   .uv-tb .winc{background:var(--win-bg) !important;font-weight:var(--w-bold);color:var(--win-ink)}
-  .uv-tb tr.uv-off td,.uv-mem tr.uv-off td{color:var(--sub)}
+  .uv-mem tr.uv-off td{color:var(--sub)}
   .uv-h3{font-size:var(--f-title);letter-spacing:0}
   .uv-mem tr.uv-tgt td{border-top:1.5px solid var(--pri);border-bottom:1.5px solid var(--pri)}
   .uv-mem tr.uv-tgt td:first-child{border-left:1.5px solid var(--pri)}
