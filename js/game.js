@@ -50,7 +50,6 @@ function renderGame(){
   // Points / prize pool
   const P=g.points;
   const ptsInd=(k,label)=> F[k]?`<div class="ptsrow"><span>${label}</span><span class="ptsedit"><input value="${(P[k]||[]).join(',')}" onchange="setPoints('${k}',this.value)" placeholder="5,3,1"></span></div>`:'';
-  const ptsTeam=(k,label)=> F[k]?`<div class="ptsrow"><span>${label}${t('pts.each')}</span><span class="ptsedit"><input value="${(P[k]||[]).join(',')}" onchange="setPoints('${k}',this.value)" placeholder="3"></span></div>`:'';
   html += `<div class="card prizewin"><h2>${t('game.ptsCard')}</h2>
     <div class="muted">${t('game.ptsNote')}</div>
     <h3>${t('game.h3Ind')}</h3>
@@ -59,8 +58,7 @@ function renderGame(){
     ${F.match1v1?`<div class="ptsrow"><span>${t('pts.m1win')}</span><span class="ptsedit"><input type="number" value="${P.m1win}" onchange="setPointsNum('m1win',this.value)"></span></div>
     <div class="ptsrow"><span>${t('pts.m1draw')}</span><span class="ptsedit"><input type="number" value="${P.m1draw}" onchange="setPointsNum('m1draw',this.value)"></span></div>`:''}
     <h3>${t('game.h3Team')}</h3>
-    ${ptsTeam('teamGross',t('term.teamGross'))}${ptsTeam('teamNet',t('term.teamNet'))}${ptsTeam('holeByHole',t('term.hbh'))}${ptsTeam('best2ball',t('term.best2'))}
-    <div class="ptsrow"><span>${t('term.roulette')}${t('pts.each')}</span><span class="ptsedit"><input value="${(P.roulette||[]).join(',')}" onchange="setPoints('roulette',this.value)" placeholder="3"></span></div>
+    <div class="ptsrow"><span>${t('pts.teamRank')}</span><span class="ptsedit"><input value="${(P.teamRankPts||[]).join(',')}" onchange="setPoints('teamRankPts',this.value)" placeholder="10,5"></span></div>
     <h3>${t('game.h3Prize')}</h3>
     <div class="ptsrow"><span>${t('pts.niapin')}</span><span class="ptsedit"><input type="number" value="${P.niapin}" onchange="setPointsNum('niapin',this.value)"></span></div>
     <div class="ptsrow"><span>${t('pts.dracon')}</span><span class="ptsedit"><input type="number" value="${P.dracon}" onchange="setPointsNum('dracon',this.value)"></span></div>

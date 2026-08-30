@@ -220,13 +220,17 @@
      列数固定: 〜767px=2列 / ≥768px=4列（モック承認時のユーザー修正） */
   .npdc-hero{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}
   .npdc-cell{border:2px solid var(--line);border-radius:var(--r-sm);background:var(--card);
-    padding:10px 12px;text-align:center;cursor:pointer}
+    padding:10px 12px;text-align:center;cursor:pointer;container-type:inline-size}
   .npdc-cell.np{border-color:var(--info-line)}
   .npdc-cell.dc{border-color:var(--danger-line)}
-  .npdc-top{display:flex;justify-content:center;align-items:baseline;gap:8px}
+  .npdc-top{display:flex;justify-content:center;align-items:baseline;gap:8px;flex-wrap:wrap;row-gap:2px}
   .npdc-hole{font-size:var(--f-rl-hole);font-weight:var(--w-bold);line-height:1;color:var(--ink)}
   .npdc-hole small{font-size:.35em;font-weight:var(--w-bold)}
-  .npdc-kind{font-size:var(--f-small);font-weight:var(--w-bold);letter-spacing:.04em}
+  /* 区分ラベルはホール番号と同格の大きさ（投影で区分が読めるように）。セル幅に収まる範囲で拡大し
+     上限=--f-rl-hole（23cqw≒4文字が1行に収まるサイズ。cqw 非対応環境は --f-rl-name にフォールバック）。
+     収まらない場合は番号の下の行へ折返し（.npdc-top の flex-wrap） */
+  .npdc-kind{font-size:var(--f-rl-name);font-size:min(var(--f-rl-hole),23cqw);
+    font-weight:var(--w-bold);letter-spacing:.02em;line-height:1.1;min-width:0;overflow-wrap:break-word}
   .np .npdc-kind{color:var(--prid)}  .dc .npdc-kind{color:var(--red)}
   .npdc-name{font-size:var(--f-rl-name);font-weight:var(--w-bold);line-height:1.15;margin-top:4px;
     overflow-wrap:anywhere;min-height:1.15em}
@@ -249,7 +253,7 @@
   .ei{width:15px;height:15px;stroke:currentColor;stroke-width:2;fill:none;stroke-linecap:round;stroke-linejoin:round;display:block}
   .ic{width:15px;height:15px;stroke:var(--acc);stroke-width:2;fill:none;stroke-linecap:round;stroke-linejoin:round;vertical-align:-2px}
   /* rank-wrap ranking cards */
-  .rank-wrap{display:flex;flex-wrap:wrap;gap:10px;align-items:flex-start;margin-bottom:12px}
+  .rank-wrap{display:flex;flex-wrap:wrap;gap:10px;align-items:flex-start;justify-content:center;margin-bottom:12px}   /* 順位カードは左右中央揃え（投影原則・追加指示⑩） */
   .rank-wrap>.card{flex:1 1 210px;min-width:190px;max-width:320px;margin-bottom:0}
   .rank-wrap>.card.wide{flex:1 1 320px;min-width:270px;max-width:480px}
   .rank-wrap .lb{font-size:var(--f-body);table-layout:fixed;width:100%}
@@ -367,6 +371,26 @@
   .m1-big.d{color:var(--tie)}   /* AS=橙 */
   .m1-big.n{color:var(--sub)}   /* 未プレー */
   .m1-teamsum{font-size:var(--f-rl-name);font-weight:var(--w-bold);line-height:1.15;text-align:center;margin-top:8px}   /* チーム対抗サマリ行（中央寄せ・§15.3） */
+  /* チーム戦・総合カード（team-points.md §6.2①・投影主役）: 名前=--f-rl-name・勝ち点=--f-rl-score（チームカラー＝モック承認）。
+     @media の --f-rl-* 再定義に自動追従（新規トークン/新規 @media なし） */
+  .tp-ov .c-eye{width:40px;padding:2px}
+  .tp-ov .c-pos{width:34px}
+  .tp-ov .nmc{white-space:normal}
+  .tp-ov-nm{font-size:var(--f-rl-name);font-weight:var(--w-bold);line-height:1.15;overflow-wrap:anywhere}
+  .tp-ov .c-val{text-align:right;padding-right:10px}
+  .tp-ov-pt{font-size:var(--f-rl-score);font-weight:var(--w-bold);line-height:1;font-variant-numeric:tabular-nums;white-space:nowrap}
+  /* 種目別勝ち点表（補助・通常サイズ）: 勝ち=緑（win-bg 淡色地＋濃緑文字）・山分け=橙。!important はゼブラ行(.lb tr:nth-child)対策 */
+  .tp-mx .tal{text-align:left;white-space:normal;overflow-wrap:anywhere}
+  .tp-mx .winc{background:var(--win-bg) !important;font-weight:var(--w-bold);color:var(--win-ink)}
+  .tp-mx .rtie{background:var(--tie-bg) !important;font-weight:var(--w-bold);color:var(--tie-ink)}
+  /* 勝ち点タグ（緑・文字併記 §11.14-2）: 文字=win-ink/背景=win-bg＝濃色ベタ塗りなし。引分は既存 .tagtie */
+  .tagwin{background:var(--win-bg);color:var(--win-ink)}
+  /* チーム戦ニアドラ hero（team-points.md §6.2③）: .rl-st の縦積みバリアント＝名前・本数・内訳が離れず1ブロックで折返す */
+  .tp-nd{flex-direction:column;align-items:center}
+  .tp-nd .rl-st-team{text-align:center}
+  .tp-nd-sub{font-size:13px;color:var(--sub);font-weight:var(--w-bold);margin-top:2px}
+  .tp-nd-tagrow{margin-top:4px}
+  .tp-nd-tagrow .tag{margin-left:0}
   @media(min-width:820px){
     :root{--f-rl-hole:66px;--f-rl-name:40px;--f-rl-score:64px}
     .rlwrap{max-width:900px;margin:0 auto}
