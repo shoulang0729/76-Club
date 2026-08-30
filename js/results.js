@@ -172,10 +172,13 @@ function renderPrizeHero(g, withTeam){
 // 左パネル：全18ホール＋OUT/IN小計＋Gross/HDCP/Net を合体した1枚のスコアカード（横スクロールなし）
 /* ★共通スコアカード（個人戦・チーム戦で同一仕様）。枠は全18ホール固定、開封ホールに値が入る。
    列: 選手 | 1-9 | OUT | 10-18 | IN | 計 | HD | Net。ホール幅は全て均等・合計欄5列は全て同一幅。
-   teams を渡すとチーム別（見出し＋メンバー＋チーム小計＋ホール勝敗ハイライト）。*/
+   teams を渡すとチーム別（見出し＋メンバー＋チーム小計＋ホール勝敗ハイライト）。
+   uvSel（省略可・大学対抗タブ専用 PR#3 指示⑤）: {sel:Set(対象pid), team:{[teamId]:{n,p}}} を渡すと
+   足切り（集計対象外）の選手行を muted（.uv-off）にし、対象者の名前に「対象」タグを併記する。
+   **省略時の出力は従来とバイト一致**（他タブ＝net/gross/hbh/個人戦は引数なしのまま＝非影響）。*/
 const SC_COLGROUP = (()=>{ const F=[0,1,2,3,4,5,6,7,8],B=[9,10,11,12,13,14,15,16,17];
   return `<colgroup><col class="cnm">${F.map(()=>'<col class="ch">').join('')}<col class="cs">${B.map(()=>'<col class="ch">').join('')}<col class="cs"><col class="cs"><col class="cs"><col class="cs"></colgroup>`; })();
-function renderScorecard(g, parts, teams){
+function renderScorecard(g, parts, teams, uvSel){
   const n=revealHoles;
   const F9=[0,1,2,3,4,5,6,7,8], B9=[9,10,11,12,13,14,15,16,17];
   const hh=i=>g.hidden[i]?'hh':'';
@@ -183,9 +186,12 @@ function renderScorecard(g, parts, teams){
   const parOut=sum(g.par,0,9), parIn=sum(g.par,9,18);
   const head=`<tr><th class="nm">${t('col.player')}</th>${F9.map(i=>`<th class="${hh(i)}">${i+1}</th>`).join('')}<th class="sub">OUT</th>${B9.map(i=>`<th class="${hh(i)}">${i+1}</th>`).join('')}<th class="sub">IN</th><th class="tot">${t('col.total')}</th><th class="tot">${t('col.hd')}</th><th class="netc">${t('col.net')}</th></tr>`;
   const parRow=`<tr class="parr"><td class="nm">Par</td>${F9.map(i=>`<td class="${hh(i)}">${g.par[i]}</td>`).join('')}<td class="sub">${MT(parOut)}</td>${B9.map(i=>`<td class="${hh(i)}">${g.par[i]}</td>`).join('')}<td class="sub">${MT(parIn)}</td><td class="tot">${MT(parOut+parIn)}</td><td class="tot">-</td><td class="netc">-</td></tr>`;
+  /* 足切り表現（uvSel 指定時のみ・指示⑤）: 対象外=行 muted（色だけに頼らない＝対象者側に文字タグ）／対象者=「対象」タグ併記 */
+  const uvCls=pid=> uvSel ? (uvSel.sel.has(pid)?'':' class="uv-off"') : '';
+  const uvTag=pid=> (uvSel && uvSel.sel.has(pid)) ? `<span class="tag uv-tagsel">${t('univ.selMark')}</span>` : '';
   const pRow=(pid)=>{ const p=state.players.find(x=>x.id===pid); const av=adjArr(g,pid);
     const cell=i=>`<td class="${hh(i)}">${av[i]??''}</td>`;
-    return `<tr><td class="nm">${esc(p.name)}</td>${F9.map(cell).join('')}<td class="sub">${MT(sum(av,0,9)||'')}</td>${B9.map(cell).join('')}<td class="sub">${MT(sum(av,9,18)||'')}</td><td class="tot">${MT(effGross(g,pid)||'')}</td><td class="tot">${MT(periaHdcp(g,pid))}</td><td class="netc">${MT(netScore(g,pid))}</td></tr>`; };
+    return `<tr${uvCls(pid)}><td class="nm">${esc(p.name)}${uvTag(pid)}</td>${F9.map(cell).join('')}<td class="sub">${MT(sum(av,0,9)||'')}</td>${B9.map(cell).join('')}<td class="sub">${MT(sum(av,9,18)||'')}</td><td class="tot">${MT(effGross(g,pid)||'')}</td><td class="tot">${MT(periaHdcp(g,pid))}</td><td class="netc">${MT(netScore(g,pid))}</td></tr>`; };
   /* §11.12 I: 選択指標での並べ替え。ranked()＋tieBreak を流用＝順位カードと同じ並び。
      値が無い（未入力）選手は ranked() から落ちるので、元の順序のまま末尾に付ける。 */
   const sortPids=(pids,metric)=>{
@@ -211,7 +217,8 @@ function renderScorecard(g, parts, teams){
     order.sort((a,b)=> scSortTeam==='hbh' ? won[b.ti]-won[a.ti]
       : scSortTeam==='gross' ? tGrossOf(a.tm)-tGrossOf(b.tm) : tNetOf(a.tm)-tNetOf(b.tm));
     order.forEach(({tm,ti})=>{ const col=colorOf(tm.name);
-      body+=`<tr><td class="nm" colspan="24" style="background:${col};color:var(--bg);font-weight:var(--w-bold);text-align:left">${esc(tm.name)}</td></tr>`;
+      const uvT=uvSel&&uvSel.team[tm.id];   // 大学対抗タブのみ: チーム行に 対象n/参加P（既存キー univ.selOf 流用）
+      body+=`<tr><td class="nm" colspan="24" style="background:${col};color:var(--bg);font-weight:var(--w-bold);text-align:left">${esc(tm.name)}${uvT?`<span class="uv-scn">${t('univ.selOf',{n:uvT.n,p:uvT.p})}</span>`:''}</td></tr>`;
       // メンバーは個人スコア順（グロス=エブリ後グロス／ネット・HBH=ネット）
       sortPids(tm.memberIds.filter(pid=>state.players.find(x=>x.id===pid)), scSortTeam==='gross'?'gross':'net')
         .forEach(pid=>{ body+=pRow(pid); });
@@ -242,7 +249,7 @@ function renderScorecard(g, parts, teams){
       <button class="btn gold sm" onclick="openNextHole()" ${n>=18?'disabled':''}>${t('sc.next')}</button>
       <button class="btn gray sm" onclick="openAllHoles()" ${n>=18?'disabled':''}>${t('btn.all')}</button>
     </div>
-    <table class="sc2">${SC_COLGROUP}${head}${parRow}${body}</table>
+    <table class="sc2${uvSel?' uvsc':''}">${SC_COLGROUP}${head}${parRow}${body}</table>
     <div class="muted">${note} ${t('sc.noteCols')}${n<18?t('sc.noteOpen'):''}</div>
   </div></details>`;
 }

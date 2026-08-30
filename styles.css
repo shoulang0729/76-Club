@@ -299,6 +299,7 @@
   /* score card (共通スコア表) */
   .sc2{table-layout:fixed;width:100%;font-size:12px;border-collapse:collapse}
   .sc2 col.cnm{width:64px}
+  .sc2.uvsc col.cnm{width:84px}   /* 大学対抗タブのみ: 名前＋「対象」タグ用に少し広く（他タブは 64px のまま） */
   .sc2 col.cs{width:34px}
   .sc2 th,.sc2 td{padding:4px 0;border:1px solid var(--line);text-align:center;overflow:hidden;line-height:1.2;color:var(--ink);font-weight:var(--w-med);height:24px}
   .sc2 th{background:var(--card);color:var(--strong);font-size:11px;font-weight:var(--w-bold);border-bottom:2px solid var(--strong)}
@@ -313,7 +314,7 @@
   .sc2 .parr td{color:var(--ink);font-size:10px;font-weight:var(--w-bold)}
   .sc2 .tsum td{font-size:11px;background:var(--surface-1)}
   .sc2 .winc{background:var(--win-bg) !important;font-weight:var(--w-bold);color:var(--win-ink)}
-  @media(min-width:560px){ .sc2{font-size:14px} .sc2 col.cnm{width:82px} .sc2 col.cs{width:42px} .sc2 td.nm,.sc2 th.nm{font-size:13px} .sc2 th,.sc2 td{height:28px} }
+  @media(min-width:560px){ .sc2{font-size:14px} .sc2 col.cnm{width:82px} .sc2.uvsc col.cnm{width:118px} .sc2 col.cs{width:42px} .sc2 td.nm,.sc2 th.nm{font-size:13px} .sc2 th,.sc2 td{height:28px} }
   /* two-column (未使用でも保持) */
   .ind-split{display:flex;gap:12px;align-items:flex-start}
   .ind-left{flex:1 1 46%;min-width:0}
@@ -426,17 +427,17 @@
   .tp-nd-sub{font-size:13px;color:var(--sub);font-weight:var(--w-bold);margin-top:2px}
   .tp-nd-tagrow{margin-top:4px}
   .tp-nd-tagrow .tag{margin-left:0}
-  /* 大学対抗（univ-match §6.2・モック承認 2026-08-30）: ヒーローは .rl-st/.tp-nd/.tp-ovh を全面流用＝新規なし。
+  /* 大学対抗（univ-match §6.2・§14）: ヒーローは .rl-st/.tp-nd/.tp-ovh を全面流用＝新規なし。
      エブリ適用中タグ=アクセント淡地（濃色ベタ塗りなし）。明細表の決着セル=winc 緑（.tp-mx と同パターン・!important はゼブラ対策）。
-     メンバー表の対象者=枠（機能色「採用=枠」・青枠＋「対象」文字併記で色のみに依存しない）・対象外/未使用段=muted */
+     §14.3 で明細表は①〜④常時表示にしたため表側の .uv-off 用途は廃止。メンバー表カードは PR#3 指示④で廃止（.uv-mem/.uv-tgt/.uv-h3 削除）。
+     足切り表現は併設スコア表側へ移設（指示⑤・.sc2.uvsc のみに効く）: 対象外の行=muted／対象者=「対象」タグ併記（色のみに依存しない）。
+     チーム行の 対象n/参加P はチームカラー地の上なので背景なし（文字色は行の color=var(--bg) を継承） */
   .uv-tagev{background:var(--acc-bg);color:var(--acc-ink)}
   .uv-tb .winc{background:var(--win-bg) !important;font-weight:var(--w-bold);color:var(--win-ink)}
-  .uv-tb tr.uv-off td,.uv-mem tr.uv-off td{color:var(--sub)}
-  .uv-h3{font-size:var(--f-title);letter-spacing:0}
-  .uv-mem tr.uv-tgt td{border-top:1.5px solid var(--pri);border-bottom:1.5px solid var(--pri)}
-  .uv-mem tr.uv-tgt td:first-child{border-left:1.5px solid var(--pri)}
-  .uv-mem tr.uv-tgt td:last-child{border-right:1.5px solid var(--pri)}
   .uv-tagsel{background:var(--info-bg);color:var(--pri)}
+  .sc2.uvsc tr.uv-off td{color:var(--sub)}
+  .sc2.uvsc .uv-tagsel{font-size:9px;padding:0 3px;margin-left:3px;vertical-align:1px}
+  .uv-scn{font-size:10px;font-weight:var(--w-bold);margin-left:8px;opacity:.85}
   @media(min-width:820px){
     :root{--f-rl-hole:66px;--f-rl-name:40px;--f-rl-score:64px}
     .rlwrap{max-width:900px;margin:0 auto}
@@ -499,7 +500,7 @@
   /* iPad Pro 13" 横持ち(幅1376pt)：1376ptを活かして全幅拡張（§11.5） */
   @media(min-width:1366px){
     main{max-width:1320px}
-    .sc2 col.cnm{width:100px} .sc2 col.cs{width:48px}
+    .sc2 col.cnm{width:100px} .sc2.uvsc col.cnm{width:140px} .sc2 col.cs{width:48px}
     #view-result .sc2{font-size:17px}
     #view-result .rank-wrap>.card{flex:1 1 300px;max-width:440px}
     #view-result .rank-wrap>.card.wide{flex:1 1 440px;max-width:620px}

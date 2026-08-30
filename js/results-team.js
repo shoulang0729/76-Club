@@ -12,10 +12,12 @@ function renderTeamGame(g, g0, parts, key){
      （総合タブに開封バーは無く復旧不能）だった。勝ち点・種目別勝ち点表は announced（連携）ゲートで既に守られている
      ＝未連携行は？マスクのままなのでネタバレなし。他タブ（gross/net/hbh 等）の viewGame マスクは意図どおり不変 */
   if(key==='overall') return renderTeamOverall(g0);
-  /* 大学対抗も g0（総合と同じ #98 前例・univ-match PR#2）: revealHoles 既定0のリロード直後はマスク済み g だと
-     uvMembers（entered 判定）が全滅→対象校0で必ず空。大学対抗タブには開封バーが無い（sc() 非併設＝設計 §6.2）ため
-     総合タブと同じ「復旧不能の空」になる。順位バッジ・勝ち点タグは announced.univMatch ゲートで保護済み */
-  if(key==='univ')  return renderTeamUniv(g0);
+  /* 大学対抗は g（viewGame マスク後）＋スコア表併設（univ-match §14.1・PR#3 でユーザー確定）:
+     g0 にしていた唯一の根拠は「開封バーが無く revealHoles=0 の空から復旧できない」ことだったが、
+     本PRで sc()（開封バー・合計値トグル）を併設したため復旧経路ができ、'net'/'hbh' と同型に戻した。
+     結果、ヒーロー・タイブレーク表が開封済みホールまでで再計算される＝段階開封（§14.2）。
+     スコア表には足切り情報（uvScSel）を渡す＝対象外はグレーアウト・対象者は「対象」併記（PR#3 指示⑤。他タブは引数なし＝不変）*/
+  if(key==='univ')  return renderTeamUniv(g) + renderScorecard(g, g.participants, teams, uvScSel(g));
   if(key==='nd')    return renderTeamNiadora(g);
   if(key==='gross') return `<div class="rank-wrap">${renderTeams(g,'teamGross')}</div>` + sc();
   if(key==='net')   return `<div class="rank-wrap">${renderTeams(g,'teamNet')}</div>` + sc();
@@ -155,11 +157,12 @@ function renderTeamNiadora(g){
 }
 
 /* ---- 大学対抗タブ（univMatch・docs/handoff/2026-08-30-univ-match.md §6.2・投影原則 §11.14・モック承認 2026-08-30）----
-   計算・表示は g0 基準（renderTeamGame 側コメント＝総合タブ #98 前例）。値の正は calc.js の uvStanding/teamWinPoints（表示側で再計算しない）。
+   計算・表示は g 基準＝viewGame マスク後（§14.1/§14.2・renderTeamGame 側コメント）。値の正は calc.js の uvStanding/teamWinPoints（表示側で再計算しない）。
    ①学校ヒーロー（.rl-st.tp-nd 共用・r4 順位順で1位が左・校名=チームカラー --f-rl-name・平均ネット=--f-rl-score）
-   ②タイブレーク明細表（4段・決着した段の1位セル=winc 緑・決着後の段は—/muted）
-   ③学校別メンバー表（ネット順・対象者=枠＋「対象」文字併記＝色のみに依存しない・対象外=muted）。
-   順位バッジ・勝ち点タグは連携（announced.univMatch）後のみ。表示は平均系 toFixed(2)/個人ネット 0.1桁。
+   ②タイブレーク明細表（4段・①〜④を常に数値表示＝§14.3・決着した段の1位セルのみ winc 緑）
+   ③学校別メンバー表は PR#3 指示④で廃止（併設スコア表と重複）。対象/対象外の区別は
+     スコア表側で表現する（uvScSel→renderScorecard・対象外グレーアウト＋「対象」文字併記＝色のみに依存しない）。
+   順位バッジ・勝ち点タグは連携（announced.univMatch）後のみ。表示は平均系 toFixed(2)。
    大学対抗固有の進行状態は持たない（揮発変数も localStorage 保存もなし・§6.2） */
 function renderTeamUniv(g){
   const uv=uvStanding(g);
@@ -188,28 +191,23 @@ function renderTeamUniv(g){
   // タイブレーク明細表（通常サイズ .lb・列=校は r4 順位順）。G は言語非依存のリテラル略号（NP/DC と同じ扱い）
   const tbLabels=['univ.avgNetSel','univ.avgGrossSel','univ.avgNetAll','univ.avgGrossAll'];
   const tbHead=`<tr><th class="tal"></th>${uv.rows.map(r=>`<th style="color:${tmColor(r.t.name)}">${esc(r.t.name)}</th>`).join('')}</tr>`;
+  // §14.3: ①〜④すべて常に数値表示（決着後の段も参考値として見せる）。決着段の1位セルだけ winc 緑＝どの段で決まったかを示す
   const tbRows=tbLabels.map((k,i)=>{
-    const off=dstage>=0&&i>dstage;   // 決着後の段=未使用（—・muted）
-    const cells=uv.rows.map(r=> off?`<td><span class="muted">—</span></td>`
-      :`<td${(i===dstage&&r.rank===1)?' class="winc"':''}>${f2(r.r4[i])}</td>`).join('');
-    return `<tr${off?' class="uv-off"':''}><td class="tal">${'①②③④'[i]} ${t(k)}</td>${cells}</tr>`; }).join('');
+    const cells=uv.rows.map(r=>`<td${(i===dstage&&r.rank===1)?' class="winc"':''}>${f2(r.r4[i])}</td>`).join('');
+    return `<tr><td class="tal">${'①②③④'[i]} ${t(k)}</td>${cells}</tr>`; }).join('');
   const card1=`<div class="card">${head}
     <div class="rl-standing tp-ovh-wrap">${hero}</div>
     <div class="scroll mt10"><table class="lb uv-tb">${tbHead}${tbRows}</table></div>
     <div class="muted mt6">${t('univ.note')}</div>
     <div class="muted">${t('univ.calcNote')}</div></div>`;
-  // 学校別メンバー表（1カード内に校ごと1表・ネット順＝uvStanding.members の順序キーそのまま）。
-  // 対象者=uv-tgt 枠（採用=枠）＋「対象」タグ＋●・NET太字（モック準拠）。対象外=uv-off（muted）
-  const memTables=uv.rows.map(r=>{ const col=tmColor(r.t.name);
-    const trs=r.members.map((pid,i)=>{ const p=state.players.find(x=>x.id===pid);
-      const inSel=r.sel.includes(pid);
-      const net=uvNetA(g,pid).toFixed(1);
-      return `<tr class="${inSel?'uv-tgt':'uv-off'}"><td>${i+1}</td>
-        <td class="tal">${esc(p?p.name:'?')}${inSel?`<span class="tag uv-tagsel">${t('univ.selMark')}</span>`:''}</td>
-        <td>${uvGrossA(g,pid)}</td><td>${inSel?`<b>${net}</b>`:net}</td><td>${inSel?'●':''}</td></tr>`; }).join('');
-    return `<h3 class="uv-h3" style="color:${col}">${esc(r.t.name)} <span class="tag">${t('univ.selOf',{n:r.N,p:r.P})}</span></h3>
-      <div class="scroll"><table class="lb uv-mem"><tr><th>#</th><th class="tal">${t('col.player')}</th><th>G</th><th>NET</th><th>${t('univ.selMark')}</th></tr>${trs}</table></div>`; }).join('');
-  const card2=`<div class="card"><h2>${t('univ.memTitle')}</h2>${memTables}</div>`;
-  return card1 + card2 + ruleBox('rule.univ');
+  return card1 + ruleBox('rule.univ');   // メンバー表カードは PR#3 指示④で廃止（併設スコア表と重複）
 }
+
+/* 併設スコア表に渡す足切り情報（PR#3 指示⑤）: uvStanding の各校 sel（対象pid）を集合化し、
+   チームごとの 対象n/参加P も添える。呼ぶたびに uvStanding を引き直す＝開封に応じて対象者が入れ替わる（§14.2 と整合）。
+   対象校0（未開封など）は null＝スコア表は現行どおり（グレーアウトなし）。renderScorecard の第4引数は省略可＝他タブ不変 */
+function uvScSel(g){ const uv=uvStanding(g); if(!uv.rows.length) return null;
+  const sel=new Set(), team={};
+  uv.rows.forEach(r=>{ r.sel.forEach(pid=>sel.add(pid)); team[r.t.id]={n:r.N,p:r.P}; });
+  return {sel,team}; }
 
