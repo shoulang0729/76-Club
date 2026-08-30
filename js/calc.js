@@ -161,11 +161,11 @@ function teamWinPoints(g){
   const wins=teams.map(()=>0), events=[];
   if(teams.length<2) return {teams,wins,events};   // 成立条件（共通）：対象チーム2以上
   const F=chFormats(g);   // αではβ種目（best2ball/vegas）を懸けない（§11.12 C）
-  /* 確定判定（winpoints-reveal §3.2/§3.3）: 勝ち点算入＝成立 かつ 確定(on) の AND（D9）。
-     ルーレットのみ 18H終了(cur>=18)で自動確定・他7種目は発表フラグ g.announced（データ保存・D1/D2）。
-     viewGame の Object.assign コピーでも announced は素通しで参照できる */
+  /* 確定判定（winpoints-reveal §3.2/§3.3＋追補§11.1）: 勝ち点算入＝成立 かつ 確定(on) の AND（D9）。
+     ルーレットは 18H終了(cur>=18)の自動確定 または 手動連携 announced.roulette のどちらかで on（§11.1）。
+     他7種目は連携フラグ g.announced（データ保存・D1/D2）。viewGame の Object.assign コピーでも announced は素通しで参照できる */
   const A=g.announced||{};
-  const evOn=key=> key==='roulette' ? ((curGame()||g).roulette.cur>=18) : !!A[key];
+  const evOn=key=> key==='roulette' ? (((curGame()||g).roulette.cur>=18)||!!A[key]) : !!A[key];
   const add=(key,vals,dir)=>{   // 種目の成立判定＋勝ち点1（同点は 1/同点チーム数 で山分け・§3.2）
     const live=vals.map((v,i)=>v!=null?i:-1).filter(i=>i>=0);
     if(live.length<2)return;   // 種目の対象チームが1以下＝不成立
@@ -180,9 +180,10 @@ function teamWinPoints(g){
   if(F.teamNet) add('teamNet', teams.map(t=>Math.round(t.memberIds.reduce((a,pid)=>a+netScore(g,pid),0)*10)/10),'asc');
   if(F.holeByHole){ const hw=holesWon(g); if(hw.won.some(w=>w>0)) add('holeByHole', byId(hw.teams,j=>hw.won[j]),'desc'); }
   if(F.best2ball) add('best2ball', teams.map(t=>best2(g,t)),'asc');
-  // ルーレット対抗：F.roulette ゲート（要件D・OFFなら評価せず種目不成立）。ONは進行実績（決着ホール≥1）で成立・18H終了で自動確定。現行どおり実ゲーム curGame() 基準
+  // ルーレット対抗：F.roulette ゲート（要件D・OFFなら評価せず種目不成立）。ONなら進行前（cur=0）から成立＝
+  // 種目別勝ち点表に最初から未確定行が出る（§11.1。チーム不足は add の live<2 ガードで不成立）。現行どおり実ゲーム curGame() 基準
   const st=F.roulette? rlStandings(curGame()||g) : {teams:[],won:[]};
-  if(st.won.some(w=>w>0)) add('roulette', byId(st.teams,j=>st.won[j]),'desc');
+  if(F.roulette) add('roulette', byId(st.teams,j=>st.won[j]),'desc');
   // 1 on 1：マッチ勝利数（引分は勝利数に入れない）。個人配点 m1win/m1draw は computePoints 側で従来どおり別途加算
   if(F.match1v1&&g.match1v1&&(g.match1v1.pairs||[]).length){ const v=m1Valid(g);
     if(v){ let played=0; const w={[v.A.id]:0,[v.B.id]:0};
@@ -192,9 +193,10 @@ function teamWinPoints(g){
   // ラスベガス：勝ちホール数（§3.3.2）。点差ではない。成立=資格チーム≥2 かつ 勝ちホール合計≥1
   if(F.vegas){ const vw=vegasHoleWins(g);
     if(vw.teams.length>=2&&vw.wins.some(w=>w>0)) add('vegas', byId(vw.teams,j=>vw.wins[j]),'desc'); }
-  // ニアドラ（§3.3.1）：他のチーム種目が1つ以上採用中（=チーム戦をやっている）かつ チームに数えた本数合計≥1
+  // ニアドラ（§3.3.1）：F.niadoraTeam ゲート（バッチ95追加5・F.roulette と同型。OFFで種目不成立・データ保持）
+  // ＋従来条件＝他のチーム種目が1つ以上採用中（=チーム戦をやっている）かつ チームに数えた本数合計≥1
   const anyTeamEvent=F.teamGross||F.teamNet||F.holeByHole||F.best2ball||F.vegas||F.match1v1||st.won.some(w=>w>0);
-  if(anyTeamEvent){ const nd=teams.map(t=>niadoraTeamCount(g,t));
+  if(F.niadoraTeam && anyTeamEvent){ const nd=teams.map(t=>niadoraTeamCount(g,t));
     if(nd.reduce((a,b)=>a+b,0)>=1) add('niadora', nd,'desc'); }
   return {teams,wins,events};
 }
