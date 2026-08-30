@@ -4,7 +4,7 @@
            node tools/regress.mjs --update   … 現在の計算結果で期待値スナップショットを再生成
    対象: js/state.js + js/nav.js + js/score.js + js/roulette.js + js/calc.js を vm に読み込み、
          決定的フィクスチャ（乱数不使用・固定スコアの12名構成）で
-         teamWinPoints / computePoints / computePayout / nextKanji の出力を丸ごと比較する。
+         teamWinPoints / computePoints / computePayout / nextKanji（＋univMatch ケースのみ uvStanding/uvTargetN）の出力を丸ごと比較する。
    注意: §3 計算は load-bearing（CLAUDE.md）。本ハーネスが FAIL したら、まず「意図しない挙動変化」を疑う。
          設計書で計算仕様を変えた PR でのみ --update で期待値を更新し、差分をレビューに供すること。 */
 import fs from 'node:fs';
@@ -106,6 +106,37 @@ const CASES = {
       teamNet: false, holeByHole: false, roulette: false, niadoraInd: false, niadoraTeam: false,
       stableford: false, olympic: false, callaway: false, nassau: false },
   }) },
+  // D) 大学対抗（β・every OFF・§11.20 / 2026-08-30-univ-match.md）: U1=7名(N=6)・U2=4名(N=4=全員)。
+  //    p06/p07 は全ホール同一スコア＝ネット/グロス完全同値の境界タイ（6位/7位）→ memberIds 登録順で p06 が対象・p07 対象外。
+  //    womenEvery ON でも univ.every OFF なら uv 計算にエブリは効かない（独立計算・§4.4）。announced なし＝未確定（勝ち点0）
+  univOff: { channel: 'b', game: baseGame({
+    teams: [
+      { id: 'U1', name: '青葉大', memberIds: ['p01', 'p02', 'p03', 'p04', 'p05', 'p06', 'p07'] },
+      { id: 'U2', name: '白樺大', memberIds: ['p08', 'p09', 'p10', 'p11'] },
+    ],
+    participants: ALL.slice(0, 11),
+    scores: mkScores(ALL.slice(0, 11), (pi, h) => (pi === 5 || pi === 6) ? (h % 3) + 1 : ((pi * 5 + h * 3 + (pi * h) % 5) % 6) - 2),
+    formats: { gross: true, net: true, univMatch: true, teamGross: false, teamNet: false, holeByHole: false,
+      roulette: false, niadoraInd: false, niadoraTeam: false, stableford: false, olympic: false,
+      callaway: false, nassau: false, best2ball: false, vegas: false, match1v1: false },
+  }) },
+  // E) 大学対抗（β・every ON・重み2・連携済み）: スコアはDと同一。womenEvery OFF でも univ.every ON なら
+  //    各ホール −1/−2 を反映して集計（コンペ本体エブリと独立・§4.4）。エブリで p07(every1) が p06 を上回り境界タイ解消
+  univOn: { channel: 'b', game: baseGame({
+    teams: [
+      { id: 'U1', name: '青葉大', memberIds: ['p01', 'p02', 'p03', 'p04', 'p05', 'p06', 'p07'] },
+      { id: 'U2', name: '白樺大', memberIds: ['p08', 'p09', 'p10', 'p11'] },
+    ],
+    participants: ALL.slice(0, 11),
+    scores: mkScores(ALL.slice(0, 11), (pi, h) => (pi === 5 || pi === 6) ? (h % 3) + 1 : ((pi * 5 + h * 3 + (pi * h) % 5) % 6) - 2),
+    womenEvery: { enabled: false },
+    univ: { every: true },
+    points: { teamEventPts: { univMatch: 2 } },   // 残りキーは migrate が既定(全1)補完
+    announced: { univMatch: true },
+    formats: { gross: true, net: true, univMatch: true, teamGross: false, teamNet: false, holeByHole: false,
+      roulette: false, niadoraInd: false, niadoraTeam: false, stableford: false, olympic: false,
+      callaway: false, nassau: false, best2ball: false, vegas: false, match1v1: false },
+  }) },
 };
 
 /* ============ vm 読込と実行 ============ */
@@ -133,6 +164,16 @@ for (const [name, cs] of Object.entries(JSON.parse(__CASES))) {
     computePayout: computePayout(g),
     nextKanji: nextKanji(g),
   };
+  // 大学対抗（§11.20）: univMatch ON のケースのみ uv 系スナップショットを追加（既存ケースの形は不変）
+  if (g.formats && g.formats.univMatch) {
+    const uv = uvStanding(g);
+    globalThis.__RESULTS[name].univ = {
+      targetN: Array.from({ length: 15 }, (_, i) => uvTargetN(i + 1)),   // §4.1 例表（P=1..15）
+      rows: uv.rows.map(r => ({ t: r.t.id, P: r.P, N: r.N, sel: r.sel, members: r.members,
+        net: r.members.map(pid => uvNetA(g, pid)), gross: r.members.map(pid => uvGrossA(g, pid)),
+        hdcp: r.members.map(pid => uvHdcpA(g, pid)), r4: r.r4, rank: r.rank })),
+    };
+  }
 }`;
 vm.runInContext(src + '\n' + driver, vm.createContext(sandbox));
 const actual = JSON.parse(JSON.stringify(sandbox.__RESULTS));   // vm realm → 素の JSON に正規化
