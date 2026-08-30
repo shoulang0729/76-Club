@@ -38,9 +38,10 @@
 
 ## 検証（reviewer 必須）
 ```bash
-node tools/verify.mjs         # 構文/ i18n パリティ / 使用キー未定義参照 / CSS孤立var() / 計算回帰(#3・Vegas)
+node tools/verify.mjs         # 構文/ i18n パリティ / 使用キー未定義参照 / 未使用キー / CSS孤立var() / 計算回帰(#3・Vegas)
+node tools/regress.mjs        # 計算回帰ハーネス（teamWinPoints/computePoints/computePayout/nextKanji のスナップショット比較。仕様変更時のみ --update で期待値更新→差分レビュー）
 ```
-リファクタ（挙動不変）の PR では、旧 main との**行多重集合一致**も併せて確認する（`tools/verify.mjs --refactor` は将来拡張）。公開反映は `curl https://shoulang0729.github.io/76-Club/...` で確認。
+リファクタ（挙動不変）の PR では、旧 main との**行多重集合一致**も併せて確認する（`node tools/verify.mjs --refactor origin/main`）。公開反映は `curl https://shoulang0729.github.io/76-Club/...` で確認。
 
 ## git / gh
 - gh CLI は認証済み前提（`gh pr view/create/merge`、`gh issue create/comment`）。
