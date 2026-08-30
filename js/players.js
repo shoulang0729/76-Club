@@ -65,7 +65,7 @@ function renderPlayers(){
 }
 /* ---- 1 on 1 組合せ編集カード（§15.1・docs/handoff/2026-08-20-1on1-match.md）----
    §13.1 の編集UIを結果発表タブから移設（details 廃止＝通常カード・常時展開）。操作仕様は §13.1 のまま。
-   表示条件は renderPlayers 側の chFormats(g).match1v1（αでは一律 false ＝カード自体が出ない）。 */
+   表示条件は renderPlayers 側の chFormats(g).match1v1（チャンネル共通・2026-08-30 α昇格）。 */
 function m1EditCard(g){
   const T=m1Teams(g);
   if(T.length!==2) return `<div class="card"><h2>${t('m1.edit')}</h2><div class="muted">${t('m1.need2Teams')}</div></div>`;

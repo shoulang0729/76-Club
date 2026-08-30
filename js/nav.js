@@ -14,8 +14,8 @@ function nsMasked(table,pid){ return (nsMode[table]==='hide') !== nsExcept[table
 function toggleNSAll(table){ nsMode[table]= nsMode[table]==='show'?'hide':'show'; nsExcept[table].clear(); renderResult(); }
 function toggleNSRow(table,pid){ const s=nsExcept[table]; if(s.has(pid))s.delete(pid); else s.add(pid); renderResult(); }
 // チーム対抗の各ゲーム：ゲームごと master ＋チームごと個別ボタン。チーム名＋合計をまとめて表示/非表示
-let tgMode={ teamGross:'show', teamNet:'show', best2ball:'show', holeByHole:'show', vegas:'show', overall:'show', niadora:'show' };
-let tgExcept={ teamGross:new Set(), teamNet:new Set(), best2ball:new Set(), holeByHole:new Set(), vegas:new Set(), overall:new Set(), niadora:new Set() };
+let tgMode={ teamGross:'show', teamNet:'show', best2ball:'show', holeByHole:'show', vegas:'show', overall:'show' };
+let tgExcept={ teamGross:new Set(), teamNet:new Set(), best2ball:new Set(), holeByHole:new Set(), vegas:new Set(), overall:new Set() };
 function tgMasked(key,tid){ return (tgMode[key]==='hide') !== tgExcept[key].has(tid); }
 function toggleTgAll(key){ tgMode[key]= tgMode[key]==='show'?'hide':'show'; tgExcept[key].clear(); renderResult(); }
 function toggleTgRow(key,tid){ const s=tgExcept[key]; if(s.has(tid))s.delete(tid); else s.add(tid); renderResult(); }
@@ -28,7 +28,7 @@ function setScSortTeam(v){ scSortTeam=v; renderResult(); }
 /* α/β チャネル（§11.12 C）: 表示状態のみ。golfCompe_channel に永続化（golfCompe_v1 とは分離＝データ非干渉）。
    α='a'（検証済みの安定版・既定） / β='b'（テスト中の新機能）。βゲームは β でだけ選択・集計・表示する。 */
 const CHANNELS=['a','b'];
-const BETA_FMT=['stableford','olympic','callaway','nassau','best2ball','vegas','match1v1'];   // β版のゲーム（残りは全てα）
+const BETA_FMT=['stableford','olympic','callaway','nassau','best2ball','vegas'];   // β版のゲーム（残りは全てα）
 let CHANNEL = CHANNELS.includes(localStorage.getItem('golfCompe_channel')) ? localStorage.getItem('golfCompe_channel') : 'a';
 function setChannel(c){ if(!CHANNELS.includes(c))return; CHANNEL=c; localStorage.setItem('golfCompe_channel',c); render(); }
 function toggleChannel(){ setChannel(CHANNEL==='a'?'b':'a'); toast(t('ch.switched',{v:t('ch.'+CHANNEL)})); }

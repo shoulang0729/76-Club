@@ -158,7 +158,7 @@ function teamWinPoints(g){
   const teams=g.teams.filter(t=>t.memberIds.length&&t.memberIds.some(entered));
   const wins=teams.map(()=>0), events=[];
   if(teams.length<2) return {teams,wins,events};   // 成立条件（共通）：対象チーム2以上
-  const F=chFormats(g);   // αではβ種目（best2ball/match1v1/vegas）を懸けない（§11.12 C）
+  const F=chFormats(g);   // αではβ種目（best2ball/vegas）を懸けない（§11.12 C）
   const add=(key,vals,dir)=>{   // 種目の成立判定＋勝ち点1（同点は 1/同点チーム数 で山分け・§3.2）
     const live=vals.map((v,i)=>v!=null?i:-1).filter(i=>i>=0);
     if(live.length<2)return;   // 種目の対象チームが1以下＝不成立
