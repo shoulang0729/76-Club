@@ -167,3 +167,12 @@ js/init.js         … 末尾のINIT（documentElement.lang＝LANG, setAttribute
 - **js/players.js**（§11.12 N-PR② 以降）… 参加者/チームカードとハンドラ `toggleParticipant/addTeam/autoTeams/setTeamName/delTeam/toggleTeamMember` が game.js から移る。
 - 現行の読込順: **state → i18n → nav → home → players → game → course → score → testdata → calc → results → roulette → backup → init**。
 - `tools/verify.mjs` は index.html の script タグからモジュール一覧を動的取得するため、追加時の verify 改変は不要。
+
+## ★2026-08-30 更新: results.js の3分割（挙動不変・#102）
+
+results.js（522行・38関数）を以下の3ファイルに分割（詳細・関数インベントリは `docs/handoff/2026-08-30-results-split.md` が正）:
+- `js/results.js`（残置）: 共有state/タブ骨格/renderResult・開封系・renderStanding・共通部品（renderScorecard/renderPrizeHero/pz系/ruleBox）・個人戦（renderIndGame/rankCardNS）
+- `js/results-team.js`（新設）: チーム戦（renderTeamGame/renderTeamOverall/renderTeamNiadora・tpAnnounce系・tpFmtWin/tpShare/setTeamEventPts・TP_EV_*）
+- `js/results-m1.js`（新設）: 1 on 1（m1RevealMode/m1Opened・m1系・renderMatch1v1Parts）
+
+読込順: …→calc→**results→results-team→results-m1**→roulette→…（非ESM・グローバル維持・移動関数はバイト無改変・行多重集合一致で検証）。
