@@ -152,7 +152,7 @@ function vegasHoleWins(g){ const teams=g.teams.filter(T=>vegasPair(g,T));   // �
 }
 /* §3.1〜3.2 種目別勝ち点（＋2026-08-30-winpoints-reveal.md §3 の部分上書き＝発表後反映）。
    teams=順位対象チーム（メンバー1人以上かつ1H以上入力済み）。
-   返り値 { teams, wins:number[], events:[{key,winners:int[],vals:(number|null)[],on:bool}] }（表示側 §6 と共用の正）。
+   返り値 { teams, wins:number[], events:[{key,winners:int[],vals:(number|null)[],on:bool,w:int}] }（表示側 §6 と共用の正。w=種目別勝ち点の重み・§13.3）。
    wins は確定(on)種目のみの合計。未確定種目の winners/vals も従来どおり計算して返す（表示はマスク・発表の瞬間に正が既にある状態を保つ）。
    rlStandings/holesWon/vegasHoleWins は独自に g.teams をフィルタするため index 前提にせず team.id で突合する。 */
 function teamWinPoints(g){
@@ -166,14 +166,19 @@ function teamWinPoints(g){
      連携フラグはデータ保存（D1/D2）。viewGame の Object.assign コピーでも announced は素通しで参照できる */
   const A=g.announced||{};
   const evOn=key=>!!A[key];
-  const add=(key,vals,dir)=>{   // 種目の成立判定＋勝ち点1（同点は 1/同点チーム数 で山分け・§3.2）
+  // 種目別勝ち点の重み（winpoints-reveal §13.3・D11/D13）: points.teamEventPts（0以上の整数・既定全1＝現行完全互換）。
+  // viewGame の Object.assign コピーは points 参照を共有＝素通しで参照できる。未定義キーは 1（防御的既定）
+  const W=(g.points&&g.points.teamEventPts)||{};
+  const wOf=key=> W[key]===undefined?1:W[key];
+  const add=(key,vals,dir)=>{   // 種目の成立判定＋勝ち点 w（同点は w/同点チーム数 で山分け・§3.2 の一般化＝§13.3）
     const live=vals.map((v,i)=>v!=null?i:-1).filter(i=>i>=0);
     if(live.length<2)return;   // 種目の対象チームが1以下＝不成立
     const best=(dir==='asc'?Math.min:Math.max)(...live.map(i=>vals[i]));
     const winners=live.filter(i=>vals[i]===best);
     const on=evOn(key);
-    if(on) winners.forEach(i=>wins[i]+=1/winners.length);   // on の種目だけ wins に算入（未確定は勝ち点0・D3）
-    events.push({key,winners,vals,on});   // 未確定種目も events には載せる（総合タブの「未確定」行用・D6）
+    const w=wOf(key);
+    if(on) winners.forEach(i=>wins[i]+=w/winners.length);   // on の種目だけ wins に算入（未確定は勝ち点0・D3）
+    events.push({key,winners,vals,on,w});   // 未確定種目も events には載せる（総合タブの「未確定」行用・D6）。w は表示用（×w 併記・山分け表記）
   };
   const byId=(list,fn)=>teams.map(t=>{ const j=list.findIndex(x=>x.id===t.id); return j>=0?fn(j):null; });
   if(F.teamGross) add('teamGross', teams.map(t=>t.memberIds.reduce((a,pid)=>a+effGross(g,pid),0)),'asc');
@@ -228,7 +233,7 @@ function computePoints(g){
   // teams（§11.15・team-points §3.4）：種目別勝ち点→総合順位（同点は同順位・満額＝1,1,3方式）→ teamRankPts をチーム各員に満額加算
   if(g.teams.length){
     const {teams,wins,events}=teamWinPoints(g);
-    if(events.some(e=>e.on)){   // 確定（発表済み）種目が1つ以上あれば暫定配分・発表0なら配分しない（winpoints-reveal §3.4 D4）
+    if(events.some(e=>e.on&&e.w>0)){   // w>0 の連携済み種目が1つ以上あれば暫定配分（winpoints-reveal §3.4 D4＋§13.3 D16。w=0 のみでは配分しない＝全チーム同点1位事故の防止）
       const rows=teams.map((t,i)=>({t,v:wins[i]})); rows.sort((a,b)=>b.v-a.v);
       let rank=0,prev=null;
       rows.forEach((r,i)=>{ if(prev===null||r.v!==prev){rank=i+1;prev=r.v;}
