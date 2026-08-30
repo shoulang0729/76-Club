@@ -36,7 +36,6 @@ function toggleChannel(){ setChannel(CHANNEL==='a'?'b':'a'); toast(t('ch.switche
 function chFormats(g){ const F=Object.assign({}, g.formats||{});
   if(CHANNEL!=='b') BETA_FMT.forEach(k=>{ F[k]=false; });
   return F; }
-const isBetaFmt=k=>BETA_FMT.includes(k);
 /* §11.12 D: 狭幅（<1024px＝スマホ/小型タブレット）はホール表を OUT(1-9)/IN(10-18) の2段に折り返す。
    iPad Pro 13"縦(1024pt)以上とPCは従来どおり18列1段。
    段が変わったら該当タブ（スコア入力／コースの Par・隠しH 表）だけ描き直す（入力中の値は保存済みなので再描画で失われない）。 */

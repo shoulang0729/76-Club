@@ -34,15 +34,15 @@ function renderPlayers(){
         <input id="pName" placeholder="${t('player.phName')}" style="flex:2;min-width:140px">
         <div style="flex:1;min-width:90px"><select id="pGender"><option value="M">${t('player.male')}</option><option value="F">${t('player.female')}</option></select></div>
       </div>
-      <div class="row" class="mt8">
+      <div class="row">
         <div style="flex:1;min-width:150px"><label class="fl">${t('player.hdcpType')}</label><select id="pEvery"><option value="none">${t('every.none')}</option><option value="every1">${t('term.every1')}</option><option value="every2">${t('term.every2')}</option></select></div>
         <div style="flex:1;min-width:150px"><label class="fl">${t('player.birth')}</label><input type="date" id="pBirth"></div>
       </div>
-      <div class="row" class="mt8">
+      <div class="row">
         <label style="display:flex;align-items:center;gap:6px;font-size:13px"><input type="checkbox" id="pKanji"> ${t('player.kanjiChk')}</label>
       </div>
-      <button class="btn wide" class="mt10" onclick="addPlayer()">${t('player.addBtn')}</button>
-      <div class="muted" class="mt6">${t('player.note')}</div>
+      <button class="btn wide" onclick="addPlayer()">${t('player.addBtn')}</button>
+      <div class="muted">${t('player.note')}</div>
     </div>
     <div class="card">
       <h2>${t('player.registered',{n:state.players.length})}</h2>
@@ -64,7 +64,7 @@ function renderPlayers(){
     <div class="card">
       <h2>${t('backup.title')}</h2>
       <div class="muted">${t('backup.note')}</div>
-      <div class="row" class="mt8">
+      <div class="row">
         <button class="btn sec" onclick="exportData()">${t('backup.export')}</button>
         <label class="btn sec" style="cursor:pointer">${t('backup.import')}<input type="file" accept="application/json" style="display:none" onchange="importData(this)"></label>
       </div>

@@ -101,7 +101,7 @@ function renderStanding(g, parts){
     return `<td class="tal">${T?`<span class="pt-tm" style="color:${tmColor(T.name)}">${esc(T.name)}</span>`:''}</td>`; };   // 未所属は空セル。span=auto レイアウト表でも ellipsis を効かせる
   const main=`<div class="card payoutcard"><h2>${t('standing.title')} ${statusBadge(g)}</h2>
     <div class="muted">${t('standing.total',{t:total})}${pool?t('standing.poolNote',{p:pool.toLocaleString()}):t('standing.noPool')}。${revealHoles<18?t('standing.revealNote',{n:revealHoles}):t('standing.autoNote')}</div>
-    <table class="lb" class="mt6"><tr><th>${t('col.rank')}</th>${hasTeams?`<th class="tal">${t('col.team')}</th>`:''}<th>${t('col.player')}</th><th>${t('col.points')}</th>${pool?`<th>${t('col.payout')}</th>`:''}</tr>
+    <table class="lb"><tr><th>${t('col.rank')}</th>${hasTeams?`<th class="tal">${t('col.team')}</th>`:''}<th>${t('col.player')}</th><th>${t('col.points')}</th>${pool?`<th>${t('col.payout')}</th>`:''}</tr>
     ${prows.map((r,i)=>{const p=state.players.find(x=>x.id===r.pid);
       return `<tr class="rank ${i===0&&r.pt>0?'rank1':''}"><td>${r.pt>0?(i+1):'-'}</td>${tmCell(r.pid)}<td class="tal">${esc(p.name)}</td><td><b>${r.pt}</b>pt</td>${pool?`<td><b>¥${r.yen.toLocaleString()}</b></td>`:''}</tr>`}).join('')}
     </table></div>`;
@@ -244,8 +244,8 @@ function renderScorecard(g, parts, teams){
       <button class="btn gold sm" onclick="openNextHole()" ${n>=18?'disabled':''}>${t('sc.next')}</button>
       <button class="btn gray sm" onclick="openAllHoles()" ${n>=18?'disabled':''}>${t('btn.all')}</button>
     </div>
-    <table class="sc2" class="mt8">${SC_COLGROUP}${head}${parRow}${body}</table>
-    <div class="muted" class="mt6">${note} ${t('sc.noteCols')}${n<18?t('sc.noteOpen'):''}</div>
+    <table class="sc2">${SC_COLGROUP}${head}${parRow}${body}</table>
+    <div class="muted">${note} ${t('sc.noteCols')}${n<18?t('sc.noteOpen'):''}</div>
   </div></details>`;
 }
 

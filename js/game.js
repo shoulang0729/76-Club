@@ -13,7 +13,7 @@ function renderGame(){
 
   html += `<div class="card"><h2>${t('game.everyCard')}</h2>
     <label style="display:flex;gap:8px;align-items:center;font-size:14px"><input type="checkbox" ${g.womenEvery.enabled?'checked':''} onchange="setWE(this.checked)"> ${t('game.everyApply')}</label>
-    <div class="muted" class="mt6">${t('game.everyNote')}</div></div>`;
+    <div class="muted">${t('game.everyNote')}</div></div>`;
 
   // 次回幹事バッジ（コンペごと・既定OFF・2026-08-29-host-option.md §5/§14）。サブ設定＝対象順位＋順位ごと方向（マスターON時のみ表示）
   html += `<div class="card"><h2>${t('game.kanjiCard')}</h2>
@@ -30,7 +30,7 @@ function renderGame(){
       ${krow('r1',t('game.kanjiR1'),t('game.kanjiR1Down'),t('game.kanjiR1Up'))}
       ${krow('r2',t('game.kanjiR2'),t('game.kanjiR2Down'),t('game.kanjiR2Up'))}
       ${krow('booby',t('game.kanjiBooby'),t('game.kanjiBoobyDown'),t('game.kanjiBoobyUp'))}
-      <div class="muted" class="mt6">${t('game.kanjiNote')}</div>`;
+      <div class="muted">${t('game.kanjiNote')}</div>`;
   }
   html += `</div>`;
 
@@ -57,7 +57,7 @@ function renderGame(){
   if(F.roulette){
     html += `<div class="card"><h2>${t('game.rlCard')}</h2>
     <div class="muted">${t('game.rlNote')}</div>
-    <div class="row" class="mt8">
+    <div class="row">
       <div class="fx1"><label class="fl">${t('game.rlChangeN')}</label><input type="number" min="0" max="9" value="${g.roulette.changeN}" onchange="setRoulette('changeN',this.value)"></div>
       <div class="fx1"><label class="fl">${t('game.rlChallengeM')}</label><input type="number" min="0" max="9" value="${g.roulette.challengeM}" onchange="setRoulette('challengeM',this.value)"></div>
     </div></div>`;
@@ -93,7 +93,7 @@ function renderGame(){
     <hr>
     <label class="fl">${t('game.pool')}</label>
     <input type="number" value="${g.prizePool||0}" placeholder="${t('game.poolPh')}" onchange="setG('prizePool',parseInt(this.value)||0)">
-    <div class="muted" class="mt6">${t('game.poolNote')}</div>
+    <div class="muted">${t('game.poolNote')}</div>
   </div>`;
 
   el.innerHTML=html;

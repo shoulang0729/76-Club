@@ -79,10 +79,9 @@ try {
      - 'tab.'        … nav.js の tabLabel = k => t('tab.'+k)
      - 'result.sub.' … results.js renderResult の grpBtn: t('result.sub.'+k)（k ∈ ind/team/pts） */
   const DYN_PREFIX = ['ch.', 'tab.', 'result.sub.'];
-  /* 既知の未参照キー（グランドファーザー）: i18n 既存キーは互換維持（CLAUDE.md）のため辞書からは削除しない。
-     削除は別途 Issue で判断。ここに載せた分は検出から除外＝新規の未使用キーは引き続き FAIL する。
-     - 'team.emptyFmt' … 2026-08-30 時点で参照なし（m1.emptyFmt のみ使用・過去のリニューアルで参照が消えた模様） */
-  const KNOWN_UNUSED = ['team.emptyFmt'];
+  /* 既知の未参照キー（グランドファーザー）: ここに載せた分は検出から除外＝新規の未使用キーは引き続き FAIL する。
+     P2（2026-08-30）で 'team.emptyFmt' を ja/zh/en 同時削除し空になった。以後の追加は Issue で判断。 */
+  const KNOWN_UNUSED = [];
   const escRe = (k) => k.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
   const jaKeys = Object.keys(I18N.ja);
   const unused = jaKeys.filter(k =>
