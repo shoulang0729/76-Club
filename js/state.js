@@ -35,6 +35,8 @@ function migrate(s){
     else { if(g.vegas.flip===undefined) g.vegas.flip=true; if(!g.vegas.cap) g.vegas.cap='doublePar'; }
     if(g.formats && g.formats.match1v1===undefined) g.formats.match1v1=false;   // 1 on 1 マッチプレー（§11.13）
     if(!g.match1v1) g.match1v1={ teamA:null, teamB:null, pairs:[] };
+    if(g.formats && g.formats.univMatch===undefined) g.formats.univMatch=false;   // 大学対抗（§11.20・2026-08-30-univ-match.md）
+    if(!g.univ) g.univ={every:false}; else if(g.univ.every===undefined) g.univ.every=false;   // 大学対抗設定（エブリ適用オプション・既定OFF）
     if(g.formats && g.formats.roulette===undefined) g.formats.roulette=true;   // ルーレット対抗トグル（α・既定ON=現状「常時有効」の後方互換。winpoints-reveal D7）
     if(g.formats && g.formats.niadoraInd===undefined) g.formats.niadoraInd=true;    // ニアドラ個人タブ表示トグル（α・既定ON=後方互換。バッチ95追加5・roulette と同型）
     if(g.formats && g.formats.niadoraTeam===undefined) g.formats.niadoraTeam=true;  // ニアドラチーム種目トグル（α・既定ON=後方互換。バッチ95追加5・roulette と同型）
@@ -51,7 +53,7 @@ function defaultPoints(){ return {
   net:[5,3,1], gross:[5,3,1], stableford:[5,3,1], olympic:[5,3,1], callaway:[5,3,1], nassauTotal:[5,3,1],
   teamRankPts:[10,5], niapin:2, dracon:2,
   m1win:2, m1draw:1,   // 1 on 1 マッチプレー（§11.13）：勝者+2pt/引分両者+1pt（個人にのみ加算）
-  teamEventPts:{ niadora:1, teamGross:1, teamNet:1, holeByHole:1,   // 種目別勝ち点の重み（0以上の整数・既定 全1＝現行互換。winpoints-reveal §13.2）
+  teamEventPts:{ niadora:1, teamGross:1, teamNet:1, univMatch:1, holeByHole:1,   // 種目別勝ち点の重み（0以上の整数・既定 全1＝現行互換。winpoints-reveal §13.2）
     best2ball:1, vegas:1, match1v1:1, roulette:1 } }; }
 function save(){ localStorage.setItem(LS_KEY, JSON.stringify(state)); }
 function uid(){ return Math.random().toString(36).slice(2,9); }
@@ -79,10 +81,11 @@ function newGame(){
     prizes:{ niapinHoles:[], draconHoles:[], niapinWinner:{}, draconWinner:{} },
     points:defaultPoints(), prizePool:0, roulette:newRoulette(),
     vegas:{ flip:true, cap:'doublePar' },   // ラスベガス設定（§11.11）
+    univ:{ every:false },   // 大学対抗設定（エブリ適用オプション・既定OFF＝規定準拠。§11.20）
     match1v1:{ teamA:null, teamB:null, pairs:[] },   // 1 on 1 マッチプレーの抽選結果（§11.13）
     announced:{},   // 種目別の発表済みフラグ（データ＝幹事の記録。演出の開封状態〔揮発〕とは別物・winpoints-reveal §4.1）
     formats:{ gross:true, net:true, niadoraInd:true, niadoraTeam:true, teamGross:true, teamNet:true, holeByHole:true, roulette:true,
-      stableford:true, nassau:true, olympic:true, callaway:false, best2ball:false, vegas:false, match1v1:false }
+      stableford:true, nassau:true, olympic:true, callaway:false, best2ball:false, vegas:false, match1v1:false, univMatch:false }
   };
 }
 

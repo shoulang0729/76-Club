@@ -130,6 +130,54 @@ function m1Valid(g){ const m=g.match1v1; if(!m||!m.teamA||!m.teamB||!(m.pairs||[
 function m1ValidPairs(g){ const v=m1Valid(g); if(!v) return [];
   return g.match1v1.pairs.filter(([a,b])=> m1MemberIds(g,v.A).includes(a) && m1MemberIds(g,v.B).includes(b)); }
 
+/* ---- 大学対抗（univMatch・§11.20・docs/handoff/2026-08-30-univ-match.md §4）----
+   大会規定準拠の独立ネット計算（ダブルパーカット・HDCP上限 男36/女40・係数0.8固定・periaCoef/periaCap 非連動）。
+   既存 §3 関数（periaHdcp/netScore/effGross/adjHole 等）には一切触れない（関数プレフィックス uv で分離）。 */
+// §4.1 集計対象人数: N=5+(P−5)×50%（四捨五入）・N は参加者数 P を超えない（Q2。P≤5 は min だけで「全員」が成立）
+function uvTargetN(P){ return P<=0?0:Math.min(P, Math.round(5+(P-5)*0.5)); }
+/* エブリ適用オプション（§4.4・既定OFF）: g.univ.every のみで判定＝g.womenEvery.enabled（コンペ本体のエブリ）には連動しない。
+   支給量は既存 player.everyType を流用（evPer と同じ判定・enabled ゲートのみ外す） */
+function uvEvPer(g,pid){ if(!(g.univ&&g.univ.every))return 0;
+  const p=state.players.find(x=>x.id===pid); return p?(p.everyType==='every1'?1:p.everyType==='every2'?2:0):0; }
+function uvHole(g,pid,i){ const v=(g.scores[pid]||[])[i]; return (v==null||v==='')?null:Number(v)-uvEvPer(g,pid); }   // OFF時は生スコアそのもの
+function uvGrossA(g,pid){ let s=0; for(let i=0;i<18;i++){ const v=uvHole(g,pid,i); if(v!=null)s+=v; } return s; }   // グロスはカットしない（§4.4）
+function uvHdcpA(g,pid){
+  // Wパーカットは隠しホール集計（HDCP算定）にのみ適用。エブリON時は min もエブリ後の値で判定（§4.4・§11.12 H と同順）
+  let H=0; g.hidden.forEach((hid,i)=>{ if(hid){ const v=uvHole(g,pid,i); if(v!=null)H+=Math.min(v,2*g.par[i]); } });
+  let hd=(H*1.5 - parTotal(g))*0.8;                     // 係数 0.8 固定（§12 既定事項3・g.periaCoef 非連動）
+  if(hd<0)hd=0;
+  const p=state.players.find(x=>x.id===pid);
+  const cap=(p&&p.gender==='F')?40:36;                  // 規定: 男36/女40（g.periaCap 非連動）
+  if(hd>cap)hd=cap;
+  return Math.round(hd*10)/10;
+}
+// ネット＝グロス−HDCP（数学的に小数第1位で確定。0.1丸めは浮動小数ノイズ除去のみ＝値は不変）
+function uvNetA(g,pid){ return Math.round((uvGrossA(g,pid)-uvHdcpA(g,pid))*10)/10; }
+// §4.2 集計母数: ①参加中 ②選手マスターに実在 ③1H以上入力済み（teamWinPoints の entered と同型・§12 既定事項3）
+function uvMembers(g,T){ return T.memberIds.filter(pid=> g.participants.includes(pid)
+  && state.players.find(x=>x.id===pid)
+  && (g.scores[pid]||[]).some(v=>v!=null&&v!=='')); }
+/* §4.2/§4.3 学校成績: 対象者=ネット昇順N名（同ネットはグロス→memberIds 登録順＝安定ソート）。
+   r4=[対象平均ネット, 対象平均グロス, 全員平均ネット, 全員平均グロス]（比較用に小数第4位丸め・辞書式昇順）。
+   Q4 切替ポイント: 規定の③④が「合計」と判明したら avg(...)→Σ(...) の1行変更で対応（§4.3）。 */
+function uvStanding(g){
+  const rows=[];
+  g.teams.forEach(t=>{
+    const mem=uvMembers(g,t); if(!mem.length)return;
+    const vals={}; mem.forEach(pid=>{ vals[pid]={net:uvNetA(g,pid), gross:uvGrossA(g,pid)}; });
+    const members=mem.slice().sort((a,b)=> (vals[a].net-vals[b].net) || (vals[a].gross-vals[b].gross));   // 完全同値は登録順（sort は安定）
+    const P=mem.length, N=uvTargetN(P), sel=members.slice(0,N);
+    const avg=a=>a.reduce((x,y)=>x+y,0)/a.length, rd=v=>Math.round(v*10000)/10000;
+    const r4=[ rd(avg(sel.map(pid=>vals[pid].net))), rd(avg(sel.map(pid=>vals[pid].gross))),
+               rd(avg(members.map(pid=>vals[pid].net))), rd(avg(members.map(pid=>vals[pid].gross))) ];
+    rows.push({t,P,N,sel,members,r4});
+  });
+  const cmp=(a,b)=>{ for(let i=0;i<4;i++){ if(a.r4[i]!==b.r4[i]) return a.r4[i]-b.r4[i]; } return 0; };
+  rows.sort(cmp);
+  let rank=0; rows.forEach((r,i)=>{ if(i===0||cmp(rows[i-1],r)!==0)rank=i+1; r.rank=rank; });   // 4成分完全一致のみ同順位（＝勝ち点山分け）
+  return {rows};
+}
+
 /* ---- チーム戦・種目別勝ち点（§11.15・docs/handoff/2026-08-20-team-points.md §3）----
    各種目の勝敗値の計算式（Σ effGross・Σ net・holesWon・best2・rlStandings・m1Result・vegasHoleNet）は不変。
    変わるのは「値→配点」の変換のみ：各成立種目の総合1位に勝ち点1（同点は山分け）→勝ち点合計の総合順位で配分。 */
@@ -197,6 +245,9 @@ function teamWinPoints(g){
   // ラスベガス：勝ちホール数（§3.3.2）。点差ではない。成立=資格チーム≥2 かつ 勝ちホール合計≥1
   if(F.vegas){ const vw=vegasHoleWins(g);
     if(vw.teams.length>=2&&vw.wins.some(w=>w>0)) add('vegas', byId(vw.teams,j=>vw.wins[j]),'desc'); }
+  // 大学対抗（§11.20・univ-match §4.6）：vals=4段タイブレーク済みの順位（1=最良・asc）。成立=対象校(uvMembers≥1)が2以上
+  if(F.univMatch){ const uv=uvStanding(g);
+    if(uv.rows.length>=2) add('univMatch', teams.map(t=>{ const r=uv.rows.find(x=>x.t.id===t.id); return r?r.rank:null; }),'asc'); }
   // ニアドラ（§3.3.1）：F.niadoraTeam ゲート（バッチ95追加5・F.roulette と同型。OFFで種目不成立・データ保持）
   // ＋従来条件＝他のチーム種目が1つ以上採用中（=チーム戦をやっている）かつ チームに数えた本数合計≥1
   const anyTeamEvent=F.teamGross||F.teamNet||F.holeByHole||F.best2ball||F.vegas||F.match1v1||st.won.some(w=>w>0);
