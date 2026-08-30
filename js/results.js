@@ -34,6 +34,7 @@ function resGameTabs(grp,g){ const F=chFormats(g); const T=[];
                      T.push(['nd',    t('term.niadora')]);       // ラベルは「ニアドラ」（result.sub.prize は個人戦チップ用のフル表記に変更のため）
     if(F.teamGross)  T.push(['gross', t('term.gross')]);
     if(F.teamNet)    T.push(['net',   t('term.net')]);
+    if(F.univMatch)  T.push(['univ',  t('term.univ')]);   // 大学対抗（β・univ-match §6.1。ネット系としてネットとHBHの間）
     if(F.holeByHole) T.push(['hbh',   t('term.hbh')]);
     if(F.best2ball)  T.push(['b2',    t('term.best2')]);
     if(F.vegas)      T.push(['vegas', t('term.vegas')]);
