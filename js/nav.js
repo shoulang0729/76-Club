@@ -1,11 +1,11 @@
 /* ============================ TAB NAV ============================ */
 const views = { home:'view-home', basic:'view-basic', game:'view-game', course:'view-course', players:'view-players', score:'view-score', result:'view-result' };
 let activeTab='home';   // 起動時はトップ（§11.12 B）。init.js で golfCompe_seenTop を見て上書き
-let revealHoles=18;            // 個人戦で開封済みのホール数(0-18)。18=全開（既定）
+let revealHoles=0;             // 個人戦で開封済みのホール数(0-18)。既定=0（未開封＝発表前は何も見せない・#97）
 let rl={ spinning:false, spinTeams:[], timer:null, challengeFrom:null };  // ルーレットの実行時状態（非保存）
 function rlStopTimer(){ if(rl.timer){clearInterval(rl.timer);rl.timer=null;} rl.spinning=false; }
-// 発表用の表示/非表示スイッチ（true=表示）。totals=スコア表の合計欄（個人/チーム共通・チーム小計の色も含む）
-let show={ totals:true };
+// 発表用の表示/非表示スイッチ（true=表示）。totals=スコア表の合計欄（個人/チーム共通・チーム小計の色も含む）。既定=非表示（#97）
+let show={ totals:false };
 function toggleShow(k){ show[k]=!show[k]; renderResult(); }
 // グロス/ネットの名前・スコアの表示制御（表ごと master ＋順位ごと個別ボタン）。mode XOR except
 let nsMode={ gross:'show', net:'show' };
