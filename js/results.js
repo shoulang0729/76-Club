@@ -16,8 +16,7 @@ function setResGame(k){ if(k!=='roulette') rlStopTimer();
   if(resGrp==='ind' && (k==='gross'||k==='net')) scSortInd=k;                       // §3 D8: スコア表の並べ替え自動追従
   if(resGrp==='team'&& (k==='gross'||k==='net'||k==='hbh')) scSortTeam=k;           // §3 D8
   renderResult(); }
-/* 下段ゲームタブのリスト（§4.3。表示条件=採用中フォーマット連動 D9。'pts' は []＝下段なし）
-   チーム戦ニアドラタブは team-points PR-②（#67）で追加＝本件ではスロット定義のみ（§6） */
+/* 下段ゲームタブのリスト（§4.3。表示条件=採用中フォーマット連動 D9。'pts' は []＝下段なし） */
 function resGameTabs(grp,g){ const F=chFormats(g); const T=[];
   if(grp==='ind'){
     T.push(['prize', t('result.sub.prize')]);                    // 常時（対象ホールなしは中身の empty）
@@ -29,6 +28,9 @@ function resGameTabs(grp,g){ const F=chFormats(g); const T=[];
     if(F.nassau)     T.push(['nas',   t('pts.nassauTotal')]);
   } else if(grp==='team'){
     T.push(['overall', t('result.sub.overall')]);                // 常時（空状態は §5.2）
+    const anyTeam=F.teamGross||F.teamNet||F.holeByHole||F.best2ball||F.vegas||F.match1v1;
+    if(anyTeam && typeof niadoraTeamCount==='function')          // チーム戦ニアドラ（team-points §3.1・regroup §4.3。calc の関数存在がゲート）
+                     T.push(['nd',    t('term.niadora')]);       // ラベルは「ニアドラ」（result.sub.prize は個人戦チップ用のフル表記に変更のため）
     if(F.teamGross)  T.push(['gross', t('term.gross')]);
     if(F.teamNet)    T.push(['net',   t('term.net')]);
     if(F.holeByHole) T.push(['hbh',   t('term.hbh')]);
@@ -123,12 +125,14 @@ function renderIndGame(g, parts, key){
 }
 
 /* ニアドラのヒーロー表示（§5.1.1 D16〜D18・投影原則 §11.14）:
-   ホール番号昇順・NP/DC 混在・区分文字併記。数値階層はルーレットパネルと同型（--f-rl-hole > --f-rl-name） */
+   ホール番号昇順・NP/DC 混在・区分文字併記。数値階層はルーレットパネルと同型（--f-rl-hole > --f-rl-name）。
+   見出しはチップラベル（result.sub.prize=ニアピン／ドラコン）が兼ねるためカード内 h2 なし・
+   伏せ演出の master トグルは結果が先に読めるようカード群の下（幹事操作は控えめ配置 §11.14） */
 function renderPrizeHero(g){
   const NP=niapinHolesOf(g), DC=draconHolesOf(g);
   const cells=[...NP.map(h=>({h,kind:'np'})),...DC.map(h=>({h,kind:'dc'}))].sort((a,b)=>a.h-b.h);
   const on = pzMode==='show';
-  const tools=`<div class="cardtools"><span class="tgl ${on?'on':'off'}" onclick="togglePzAll()">${on?t('ns.allShow'):t('ns.allHide')}</span></div>`;
+  const tools=`<div class="cardtools mt8"><span class="tgl ${on?'on':'off'}" onclick="togglePzAll()">${on?t('ns.allShow'):t('ns.allHide')}</span></div>`;
   const cell=({h,kind})=>{
     const pid = kind==='np' ? g.prizes.niapinWinner[h] : g.prizes.draconWinner[h];
     const p = pid ? state.players.find(x=>x.id===pid) : null;
@@ -136,7 +140,7 @@ function renderPrizeHero(g){
     if(!p) return `<div class="npdc-cell ${kind}" style="cursor:default">${top}<div class="npdc-name empty">—</div></div>`;   // 未登録: 伏せ対象外・タップ無効
     const nm = pzMasked(h) ? '<span class="mask">？？？</span>' : esc(p.name);
     return `<div class="npdc-cell ${kind}" onclick="togglePzCell(${h})">${top}<div class="npdc-name">${nm}</div></div>`; };
-  return `<div class="card"><h2 class="lbh"><span>${t('prize.title')}</span></h2>${tools}<div class="npdc-hero">${cells.map(cell).join('')}</div></div>`;
+  return `<div class="card"><div class="npdc-hero">${cells.map(cell).join('')}</div>${tools}</div>`;
 }
 
 // 左パネル：全18ホール＋OUT/IN小計＋Gross/HDCP/Net を合体した1枚のスコアカード（横スクロールなし）
@@ -213,35 +217,104 @@ function renderScorecard(g, parts, teams){
 }
 
 // グロス/ネット専用の順位カード（名前・スコアを表ごと master ＋順位ごとの目隠しボタンで制御。バッジは常時表示）
+// master トグルは表の下（結果が先・操作が後＝追加指示⑪・§11.14 幹事操作は控えめ配置）
 function rankCardNS(title, pids, valFn, dir, fmt, table, hlMap){
   const rows=ranked(pids,valFn,dir);
   const nameOf=pid=>{const p=state.players.find(x=>x.id===pid);return esc(p&&p.name);};
   const nsOn = nsMode[table]==='show';
-  const tools=`<div class="cardtools">
+  const tools=`<div class="cardtools mt8">
     <span class="tgl ${nsOn?'on':'off'}" onclick="toggleNSAll('${table}')">${nsOn?t('ns.allShow'):t('ns.allHide')}</span></div>`;
   const body=`<table class="lb big"><tr><th class="c-eye"></th><th class="c-pos">${t('col.rank')}</th><th>${t('col.player')}</th><th class="c-val">${dir==='asc'?t('col.score'):t('col.pts')}</th></tr>
     ${rows.map(r=>{ const hb=hlMap&&hlMap[r.pid]; const m=nsMasked(table,r.pid);
       const nm = m ? '<span class="mask">※※※</span>' : nameOf(r.pid);
       const sv = m ? '<span class="mask">？</span>' : `<b>${fmt(r.v)}</b>`;
       return `<tr class="rank ${hb?'hlrow':''}"><td class="c-eye"><button class="eyebtn ${m?'off':'on'}" onclick="toggleNSRow('${table}','${r.pid}')">${m?EYEOFF:EYE}</button></td><td class="c-pos">${posBadge(r.rank,r.rank===1)}</td><td class="nmc">${nm}${hb?`<span class="kanjibadge">${hb}</span>`:''}</td><td class="c-val">${sv}</td></tr>`; }).join('')}</table>`;
-  return `<div class="card tight wide"><h2 class="lbh"><span>${title}</span></h2>${tools}${body}</div>`;
+  return `<div class="card tight wide"><h2 class="lbh"><span>${title}</span></h2>${body}${tools}</div>`;
 }
 
 /* チーム戦グループ（§5.2）: key ごとに 当該対抗カード（上）＋チーム別スコア表（下・グロス/ネット/HBH と総合のみ）。
    'm1'/'roulette' は renderResult 側で renderMatch1v1Parts / renderRouletteParts を直接使う（sticky 同居 D15・roulette-standings §5）。
-   総合タブは現時点ではチーム別スコア表のみ（総合カード/勝ち点表は team-points PR-②・§6 で投入） */
+   総合=①チーム総合カード＋②種目別勝ち点表→③スコア表、nd=ニアドラ・ヒーローカード（team-points §6.2①③・配置=regroup §6） */
 function renderTeamGame(g, g0, parts, key){
   const teams=g.teams.filter(t=>t.memberIds.length);
   if(!teams.length)
     return `<div class="card"><h2>${t('team.title')}</h2><div class="empty">${t('team.emptyTeams')}</div></div>`;
   const sc=()=>renderScorecard(g, g.participants, teams);
-  if(key==='overall') return sc();
+  if(key==='overall') return renderTeamOverall(g) + sc();
+  if(key==='nd')    return renderTeamNiadora(g);
   if(key==='gross') return `<div class="rank-wrap">${renderTeams(g,'teamGross')}</div>` + sc();
   if(key==='net')   return `<div class="rank-wrap">${renderTeams(g,'teamNet')}</div>` + sc();
   if(key==='hbh')   return `<div class="rank-wrap">${renderTeams(g,'holeByHole')}</div>` + sc();
   if(key==='b2')    return `<div class="rank-wrap">${renderTeams(g,'best2ball')}</div>`;
   if(key==='vegas') return `<div class="rank-wrap">${renderTeams(g,'vegas')}</div>` + ruleBox('rule.vegas');
   return '';
+}
+
+/* ---- チーム総合カード＋種目別勝ち点表（team-points.md §6.2①・投影原則 §11.14）----
+   総合順位・勝ち点は calc.js の teamWinPoints(g) だけを正とする（表示側で再計算しない）。
+   大型勝ち点=チームカラー・勝ちセル=緑（値併記）＝モック承認済み。目隠しは tgMode/tgMasked（key='overall'）。 */
+function tpFmtWin(v){   // 勝ち点合計の表示（1→"1"・0.5刻み→"2.5"・1/3混じり→小数2桁）
+  if(Math.abs(v-Math.round(v))<1e-9) return String(Math.round(v));
+  if(Math.abs(v*2-Math.round(v*2))<1e-9) return v.toFixed(1);
+  return String(Math.round(v*100)/100);
+}
+function tpShare(n){ return n===1?'1' : n===2?'0.5' : '1/'+n; }   // 種目セルの獲得分（同点山分けは分数表記・小数丸めにしない）
+const TP_EV_LABEL={teamGross:'term.teamGross',teamNet:'term.teamNet',holeByHole:'term.hbh',best2ball:'term.best2',
+  roulette:'term.roulette',match1v1:'term.match1v1',vegas:'term.vegas',niadora:'term.niadora'};
+function renderTeamOverall(g){
+  const {teams,wins,events}=teamWinPoints(g);
+  if(!events.length) return '';   // 成立種目0＝総合カード非表示（配分もされない・§3.4）
+  const P=g.points||{};
+  const rows=teams.map((tm,i)=>({tm,i,v:wins[i]})); rows.sort((a,b)=>b.v-a.v);
+  let rank=0,prev=null;
+  rows.forEach((r,idx)=>{ if(prev===null||r.v!==prev){rank=idx+1;prev=r.v;} r.rank=rank; r.p=(P.teamRankPts||[])[rank-1]||0; });
+  const on=tgMode.overall==='show';
+  const tools=`<div class="cardtools mt8"><span class="tgl ${on?'on':'off'}" onclick="toggleTgAll('overall')">${on?t('ns.allShow'):t('ns.allHide')}</span></div>`;   // 表の下（追加指示⑪）
+  const body=rows.map(r=>{ const m=tgMasked('overall',r.tm.id); const col=tmColor(r.tm.name);
+    const nm=m?'<span class="mask">？？？</span>':`<span style="color:${col}">${esc(r.tm.name)}</span>`;
+    const tag=m?'':`<div><span class="tag">${t('team.rankTag',{rank:r.rank,p:r.p})}</span></div>`;   // 配分は各員満額（人数割りしない・D4）
+    const pv=m?'<span class="mask">？</span>':`<span class="tp-ov-pt" style="color:${col}">${tpFmtWin(r.v)}</span>`;
+    return `<tr class="rank"><td class="c-eye"><button class="eyebtn ${m?'off':'on'}" onclick="toggleTgRow('overall','${r.tm.id}')">${m?EYEOFF:EYE}</button></td><td class="c-pos">${posBadge(r.rank,r.rank===1)}</td><td class="nmc tp-ov-nm">${nm}${tag}</td><td class="c-val">${pv}</td></tr>`; }).join('');
+  // 種目別勝ち点表（補助・通常サイズ）: 行=成立種目・列=チーム。勝ち=緑＋値・山分け=橙＋獲得分・負け=空欄・対象外=—
+  const mxHead=`<tr><th class="tal">${t('team.matrixTitle')}</th>${teams.map(tm=>{ const m=tgMasked('overall',tm.id);
+    return `<th${m?'':` style="color:${tmColor(tm.name)}"`}>${m?'？？？':esc(tm.name)}</th>`; }).join('')}</tr>`;
+  const mxRows=events.map(ev=>`<tr><td class="tal">${t(TP_EV_LABEL[ev.key]||ev.key)}</td>${teams.map((tm,i)=>{
+    if(tgMasked('overall',tm.id)) return '<td><span class="mask">？</span></td>';
+    if(ev.vals[i]==null) return '<td><span class="muted">—</span></td>';
+    if(ev.winners.includes(i)) return `<td class="${ev.winners.length>1?'rtie':'winc'}"><b>${tpShare(ev.winners.length)}</b></td>`;
+    return '<td></td>'; }).join('')}</tr>`).join('');
+  return `<div class="card"><h2 class="lbh"><span>${t('team.overallTitle')} ${statusBadge(g)}</span></h2>
+    <table class="lb tp-ov">${body}</table>
+    <div class="scroll mt10"><table class="lb tp-mx">${mxHead}${mxRows}</table></div>
+    <div class="muted mt6">${t('team.noteOverall')}</div>
+    <div class="muted">${t('pts.teamRank')}: ${(P.teamRankPts||[]).join(', ')}</div>
+    ${tools}
+  </div>`;
+}
+
+/* ---- チーム戦ニアドラ・ヒーローカード（team-points.md §6.2③）----
+   .rl-standing/.rl-st 共用＋縦積みバリアント .tp-nd。本数=niadoraTeamCount（calc と同値保証）・本数降順（同数=登録順の安定ソート）。
+   勝ち点タグ=文字併記（勝者に緑 +1・同数に橙 +0.5/+1/3）＝総合タブの種目別勝ち点表セルと同じ値。master 目隠しのみ（チーム名は出したまま） */
+function renderTeamNiadora(g){
+  const teams=g.teams.filter(t=>t.memberIds.length);
+  const {teams:wt,events}=teamWinPoints(g);
+  const ev=events.find(e=>e.key==='niadora');
+  const winIds=ev?ev.winners.map(i=>wt[i].id):[];
+  const masked=tgMode.niadora==='hide';
+  const npOf=T=>niapinHolesOf(g).filter(h=>{const pid=(g.prizes.niapinWinner||{})[h];return !!pid&&T.memberIds.includes(pid);}).length;
+  const dcOf=T=>draconHolesOf(g).filter(h=>{const pid=(g.prizes.draconWinner||{})[h];return !!pid&&T.memberIds.includes(pid);}).length;
+  const rows=teams.map(tm=>({tm,n:niadoraTeamCount(g,tm),np:npOf(tm),dc:dcOf(tm)})).sort((a,b)=>b.n-a.n);
+  const tools=`<div class="cardtools mt8"><span class="tgl ${masked?'off':'on'}" onclick="toggleTgAll('niadora')">${masked?t('ns.allHide'):t('ns.allShow')}</span></div>`;   // hero の下（追加指示⑪・⑧と同趣旨）
+  const blocks=rows.map(({tm,n,np,dc})=>{
+    const col=tmColor(tm.name);
+    const num=masked?'<span class="mask">？</span>':String(n);
+    const sub=masked?'<span class="mask">？</span>':`NP ${np} ・ DC ${dc}`;   // NP/DC はリテラル略号（言語非依存）
+    const tag=(!masked&&winIds.includes(tm.id))
+      ?`<span class="tp-nd-tagrow"><span class="tag ${ev.winners.length>1?'tagtie':'tagwin'}">${t('team.winpt')} +${tpShare(ev.winners.length)}</span></span>`:'';
+    return `<span class="rl-st tp-nd"><span class="rl-st-team" style="color:${col}">${esc(tm.name)}</span><span class="rl-st-h">${num}</span><span class="tp-nd-sub">${sub}</span>${tag}</span>`; }).join('');
+  return `<div class="card"><h2 class="lbh"><span>${t('term.niadora')}</span></h2>
+    <div class="rl-standing">${blocks}</div>
+    <div class="muted mt6">${t('team.noteNiadora')}</div>${tools}</div>`;
 }
 
 /* ---- 1 on 1 マッチプレー タブ（§11.13・docs/handoff/2026-08-20-1on1-match.md §13 が正。一組ずつモードの開封は §14・編集UIの置き場所とサマリ表示は §15 が正）----

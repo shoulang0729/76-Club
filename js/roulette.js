@@ -228,14 +228,15 @@ function renderTeams(g, only){
   const F=chFormats(g); const teams=g.teams.filter(t=>t.memberIds.length);   // αではβゲームのカードを出さない（§11.12 C）
   const teamGross=t=>t.memberIds.reduce((a,pid)=>a+effGross(g,pid),0);
   const teamNet=t=>Math.round(t.memberIds.reduce((a,pid)=>a+netScore(g,pid),0)*10)/10;
+  // master トグルは表の下（結果が先・操作が後＝追加指示⑪・§11.14 幹事操作は控えめ配置）
   const card=(key,title,valFn,dir,note)=>{ const rows=teams.map(t=>({t,v:valFn(t)})).sort((a,b)=> dir==='desc'? b.v-a.v : a.v-b.v);
     const on = tgMode[key]==='show';
-    const tools=`<div class="cardtools"><span class="tgl ${on?'on':'off'}" onclick="toggleTgAll('${key}')">${on?t('ns.allShow'):t('ns.allHide')}</span></div>`;
-    return `<div class="card tight"><h2>${title}</h2>${note?`<div class="muted" style="margin-bottom:4px">${note}</div>`:''}${tools}<table class="lb"><tr><th class="c-eye"></th><th class="c-pos">${t('col.rank')}</th><th>${t('col.team')}</th><th class="c-val">${dir==='desc'?'H':t('col.total')}</th></tr>
+    const tools=`<div class="cardtools mt8"><span class="tgl ${on?'on':'off'}" onclick="toggleTgAll('${key}')">${on?t('ns.allShow'):t('ns.allHide')}</span></div>`;
+    return `<div class="card tight"><h2>${title}</h2>${note?`<div class="muted" style="margin-bottom:4px">${note}</div>`:''}<table class="lb"><tr><th class="c-eye"></th><th class="c-pos">${t('col.rank')}</th><th>${t('col.team')}</th><th class="c-val">${dir==='desc'?'H':t('col.total')}</th></tr>
       ${rows.map((r,i)=>{ const m=tgMasked(key,r.t.id);
         const nm = m ? '<span class="mask">？？？</span>' : esc(r.t.name);
         const val = m ? '<span class="mask">？</span>' : `<b>${Math.round(r.v*10)/10}</b>`;
-        return `<tr class="rank"><td class="c-eye"><button class="eyebtn ${m?'off':'on'}" onclick="toggleTgRow('${key}','${r.t.id}')">${m?EYEOFF:EYE}</button></td><td class="c-pos">${posBadge(i+1,i===0)}</td><td class="nmc">${nm}</td><td class="c-val">${val}</td></tr>`; }).join('')}</table></div>`; };
+        return `<tr class="rank"><td class="c-eye"><button class="eyebtn ${m?'off':'on'}" onclick="toggleTgRow('${key}','${r.t.id}')">${m?EYEOFF:EYE}</button></td><td class="c-pos">${posBadge(i+1,i===0)}</td><td class="nmc">${nm}</td><td class="c-val">${val}</td></tr>`; }).join('')}</table>${tools}</div>`; };
   let out='';
   if(F.teamGross && (!only||only==='teamGross')) out+=card('teamGross',t('term.teamGross'),teamGross,'asc',t('team.noteLow'));
   if(F.teamNet && (!only||only==='teamNet')) out+=card('teamNet',t('term.teamNet'),teamNet,'asc',t('team.noteLow'));
@@ -246,12 +247,13 @@ function renderTeams(g, only){
     if(vs.teams.length<2){ out+=`<div class="card tight"><h2>${t('term.vegas')}</h2><div class="muted">${t('vegas.needTeams')}</div></div>`; }
     else{ const rows=vs.teams.map((T,i)=>({t:T,v:vs.tot[i]})).sort((a,b)=>b.v-a.v);
       const on = tgMode.vegas==='show';
-      const tools=`<div class="cardtools"><span class="tgl ${on?'on':'off'}" onclick="toggleTgAll('vegas')">${on?t('ns.allShow'):t('ns.allHide')}</span></div>`;
-      out+=`<div class="card tight"><h2>${t('term.vegas')}</h2>${tools}<table class="lb"><tr><th class="c-eye"></th><th class="c-pos">${t('col.rank')}</th><th>${t('col.team')}</th><th class="c-val">${t('vegas.total')}</th></tr>
+      const tools=`<div class="cardtools mt8"><span class="tgl ${on?'on':'off'}" onclick="toggleTgAll('vegas')">${on?t('ns.allShow'):t('ns.allHide')}</span></div>`;
+      out+=`<div class="card tight"><h2>${t('term.vegas')}</h2><table class="lb"><tr><th class="c-eye"></th><th class="c-pos">${t('col.rank')}</th><th>${t('col.team')}</th><th class="c-val">${t('vegas.total')}</th></tr>
         ${rows.map((r,i)=>{ const m=tgMasked('vegas',r.t.id);
           const nm = m ? '<span class="mask">？？？</span>' : esc(r.t.name);
           const val = m ? '<span class="mask">？</span>' : `<b>${r.v>0?'+':''}${r.v}</b>`;
-          return `<tr class="rank"><td class="c-eye"><button class="eyebtn ${m?'off':'on'}" onclick="toggleTgRow('vegas','${r.t.id}')">${m?EYEOFF:EYE}</button></td><td class="c-pos">${posBadge(i+1,i===0)}</td><td class="nmc" style="text-align:left">${nm}</td><td class="c-val">${val}</td></tr>`; }).join('')}</table></div>`; } }
+          return `<tr class="rank"><td class="c-eye"><button class="eyebtn ${m?'off':'on'}" onclick="toggleTgRow('vegas','${r.t.id}')">${m?EYEOFF:EYE}</button></td><td class="c-pos">${posBadge(i+1,i===0)}</td><td class="nmc" style="text-align:left">${nm}</td><td class="c-val">${val}</td></tr>`; }).join('')}</table>
+        <div class="muted mt6">${t('team.noteVegasHbh')}</div>${tools}</div>`; } }   // 勝ち点はホール勝敗数（team-points §3.3.2）・点差は独立集計のまま
   return out;
 }
 
