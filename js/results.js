@@ -130,11 +130,7 @@ function renderIndGame(g, parts, key){
     return renderPrizeHero(g)
       + `<details class="prize-edit mt10"${pzCfgOpen?' open':''} ontoggle="pzCfgToggle(this.open)"><summary>${t('prize.recTitle')}</summary><div class="in">${renderPrizes(g)}</div></details>`;
   }
-  const done=parts.filter(pid=>complete(g,pid)).length;
-  // 順位確定（全員18H済み）のバナーは廃止（2026-08-30 ユーザー指示・#87）。暫定時のみ案内を出す
-  const banner = allComplete(g)
-    ? ''
-    : `<div class="card" style="background:var(--acc-bg)">${t('ind.provBanner',{n:done,N:parts.length,rev:revealHoles<18?t('ind.revealing',{h:revealHoles}):''})}</div>`;
+  // 進捗バナーは全廃（順位確定=#87・暫定順位=2026-08-30 Sレーン②）。進捗はスコア表と statusBadge で読める
   let card='', rule='';
   if(key==='gross'){ card=rankCardNS(g.womenEvery.enabled?t('result.grossEvery'):t('term.gross'), parts, pid=>effGross(g,pid), 'asc', v=>v, 'gross', null); rule='rule.gross'; }
   else if(key==='net'){
@@ -147,7 +143,7 @@ function renderIndGame(g, parts, key){
   else if(key==='oly'){ card=leaderboard(t('term.olympic'), parts, pid=>olympicPts(g,pid), 'desc', v=>v+'pt', '', 'oly'); rule='rule.olympic'; }
   else if(key==='cal'){ card=leaderboard(t('term.callaway'), parts, pid=>callawayNet(g,pid),'asc',v=>v,'', 'cal'); rule='rule.callaway'; }
   else if(key==='nas'){ card=leaderboard(t('pts.nassauTotal'), parts, pid=>nassauTotalNet(g,pid),'asc',v=>v,'', 'nas'); rule='rule.nassau'; }
-  return banner + `<div class="rank-wrap">${card}</div>` + renderScorecard(g,parts,null) + ruleBox(rule);
+  return `<div class="rank-wrap">${card}</div>` + renderScorecard(g,parts,null) + ruleBox(rule);
 }
 
 /* ニアドラのヒーロー表示（§5.1.1 D16〜D18・投影原則 §11.14）:
