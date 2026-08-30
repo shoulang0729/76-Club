@@ -273,7 +273,11 @@ function renderTeamGame(g, g0, parts, key){
   if(!teams.length)
     return `<div class="card"><h2>${t('team.title')}</h2><div class="empty">${t('team.emptyTeams')}</div></div>`;
   const sc=()=>renderScorecard(g, g.participants, teams);
-  if(key==='overall') return renderTeamOverall(g);
+  /* 総合は g0（生ゲーム・viewGame マスクを通さない）を渡す（2026-08-30 バッチ98 バグ修正）:
+     #97 で revealHoles 既定が 0 になり、リロード直後はマスク済み g の entered 判定が全滅→ events=[] → 総合が必ず空
+     （総合タブに開封バーは無く復旧不能）だった。勝ち点・種目別勝ち点表は announced（連携）ゲートで既に守られている
+     ＝未連携行は？マスクのままなのでネタバレなし。他タブ（gross/net/hbh 等）の viewGame マスクは意図どおり不変 */
+  if(key==='overall') return renderTeamOverall(g0);
   if(key==='nd')    return renderTeamNiadora(g);
   if(key==='gross') return `<div class="rank-wrap">${renderTeams(g,'teamGross')}</div>` + sc();
   if(key==='net')   return `<div class="rank-wrap">${renderTeams(g,'teamNet')}</div>` + sc();
@@ -306,7 +310,17 @@ function tpFmtWin(v){   // 勝ち点合計の表示（1→"1"・0.5刻み→"2.5
   if(Math.abs(v*2-Math.round(v*2))<1e-9) return v.toFixed(1);
   return String(Math.round(v*100)/100);
 }
-function tpShare(n){ return n===1?'1' : n===2?'0.5' : '1/'+n; }   // 種目セルの獲得分（同点山分けは分数表記・小数丸めにしない）
+/* 種目セルの獲得分＝w/同点チーム数（winpoints-reveal §13.5・weight 一般化）。
+   整数はそのまま・0.5刻みは小数1桁・それ以外は分数表記（w=1 は従来の '1'/'0.5'/'1/3' と完全一致） */
+function tpShare(w,n){ const v=w/n;
+  if(Number.isInteger(v)) return String(v);
+  if(Number.isInteger(v*2)) return v.toFixed(1);
+  return w+'/'+n; }
+/* 種目別勝ち点の重み設定（winpoints-reveal §13.5・D20）: 0以上の整数にクランプ（既存 setPointsNum 慣例＋非負）。
+   グローバル関数（inline onchange 前提・ESM化しない）。golfCompe_v1 に保存 */
+function setTeamEventPts(key,v){ const g=curGame(); if(!g)return;
+  (g.points.teamEventPts=g.points.teamEventPts||{})[key]=Math.max(0,parseInt(v)||0);
+  save(); renderResult(); }
 const TP_EV_LABEL={teamGross:'term.teamGross',teamNet:'term.teamNet',holeByHole:'term.hbh',best2ball:'term.best2',
   roulette:'term.roulette',match1v1:'term.match1v1',vegas:'term.vegas',niadora:'term.niadora'};
 /* 種目別勝ち点表の行順（#87 指示③）＝チーム戦下段タブの生成順（resGameTabs grp='team'・総合を除く）:
@@ -337,17 +351,26 @@ function renderTeamOverall(g){
   const mxEvs=[...events].sort((a,b)=>{ const o=k=>{ const i=TP_EV_ORDER.indexOf(k); return i<0?TP_EV_ORDER.length:i; }; return o(a.key)-o(b.key); });
   const mxHead=`<tr><th class="tal">${t('team.matrixTitle')}</th>${teams.map(tm=>
     `<th style="color:${tmColor(tm.name)}">${esc(tm.name)}</th>`).join('')}</tr>`;
-  const mxRows=mxEvs.map(ev=>`<tr><td class="tal">${t(TP_EV_LABEL[ev.key]||ev.key)}${ev.on?'':` <span class="tag tagtie">${t('team.pending')}</span>`}</td>${teams.map((tm,i)=>{
+  const mxRows=mxEvs.map(ev=>`<tr><td class="tal">${t(TP_EV_LABEL[ev.key]||ev.key)}${ev.w!==1?` <span class="muted">×${ev.w}</span>`:''}${ev.on?'':` <span class="tag tagtie">${t('team.pending')}</span>`}</td>${teams.map((tm,i)=>{
     if(!ev.on) return '<td><span class="mask">？</span></td>';
     if(ev.vals[i]==null) return '<td><span class="muted">—</span></td>';
-    if(ev.winners.includes(i)) return `<td class="${ev.winners.length>1?'rtie':'winc'}"><b>${tpShare(ev.winners.length)}</b></td>`;
+    if(ev.winners.includes(i)) return `<td class="${ev.winners.length>1?'rtie':'winc'}"><b>${tpShare(ev.w,ev.winners.length)}</b></td>`;
     return '<td></td>'; }).join('')}</tr>`).join('');
+  // 重み設定 details（winpoints-reveal §13.5・D14/D15・投影原則 §11.14「幹事操作は控えめ配置」）:
+  // 採用中の種目のみ TP_EV_ORDER 順（niadora は F.niadoraTeam・βはαチャネルで自動除外）。成立前でも事前設定可。
+  // ゲーム設定タブには置かない（teamRankPts と同居させず重複配置回避）
+  const F=chFormats(g), W=P.teamEventPts||{};
+  const evPtsRows=TP_EV_ORDER.filter(k=> k==='niadora'?F.niadoraTeam:F[k]).map(k=>
+    `<div class="ptsrow"><span>${t(TP_EV_LABEL[k]||k)}</span><span class="ptsedit"><input type="number" min="0" step="1" value="${W[k]===undefined?1:W[k]}" onchange="setTeamEventPts('${k}',this.value)"></span></div>`).join('');
+  const evPts=evPtsRows?`<details class="mt10"><summary>${t('team.evPtsTitle')}</summary><div class="in">
+      <div class="muted">${t('team.evPtsNote')}</div>${evPtsRows}</div></details>`:'';
   return `<div class="card"><h2 class="lbh"><span>${t('team.overallTitle')} ${prog}</span></h2>
     <div class="rl-standing tp-ovh-wrap">${hero}</div>
     <div class="scroll mt10"><table class="lb tp-mx">${mxHead}${mxRows}</table></div>
     <div class="muted mt6">${t('team.noteOverall')}</div>
     <div class="muted">${t('team.noteAnnounce')}</div>
     <div class="muted">${t('pts.teamRank')}: ${(P.teamRankPts||[]).join(', ')}</div>
+    ${evPts}
   </div>`;
 }
 
@@ -375,7 +398,7 @@ function renderTeamNiadora(g){
     const col=tmColor(tm.name);
     const sub=`NP ${np} ・ DC ${dc}`;   // NP/DC はリテラル略号（言語非依存）
     const tag=(ev&&ev.on&&allOpen&&winIds.includes(tm.id))   // 勝ち点タグは「発表済み(on)かつ全開封」でのみ表示（winpoints-reveal §5.2＝マスクと整合）
-      ?`<span class="tp-nd-tagrow"><span class="tag ${ev.winners.length>1?'tagtie':'tagwin'}">${t('team.winpt')} +${tpShare(ev.winners.length)}</span></span>`:'';
+      ?`<span class="tp-nd-tagrow"><span class="tag ${ev.winners.length>1?'tagtie':'tagwin'}">${t('team.winpt')} +${tpShare(ev.w,ev.winners.length)}</span></span>`:'';
     return `<span class="rl-st tp-nd"><span class="rl-st-team" style="color:${col}">${esc(tm.name)}</span><span class="rl-st-h">${n}</span><span class="tp-nd-sub">${sub}</span>${tag}</span>`; }).join('');
   const holeCards=(niapinHolesOf(g).length||draconHolesOf(g).length)? renderPrizeHero(g,true) : '';   // 対象ホールなしは併設カードも省略
   return `<div class="card"><h2 class="lbh"><span>${t('term.niadora')}</span></h2>

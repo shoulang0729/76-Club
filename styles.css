@@ -401,10 +401,16 @@
   .tp-ovh-wrap{align-items:flex-start}
   .tp-ovh{flex:1 1 100px}
   .tp-ovh .rankno{margin-right:4px}
-  /* 種目別勝ち点表（補助・通常サイズ）: 勝ち=緑（win-bg 淡色地＋濃緑文字）・山分け=橙。!important はゼブラ行(.lb tr:nth-child)対策 */
+  /* 種目別勝ち点表: 勝ち=緑（win-bg 淡色地＋濃緑文字）・山分け=橙。!important はゼブラ行(.lb tr:nth-child)対策 */
   .tp-mx .tal{text-align:left;white-space:normal;overflow-wrap:anywhere}
   .tp-mx .winc{background:var(--win-bg) !important;font-weight:var(--w-bold);color:var(--win-ink)}
   .tp-mx .rtie{background:var(--tie-bg) !important;font-weight:var(--w-bold);color:var(--tie-ink)}
+  /* 種目別勝ち点表の大型化（投影 §11.14・2026-08-30 winpoints-reveal §13.6）: 値=--f-rl-name 級・ヘッダ/種目ラベル=0.6倍。
+     @media の --f-rl-name 再定義（30→40/44/48px）に自動追従＝新規トークン/新規 @media なし。
+     th の white-space:normal＋overflow-wrap で長いチーム名は列内折返し（列幅を膨らませない） */
+  .tp-mx td{font-size:var(--f-rl-name);font-weight:var(--w-bold);line-height:1.15;padding:4px 10px}
+  .tp-mx th{font-size:calc(var(--f-rl-name)*.6);line-height:1.15;white-space:normal;overflow-wrap:anywhere}
+  .tp-mx td.tal{font-size:calc(var(--f-rl-name)*.6);line-height:1.2}
   /* 勝ち点タグ（緑・文字併記 §11.14-2）: 文字=win-ink/背景=win-bg＝濃色ベタ塗りなし。引分は既存 .tagtie */
   .tagwin{background:var(--win-bg);color:var(--win-ink)}
   /* チーム戦ニアドラ hero（team-points.md §6.2③）: .rl-st の縦積みバリアント＝名前・本数・内訳が離れず1ブロックで折返す */

@@ -23,6 +23,9 @@ function migrate(s){
     if(!g.kanjiRanks) g.kanjiRanks={r1:{enabled:false,dir:'down'},r2:{enabled:true,dir:'down'},booby:{enabled:true,dir:'up'}};
     if(!g.points) g.points=defaultPoints();
     else { const d=defaultPoints(); for(const k in d) if(g.points[k]===undefined) g.points[k]=d[k]; }
+    // teamEventPts の per-key バックフィル（将来キー追加に備える・formats の per-key 慣例と同型。winpoints-reveal §13.2）
+    { const d=defaultPoints().teamEventPts, w=g.points.teamEventPts;
+      for(const k in d) if(w[k]===undefined) w[k]=d[k]; }
     if(g.prizePool===undefined) g.prizePool=0;
     if(!g.prizes) g.prizes={ niapinHoles:[], draconHoles:[], niapinWinner:{}, draconWinner:{} };
     if(!g.roulette) g.roulette=newRoulette();
@@ -47,7 +50,9 @@ function newRoulette(){ return { changeN:2, challengeM:2, reps:{}, pool:{}, remC
 function defaultPoints(){ return {
   net:[5,3,1], gross:[5,3,1], stableford:[5,3,1], olympic:[5,3,1], callaway:[5,3,1], nassauTotal:[5,3,1],
   teamRankPts:[10,5], niapin:2, dracon:2,
-  m1win:2, m1draw:1 }; }   // 1 on 1 マッチプレー（§11.13）：勝者+2pt/引分両者+1pt（個人にのみ加算）
+  m1win:2, m1draw:1,   // 1 on 1 マッチプレー（§11.13）：勝者+2pt/引分両者+1pt（個人にのみ加算）
+  teamEventPts:{ niadora:1, teamGross:1, teamNet:1, holeByHole:1,   // 種目別勝ち点の重み（0以上の整数・既定 全1＝現行互換。winpoints-reveal §13.2）
+    best2ball:1, vegas:1, match1v1:1, roulette:1 } }; }
 function save(){ localStorage.setItem(LS_KEY, JSON.stringify(state)); }
 function uid(){ return Math.random().toString(36).slice(2,9); }
 function toast(m){ const t=document.getElementById('toast'); t.textContent=m; t.classList.add('show');
