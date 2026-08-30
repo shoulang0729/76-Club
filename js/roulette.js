@@ -148,7 +148,7 @@ function renderRouletteParts(g){
     const mn=Math.min(...sc); if(sc.every(s=>s===mn))return teams.map(()=>' tie');
     return sc.map(s=>s===mn?' win':' lose'); })();
   /* 各チームの取得H（.rl-st）はカードの直上・カード幅中央に1つずつ（カードの並び順どおり・数値は濃色インク=CSS側）。
-     カード内はチーム名（.rl-team）を選手名と同じ行の左側へ（.rl-nmrow・--f-rl-name より小さいまま従属） */
+     カード内のチーム名ラベルは撤去（直上の .rl-st と重複のため・2026-08-30 #87 指示⑥）＝ .rl-nmrow は選手名のみ中央 */
   const panels=teams.map((tm,ti)=>{ const pid=reps[tm.id]; const p=pid?state.players.find(x=>x.id===pid):null;
     const av=pid?adjHole(g,pid,h):null; const sv=pid?(av==null?'—':av):'';
     const col=rColor(tm.name);
@@ -160,7 +160,7 @@ function renderRouletteParts(g){
     return `<div class="rl-col">
       <div class="rl-st"><span class="rl-st-team" style="color:${col}">${esc(tm.name)}</span><span class="rl-st-h">${wonH(ti)}<small>H</small></span></div>
       <div class="rl-panel${stCls[ti]}" id="rl-panel-${tm.id}" style="border-color:${col};--rl-tc:${col};--rl-tc-bg:${rColorBg(tm.name)}">
-        <div class="rl-nmrow"><span class="rl-team" style="color:${col}">${esc(tm.name)}</span><span class="rl-name" id="rl-name-${tm.id}">${rl.spinning&&rl.spinTeams.includes(tm.id)?'…':(p?esc(p.name):'―')}</span></div>
+        <div class="rl-nmrow"><span class="rl-name" id="rl-name-${tm.id}">${rl.spinning&&rl.spinTeams.includes(tm.id)?'…':(p?esc(p.name):'―')}</span></div>
         <div class="rl-scorebig" id="rl-score-${tm.id}">${pid?sv:'&nbsp;'}</div>
         <div class="rl-act">${act}</div>
       </div>

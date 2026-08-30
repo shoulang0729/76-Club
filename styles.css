@@ -193,14 +193,18 @@
   .rule{background:var(--surface-2);border:1px solid var(--line);border-left:3px solid var(--acc);border-radius:var(--r-sm);padding:8px 10px;font-size:var(--f-small);color:var(--ink);margin:6px 0}
   .prizewin{background:var(--card);border:1px solid var(--line);border-top:3px solid var(--acc)}
   .payoutcard{background:var(--card);border:1px solid var(--line);border-top:3px solid var(--acc)}
+  /* 賞金ポイント配分: 選手名下の所属チーム小ラベル（チームカラー・#87 指示⑦。下段併記＝375px でも列幅不変） */
+  .pt-team{display:block;font-size:11px;font-weight:var(--w-bold);line-height:1.2}
   .kanjicard{background:var(--card);border:1px solid var(--line);border-top:3px solid var(--pri)}
   .big{font-size:var(--f-hero);font-weight:var(--w-bold)}
   .toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:var(--strong);color:var(--bg);
     padding:10px 18px;border-radius:var(--r-pill);font-size:var(--f-body);z-index:50;opacity:0;transition:.3s;pointer-events:none}
   .toast.show{opacity:.96}
   /* result sub-nav（§11.8: ベタ塗りピル → 下線アクティブ。地は --card）。
-     行高は #homeSub と同じく --h-tabrow＋下罫線1px で厳密一致（2段目タブの高さ統一） */
-  .result-sticky{position:sticky;top:calc(var(--hdr-h,50px) + var(--h-tabrow) + 1px);z-index:15;background:var(--bg);padding:8px 0 8px;margin:-4px 0 10px;box-shadow:0 8px 8px -8px rgba(0,0,0,.15)}
+     行高は #homeSub と同じく --h-tabrow＋下罫線1px で厳密一致（2段目タブの高さ統一）。
+     #87 指示⑧: sticky の上パディング8px を撤去＋上マージン -12px（main の上パディング12px を相殺）＝
+     subtab4 が #homeSub と同位置・同高で 1段目直下に密着（stuck/unstuck とも） */
+  .result-sticky{position:sticky;top:calc(var(--hdr-h,50px) + var(--h-tabrow) + 1px);z-index:15;background:var(--bg);padding:0 0 8px;margin:-12px 0 10px;box-shadow:0 8px 8px -8px rgba(0,0,0,.15)}
   .subtab4{display:flex;gap:6px;align-items:center;border-bottom:1px solid var(--line)}
   .subtab4 button{flex:1;border:0;border-bottom:2px solid transparent;background:var(--card);color:var(--sub);padding:0 2px;min-height:var(--h-tabrow);border-radius:0;font-size:var(--f-body);font-weight:var(--w-bold);cursor:pointer;letter-spacing:.02em}
   .subtab4 button.on{color:var(--strong);border-bottom-color:var(--pri)}
@@ -235,6 +239,8 @@
   .npdc-name{font-size:var(--f-rl-name);font-weight:var(--w-bold);line-height:1.15;margin-top:4px;
     overflow-wrap:anywhere;min-height:1.15em}
   .npdc-name.empty{color:var(--sub);font-size:var(--f-title);font-weight:var(--w-med);cursor:default}
+  /* 勝者の所属チーム併記（チーム戦ニアドラタブのみ・#87 指示⑤）: 勝者名の下の小ラベル・チームカラー */
+  .npdc-team{font-size:13px;font-weight:var(--w-bold);line-height:1.2;margin-top:2px;overflow-wrap:anywhere}
   @media(min-width:768px){
     .npdc-hero{grid-template-columns:repeat(4,1fr)}
     #view-result .subtab-games button{font-size:14px;padding:0 14px}
@@ -339,9 +345,8 @@
   .rl-panel.fwin{background:var(--win-bg-strong);box-shadow:0 0 0 4px var(--win) inset;animation:rlblink .22s infinite alternate}
   .rl-panel.flose{background:var(--danger-bg);box-shadow:0 0 0 4px var(--red) inset;animation:rlblink .22s infinite alternate}
   .rl-panel.ftie{background:var(--tie-bg);box-shadow:0 0 0 4px var(--tie) inset;animation:rlblink .22s infinite alternate}
-  /* 名前行＝チーム名（左・小さめ）＋選手名（--f-rl-name・従属関係は保つ）を同じ行に中央寄せ */
+  /* 名前行＝選手名のみ（--f-rl-name・中央寄せ）。チーム名ラベルはカード直上の .rl-st と重複のため撤去（#87 指示⑥） */
   .rl-nmrow{display:flex;align-items:baseline;justify-content:center;gap:8px;margin:6px 0 2px;min-height:38px}
-  .rl-team{font-size:var(--f-name);font-weight:var(--w-bold);letter-spacing:.03em;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:0 1 auto}
   .rl-name{font-size:var(--f-rl-name);font-weight:var(--w-bold);line-height:1.1;min-width:0;overflow-wrap:anywhere}
   .rl-scorebig{font-size:var(--f-rl-score);font-weight:var(--w-bold);color:var(--win);line-height:1;min-height:46px;font-variant-numeric:tabular-nums}
   .rl-ev{font-size:var(--f-small);color:var(--win);font-weight:var(--w-bold);min-height:16px;margin-top:2px}
@@ -353,9 +358,9 @@
   .rl-dev{margin-bottom:10px}
   /* 抽選カード sticky（roulette-standings §5。コンテナは .result-sticky を共用＝top/z-index の新設なし）。
      max-height=フォールバック: 固定領域が画面高を超える低背環境はカード内スクロール（sticky は解除しない）。
-     26px = top補正1px＋sticky上pad8＋subtab4下罫線1＋subtab-games上下pad(6+2)＋sticky下pad8。タブ2段＋主ナビで 3*--h-tabrow */
+     18px = top補正1px＋subtab4下罫線1＋subtab-games上下pad(6+2)＋sticky下pad8（sticky上pad8 は #87 指示⑧で撤去）。タブ2段＋主ナビで 3*--h-tabrow */
   .result-sticky .rl-play{margin-bottom:0;
-    max-height:calc(100dvh - var(--hdr-h,50px) - 3*var(--h-tabrow) - 26px);overflow-y:auto;overscroll-behavior:contain}
+    max-height:calc(100dvh - var(--hdr-h,50px) - 3*var(--h-tabrow) - 18px);overflow-y:auto;overscroll-behavior:contain}
   .sc2 .cur{background:var(--acc-bg) !important;color:var(--strong) !important}   /* 現在ホール列：黄地でも文字は最濃色に */
   .sc2 th.cur{background:var(--acc-bg-strong) !important;color:var(--strong) !important}
   .sc2 .adopt{outline:2px solid var(--sub);outline-offset:-2px;font-weight:var(--w-bold);color:var(--strong) !important}
@@ -372,13 +377,13 @@
   .m1-big.n{color:var(--sub)}   /* 未プレー */
   .m1-teamsum{font-size:var(--f-rl-name);font-weight:var(--w-bold);line-height:1.15;text-align:center;margin-top:8px}   /* チーム対抗サマリ行（中央寄せ・§15.3） */
   /* チーム戦・総合カード（team-points.md §6.2①・投影主役）: 名前=--f-rl-name・勝ち点=--f-rl-score（チームカラー＝モック承認）。
-     @media の --f-rl-* 再定義に自動追従（新規トークン/新規 @media なし） */
-  .tp-ov .c-eye{width:40px;padding:2px}
-  .tp-ov .c-pos{width:34px}
-  .tp-ov .nmc{white-space:normal}
-  .tp-ov-nm{font-size:var(--f-rl-name);font-weight:var(--w-bold);line-height:1.15;overflow-wrap:anywhere}
-  .tp-ov .c-val{text-align:right;padding-right:10px}
+     @media の --f-rl-* 再定義に自動追従（新規トークン/新規 @media なし）。
+     2026-08-30 #87 指示④: テーブル型（.tp-ov）→ヒーロー横並び（.tp-ovh）に変更＝旧テーブル用セレクタは撤去 */
   .tp-ov-pt{font-size:var(--f-rl-score);font-weight:var(--w-bold);line-height:1;font-variant-numeric:tabular-nums;white-space:nowrap}
+  /* チーム総合順位 hero（#87 指示④）: .tp-nd 縦積みブロックを左右均等割（2〜5チーム等幅・狭幅は折返し許容） */
+  .tp-ovh-wrap{align-items:flex-start}
+  .tp-ovh{flex:1 1 100px}
+  .tp-ovh .rankno{margin-right:4px}
   /* 種目別勝ち点表（補助・通常サイズ）: 勝ち=緑（win-bg 淡色地＋濃緑文字）・山分け=橙。!important はゼブラ行(.lb tr:nth-child)対策 */
   .tp-mx .tal{text-align:left;white-space:normal;overflow-wrap:anywhere}
   .tp-mx .winc{background:var(--win-bg) !important;font-weight:var(--w-bold);color:var(--win-ink)}
@@ -404,7 +409,7 @@
     #view-result{font-size:15px}
     #view-result .card{padding:16px}
     #view-result .card h2{font-size:19px}
-    #view-result .subtab4 button{font-size:15px;padding:12px 4px}
+    #view-result .subtab4 button{font-size:15px;padding:0 4px}   /* 縦paddingなし＝行高は min-height:--h-tabrow が正（#87 指示⑧） */
     #view-result .lb{font-size:15px}
     #view-result .lb.big{font-size:19px}
     #view-result .lb.big b{font-size:26px}

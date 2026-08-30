@@ -84,15 +84,34 @@ function renderResult(){
 function ruleBox(key){ return `<details class="mt10"><summary>${t('rule.summary')}</summary><div class="in"><div class="rule">${t(key)}</div></div></details>`; }
 
 // 配分タブ
+/* #87 指示⑦: チーム設定のあるゲームでは (a)選手名セルに所属チームの小ラベル（チームカラー・下段併記＝375px でも列幅不変）
+   (b)チーム別合計の別表（行=チーム＋ポイントのある未所属・列=ポイント/配分額の合計・配分額降順）を追加。
+   値は既存 computePayout の個人行の合算のみ＝配点・配分計算には一切触れない。チーム設定なしのゲームは従来表示のまま */
 function renderStanding(g, parts){
   const {pts,payout,total,pool}=computePayout(g);
   const prows=parts.map(pid=>({pid,pt:pts[pid]||0,yen:payout[pid]||0})).sort((a,b)=>b.pt-a.pt);
-  return `<div class="card payoutcard"><h2>${t('standing.title')} ${statusBadge(g)}</h2>
+  const hasTeams=g.teams.length>0;
+  const teamOf=pid=>g.teams.find(T=>T.memberIds.includes(pid))||null;
+  const tmLabel=pid=>{ if(!hasTeams)return''; const T=teamOf(pid);
+    return T?`<span class="pt-team" style="color:${tmColor(T.name)}">${esc(T.name)}</span>`:''; };   // 未所属は表示なし
+  const main=`<div class="card payoutcard"><h2>${t('standing.title')} ${statusBadge(g)}</h2>
     <div class="muted">${t('standing.total',{t:total})}${pool?t('standing.poolNote',{p:pool.toLocaleString()}):t('standing.noPool')}。${revealHoles<18?t('standing.revealNote',{n:revealHoles}):t('standing.autoNote')}</div>
     <table class="lb" class="mt6"><tr><th>${t('col.rank')}</th><th>${t('col.player')}</th><th>${t('col.points')}</th>${pool?`<th>${t('col.payout')}</th>`:''}</tr>
     ${prows.map((r,i)=>{const p=state.players.find(x=>x.id===r.pid);
-      return `<tr class="rank ${i===0&&r.pt>0?'rank1':''}"><td>${r.pt>0?(i+1):'-'}</td><td class="tal">${esc(p.name)}</td><td><b>${r.pt}</b>pt</td>${pool?`<td><b>¥${r.yen.toLocaleString()}</b></td>`:''}</tr>`}).join('')}
+      return `<tr class="rank ${i===0&&r.pt>0?'rank1':''}"><td>${r.pt>0?(i+1):'-'}</td><td class="tal">${esc(p.name)}${tmLabel(r.pid)}</td><td><b>${r.pt}</b>pt</td>${pool?`<td><b>¥${r.yen.toLocaleString()}</b></td>`:''}</tr>`}).join('')}
     </table></div>`;
+  if(!hasTeams) return main;
+  // (b) チーム別合計: 個人行（prows）の合算のみ。未所属はポイント/配分額が付いたときだけ行を出す
+  const agg=new Map();
+  prows.forEach(r=>{ const T=teamOf(r.pid); const k=T?T.id:'_none';
+    if(!agg.has(k)) agg.set(k,{T,pt:0,yen:0}); const a=agg.get(k); a.pt+=r.pt; a.yen+=r.yen; });
+  const trows=[...agg.values()].filter(a=>a.T||a.pt>0||a.yen>0).sort((a,b)=> b.yen-a.yen || b.pt-a.pt);
+  const teamCard=`<div class="card payoutcard"><h2>${t('standing.teamTitle')}</h2>
+    <table class="lb"><tr><th class="tal">${t('col.team')}</th><th>${t('col.points')}</th>${pool?`<th>${t('col.payout')}</th>`:''}</tr>
+    ${trows.map(a=>{ const nm=a.T?`<b style="color:${tmColor(a.T.name)}">${esc(a.T.name)}</b>`:t('standing.noTeam');
+      return `<tr class="rank"><td class="tal">${nm}</td><td><b>${a.pt}</b>pt</td>${pool?`<td><b>¥${a.yen.toLocaleString()}</b></td>`:''}</tr>`; }).join('')}
+    </table></div>`;
+  return main + teamCard;
 }
 
 // 個人戦グループ（§5.1）: key ごとに バナー＋当該順位カード（上）＋共通スコアカード（下）＋当該ルール1行
@@ -107,8 +126,9 @@ function renderIndGame(g, parts, key){
       + `<details class="prize-edit mt10"${pzCfgOpen?' open':''} ontoggle="pzCfgToggle(this.open)"><summary>${t('prize.recTitle')}</summary><div class="in">${renderPrizes(g)}</div></details>`;
   }
   const done=parts.filter(pid=>complete(g,pid)).length;
+  // 順位確定（全員18H済み）のバナーは廃止（2026-08-30 ユーザー指示・#87）。暫定時のみ案内を出す
   const banner = allComplete(g)
-    ? `<div class="card" style="background:var(--win-bg)">${t('ind.finalBanner',{N:parts.length})}</div>`
+    ? ''
     : `<div class="card" style="background:var(--acc-bg)">${t('ind.provBanner',{n:done,N:parts.length,rev:revealHoles<18?t('ind.revealing',{h:revealHoles}):''})}</div>`;
   let card='', rule='';
   if(key==='gross'){ card=rankCardNS(g.womenEvery.enabled?t('result.grossEvery'):t('term.gross'), parts, pid=>effGross(g,pid), 'asc', v=>v, 'gross', null); rule='rule.gross'; }
@@ -128,8 +148,10 @@ function renderIndGame(g, parts, key){
 /* ニアドラのヒーロー表示（§5.1.1 D16〜D18・投影原則 §11.14）:
    ホール番号昇順・NP/DC 混在・区分文字併記。数値階層はルーレットパネルと同型（--f-rl-hole > --f-rl-name）。
    見出しはチップラベル（result.sub.prize=ニアピン／ドラコン）が兼ねるためカード内 h2 なし・
-   伏せ演出の master トグルは結果が先に読めるようカード群の下（幹事操作は控えめ配置 §11.14） */
-function renderPrizeHero(g){
+   伏せ演出の master トグルは結果が先に読めるようカード群の下（幹事操作は控えめ配置 §11.14）。
+   withTeam=true（チーム戦ニアドラタブ・#87 指示⑤）: 勝者の所属チーム名をチームカラーで併記（未所属は表記なし）。
+   伏せ状態 pzMode/pzExcept は個人戦と共有＝どちらのタブで開封しても両方に反映。省略時（個人戦）の出力は従来と同一 */
+function renderPrizeHero(g, withTeam){
   const NP=niapinHolesOf(g), DC=draconHolesOf(g);
   const cells=[...NP.map(h=>({h,kind:'np'})),...DC.map(h=>({h,kind:'dc'}))].sort((a,b)=>a.h-b.h);
   const on = pzMode==='show';
@@ -139,8 +161,12 @@ function renderPrizeHero(g){
     const p = pid ? state.players.find(x=>x.id===pid) : null;
     const top=`<div class="npdc-top"><span class="npdc-hole">${h+1}<small>H</small></span><span class="npdc-kind">${kind==='np'?t('term.niapin'):t('term.dracon')}</span></div>`;
     if(!p) return `<div class="npdc-cell ${kind}" style="cursor:default">${top}<div class="npdc-name empty">—</div></div>`;   // 未登録: 伏せ対象外・タップ無効
-    const nm = pzMasked(h) ? '<span class="mask">？？？</span>' : esc(p.name);
-    return `<div class="npdc-cell ${kind}" onclick="togglePzCell(${h})">${top}<div class="npdc-name">${nm}</div></div>`; };
+    const m=pzMasked(h);
+    const nm = m ? '<span class="mask">？？？</span>' : esc(p.name);
+    let tmRow='';
+    if(withTeam && !m){ const T=(g.teams||[]).find(T=>T.memberIds.includes(p.id));   // 伏せ中はチーム名も出さない（正体が漏れるため）
+      if(T) tmRow=`<div class="npdc-team" style="color:${tmColor(T.name)}">${esc(T.name)}</div>`; }
+    return `<div class="npdc-cell ${kind}" onclick="togglePzCell(${h})">${top}<div class="npdc-name">${nm}</div>${tmRow}</div>`; };
   return `<div class="card"><div class="npdc-hero">${cells.map(cell).join('')}</div>${tools}</div>`;
 }
 
@@ -253,7 +279,9 @@ function renderTeamGame(g, g0, parts, key){
 
 /* ---- チーム総合カード＋種目別勝ち点表（team-points.md §6.2①・投影原則 §11.14）----
    総合順位・勝ち点は calc.js の teamWinPoints(g) だけを正とする（表示側で再計算しない）。
-   大型勝ち点=チームカラー・勝ちセル=緑（値併記）＝モック承認済み。目隠しは tgMode/tgMasked（key='overall'）。 */
+   総合順位はヒーロー型の左右均等横並び（.tp-nd 縦積みブロック共用・2026-08-30 #87 指示④）。
+   大型勝ち点=チームカラー・勝ちセル=緑（値併記）＝モック承認済み。
+   目隠し（eye・master トグル）は総合順位カードから撤去（#87 指示④）。種目別勝ち点表の tgMasked('overall') 参照は現状維持。 */
 function tpFmtWin(v){   // 勝ち点合計の表示（1→"1"・0.5刻み→"2.5"・1/3混じり→小数2桁）
   if(Math.abs(v-Math.round(v))<1e-9) return String(Math.round(v));
   if(Math.abs(v*2-Math.round(v*2))<1e-9) return v.toFixed(1);
@@ -262,6 +290,9 @@ function tpFmtWin(v){   // 勝ち点合計の表示（1→"1"・0.5刻み→"2.5
 function tpShare(n){ return n===1?'1' : n===2?'0.5' : '1/'+n; }   // 種目セルの獲得分（同点山分けは分数表記・小数丸めにしない）
 const TP_EV_LABEL={teamGross:'term.teamGross',teamNet:'term.teamNet',holeByHole:'term.hbh',best2ball:'term.best2',
   roulette:'term.roulette',match1v1:'term.match1v1',vegas:'term.vegas',niadora:'term.niadora'};
+/* 種目別勝ち点表の行順（#87 指示③）＝チーム戦下段タブの生成順（resGameTabs grp='team'・総合を除く）:
+   nd→gross→net→hbh→b2→vegas→m1→roulette。タブ生成順を変えるときは本配列も同期させる */
+const TP_EV_ORDER=['niadora','teamGross','teamNet','holeByHole','best2ball','vegas','match1v1','roulette'];
 function renderTeamOverall(g){
   const {teams,wins,events}=teamWinPoints(g);
   if(!events.length) return '';   // 成立種目0＝総合カード非表示（配分もされない・§3.4）
@@ -269,33 +300,37 @@ function renderTeamOverall(g){
   const rows=teams.map((tm,i)=>({tm,i,v:wins[i]})); rows.sort((a,b)=>b.v-a.v);
   let rank=0,prev=null;
   rows.forEach((r,idx)=>{ if(prev===null||r.v!==prev){rank=idx+1;prev=r.v;} r.rank=rank; r.p=(P.teamRankPts||[])[rank-1]||0; });
-  const on=tgMode.overall==='show';
-  const tools=`<div class="cardtools mt8"><span class="tgl ${on?'on':'off'}" onclick="toggleTgAll('overall')">${on?t('ns.allShow'):t('ns.allHide')}</span></div>`;   // 表の下（追加指示⑪）
-  const body=rows.map(r=>{ const m=tgMasked('overall',r.tm.id); const col=tmColor(r.tm.name);
-    const nm=m?'<span class="mask">？？？</span>':`<span style="color:${col}">${esc(r.tm.name)}</span>`;
-    const tag=m?'':`<div><span class="tag">${t('team.rankTag',{rank:r.rank,p:r.p})}</span></div>`;   // 配分は各員満額（人数割りしない・D4）
-    const pv=m?'<span class="mask">？</span>':`<span class="tp-ov-pt" style="color:${col}">${tpFmtWin(r.v)}</span>`;
-    return `<tr class="rank"><td class="c-eye"><button class="eyebtn ${m?'off':'on'}" onclick="toggleTgRow('overall','${r.tm.id}')">${m?EYEOFF:EYE}</button></td><td class="c-pos">${posBadge(r.rank,r.rank===1)}</td><td class="nmc tp-ov-nm">${nm}${tag}</td><td class="c-val">${pv}</td></tr>`; }).join('');
+  // ヒーロー横並び（#87 指示④）: 順=勝ち点降順（従来の順位順のまま）。目隠しなし・値/順位/配分は不変
+  const hero=rows.map(r=>{ const col=tmColor(r.tm.name);
+    return `<span class="rl-st tp-nd tp-ovh">
+      <span class="rl-st-team" style="color:${col}">${esc(r.tm.name)}</span>
+      <span class="tp-ov-pt" style="color:${col}">${tpFmtWin(r.v)}</span>
+      <span class="tp-nd-tagrow">${posBadge(r.rank,r.rank===1)}<span class="tag">${t('team.rankTag',{rank:r.rank,p:r.p})}</span></span>
+    </span>`; }).join('');   // 配分は各員満額（人数割りしない・D4）
   // 種目別勝ち点表（補助・通常サイズ）: 行=成立種目・列=チーム。勝ち=緑＋値・山分け=橙＋獲得分・負け=空欄・対象外=—
+  // 行順=チーム戦の下段ゲームタブ（resGameTabs 左→右・総合を除く）に一致（2026-08-30 ユーザー指示・#87）。
+  // 表示順のみの並べ替え＝teamWinPoints の値・成立判定は不変。タブに無いキーは末尾（安定ソートで元順維持）
+  const mxEvs=[...events].sort((a,b)=>{ const o=k=>{ const i=TP_EV_ORDER.indexOf(k); return i<0?TP_EV_ORDER.length:i; }; return o(a.key)-o(b.key); });
   const mxHead=`<tr><th class="tal">${t('team.matrixTitle')}</th>${teams.map(tm=>{ const m=tgMasked('overall',tm.id);
     return `<th${m?'':` style="color:${tmColor(tm.name)}"`}>${m?'？？？':esc(tm.name)}</th>`; }).join('')}</tr>`;
-  const mxRows=events.map(ev=>`<tr><td class="tal">${t(TP_EV_LABEL[ev.key]||ev.key)}</td>${teams.map((tm,i)=>{
+  const mxRows=mxEvs.map(ev=>`<tr><td class="tal">${t(TP_EV_LABEL[ev.key]||ev.key)}</td>${teams.map((tm,i)=>{
     if(tgMasked('overall',tm.id)) return '<td><span class="mask">？</span></td>';
     if(ev.vals[i]==null) return '<td><span class="muted">—</span></td>';
     if(ev.winners.includes(i)) return `<td class="${ev.winners.length>1?'rtie':'winc'}"><b>${tpShare(ev.winners.length)}</b></td>`;
     return '<td></td>'; }).join('')}</tr>`).join('');
   return `<div class="card"><h2 class="lbh"><span>${t('team.overallTitle')} ${statusBadge(g)}</span></h2>
-    <table class="lb tp-ov">${body}</table>
+    <div class="rl-standing tp-ovh-wrap">${hero}</div>
     <div class="scroll mt10"><table class="lb tp-mx">${mxHead}${mxRows}</table></div>
     <div class="muted mt6">${t('team.noteOverall')}</div>
     <div class="muted">${t('pts.teamRank')}: ${(P.teamRankPts||[]).join(', ')}</div>
-    ${tools}
   </div>`;
 }
 
 /* ---- チーム戦ニアドラ・ヒーローカード（team-points.md §6.2③）----
    .rl-standing/.rl-st 共用＋縦積みバリアント .tp-nd。本数=niadoraTeamCount（calc と同値保証）・本数降順（同数=登録順の安定ソート）。
-   勝ち点タグ=文字併記（勝者に緑 +1・同数に橙 +0.5/+1/3）＝総合タブの種目別勝ち点表セルと同じ値。master 目隠しのみ（チーム名は出したまま） */
+   勝ち点タグ=文字併記（勝者に緑 +1・同数に橙 +0.5/+1/3）＝総合タブの種目別勝ち点表セルと同じ値。master 目隠しのみ（チーム名は出したまま）。
+   下部にホール別勝者カード群を併設（renderPrizeHero(g,true)＝チーム名併記・#87 指示⑤）。伏せ状態は個人戦ニアドラと共有。
+   勝者登録パネル（prize-edit details）は個人戦側のみ＝ここには置かない（幹事操作の重複配置はしない） */
 function renderTeamNiadora(g){
   const teams=g.teams.filter(t=>t.memberIds.length);
   const {teams:wt,events}=teamWinPoints(g);
@@ -313,9 +348,10 @@ function renderTeamNiadora(g){
     const tag=(!masked&&winIds.includes(tm.id))
       ?`<span class="tp-nd-tagrow"><span class="tag ${ev.winners.length>1?'tagtie':'tagwin'}">${t('team.winpt')} +${tpShare(ev.winners.length)}</span></span>`:'';
     return `<span class="rl-st tp-nd"><span class="rl-st-team" style="color:${col}">${esc(tm.name)}</span><span class="rl-st-h">${num}</span><span class="tp-nd-sub">${sub}</span>${tag}</span>`; }).join('');
+  const holeCards=(niapinHolesOf(g).length||draconHolesOf(g).length)? renderPrizeHero(g,true) : '';   // 対象ホールなしは併設カードも省略
   return `<div class="card"><h2 class="lbh"><span>${t('term.niadora')}</span></h2>
     <div class="rl-standing">${blocks}</div>
-    <div class="muted mt6">${t('team.noteNiadora')}</div>${tools}</div>`;
+    <div class="muted mt6">${t('team.noteNiadora')}</div>${tools}</div>` + holeCards;
 }
 
 /* ---- 1 on 1 マッチプレー タブ（§11.13・docs/handoff/2026-08-20-1on1-match.md §13 が正。一組ずつモードの開封は §14・編集UIの置き場所とサマリ表示は §15 が正）----
@@ -339,7 +375,7 @@ function m1Holes(k,op){ const c=m1Opened.get(k)||0;
 /* §8.3 D15: 返り値 {head, body}。head=チームサマリカード＋共通開封バーカード（.result-sticky 同居＝固定）・body=対戦カード群。
    ガード時（emptyFmt / need2Teams / 組合せなし）は {head:'', body:空状態カード}＝空状態は固定しない。中身/挙動は §13〜§15 のまま不変 */
 function renderMatch1v1Parts(g){
-  const F=chFormats(g);   // αでは match1v1 は一律 false（§11.12 C）
+  const F=chFormats(g);   // チャンネル共通（2026-08-30 α昇格・2026-08-30-m1-alpha.md）
   if(!F.match1v1) return {head:'', body:`<div class="card"><h2>${t('term.match1v1')}</h2><div class="empty">${t('m1.emptyFmt')}</div></div>`};
   const T=m1Teams(g);
   if(T.length!==2) return {head:'', body:`<div class="card"><h2>${t('term.match1v1')}</h2><div class="empty">${t('m1.need2Teams')}</div></div>`};

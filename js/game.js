@@ -30,7 +30,7 @@ function renderGame(){
     ${fchk('holeByHole',t('fmt.hbh'))}${bchk('stableford',t('fmt.stableford'))}
     ${bchk('nassau',t('fmt.nassau'))}${bchk('olympic',t('fmt.olympic'))}
     ${bchk('callaway',t('fmt.callaway'))}${bchk('best2ball',t('fmt.best2'))}
-    ${bchk('vegas',t('fmt.vegas'))}${bchk('match1v1',t('fmt.match1v1'))}
+    ${bchk('vegas',t('fmt.vegas'))}${fchk('match1v1',t('fmt.match1v1'))}
   </div></div>`;
 
   html += `<div class="card"><h2>${t('game.rlCard')}</h2>
