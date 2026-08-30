@@ -7,6 +7,10 @@ let resGrp='ind';                             // 'ind' | 'team' | 'pts'
 let resGame={ ind:'prize', team:'overall' };  // グループ別の選択中ゲームタブ（セッション内は記憶）
 /* ニアドラヒーローの伏せ演出（§5.1.1 D18・nsMode/nsExcept と同型の揮発状態。キー=ホールindex・NP/DC は対象ホールが素で排他） */
 let pzMode='show'; let pzExcept=new Set();
+/* 2026-08-30 指示⑤: 共通スコアカード（renderScorecard）の開閉。ルーレットの rlScOpen と同型の揮発状態
+   （localStorage 非保存・再描画をまたいで維持）。表ごとに独立: 'ind'=個人戦・'team'=チーム別。既定=表示(open) */
+let scOpen={ind:true,team:true};
+function scOpenToggle(k,open){ scOpen[k]=open; }
 function pzMasked(h){ return (pzMode==='hide') !== pzExcept.has(h); }
 function togglePzAll(){ pzMode = pzMode==='show'?'hide':'show'; pzExcept.clear(); renderResult(); }
 function togglePzCell(h){ if(pzExcept.has(h)) pzExcept.delete(h); else pzExcept.add(h); renderResult(); }
@@ -84,21 +88,22 @@ function renderResult(){
 function ruleBox(key){ return `<details class="mt10"><summary>${t('rule.summary')}</summary><div class="in"><div class="rule">${t(key)}</div></div></details>`; }
 
 // 配分タブ
-/* #87 指示⑦: チーム設定のあるゲームでは (a)選手名セルに所属チームの小ラベル（チームカラー・下段併記＝375px でも列幅不変）
+/* #87 指示⑦→2026-08-30 指示③: チーム設定のあるゲームでは (a)選手名の左に「チーム」列（チームカラーでチーム名・未所属は空。
+   選手名下の小ラベル .pt-team は廃止。375px はチーム名 ellipsis＝.pt-tm で5列非破綻）
    (b)チーム別合計の別表（行=チーム＋ポイントのある未所属・列=ポイント/配分額の合計・配分額降順）を追加。
-   値は既存 computePayout の個人行の合算のみ＝配点・配分計算には一切触れない。チーム設定なしのゲームは従来表示のまま */
+   値は既存 computePayout の個人行の合算のみ＝配点・配分計算には一切触れない。チーム設定なしのゲームは従来表示のまま（列ごと出さない） */
 function renderStanding(g, parts){
   const {pts,payout,total,pool}=computePayout(g);
   const prows=parts.map(pid=>({pid,pt:pts[pid]||0,yen:payout[pid]||0})).sort((a,b)=>b.pt-a.pt);
   const hasTeams=g.teams.length>0;
   const teamOf=pid=>g.teams.find(T=>T.memberIds.includes(pid))||null;
-  const tmLabel=pid=>{ if(!hasTeams)return''; const T=teamOf(pid);
-    return T?`<span class="pt-team" style="color:${tmColor(T.name)}">${esc(T.name)}</span>`:''; };   // 未所属は表示なし
+  const tmCell=pid=>{ if(!hasTeams)return''; const T=teamOf(pid);
+    return `<td class="tal">${T?`<span class="pt-tm" style="color:${tmColor(T.name)}">${esc(T.name)}</span>`:''}</td>`; };   // 未所属は空セル。span=auto レイアウト表でも ellipsis を効かせる
   const main=`<div class="card payoutcard"><h2>${t('standing.title')} ${statusBadge(g)}</h2>
     <div class="muted">${t('standing.total',{t:total})}${pool?t('standing.poolNote',{p:pool.toLocaleString()}):t('standing.noPool')}。${revealHoles<18?t('standing.revealNote',{n:revealHoles}):t('standing.autoNote')}</div>
-    <table class="lb" class="mt6"><tr><th>${t('col.rank')}</th><th>${t('col.player')}</th><th>${t('col.points')}</th>${pool?`<th>${t('col.payout')}</th>`:''}</tr>
+    <table class="lb" class="mt6"><tr><th>${t('col.rank')}</th>${hasTeams?`<th class="tal">${t('col.team')}</th>`:''}<th>${t('col.player')}</th><th>${t('col.points')}</th>${pool?`<th>${t('col.payout')}</th>`:''}</tr>
     ${prows.map((r,i)=>{const p=state.players.find(x=>x.id===r.pid);
-      return `<tr class="rank ${i===0&&r.pt>0?'rank1':''}"><td>${r.pt>0?(i+1):'-'}</td><td class="tal">${esc(p.name)}${tmLabel(r.pid)}</td><td><b>${r.pt}</b>pt</td>${pool?`<td><b>¥${r.yen.toLocaleString()}</b></td>`:''}</tr>`}).join('')}
+      return `<tr class="rank ${i===0&&r.pt>0?'rank1':''}"><td>${r.pt>0?(i+1):'-'}</td>${tmCell(r.pid)}<td class="tal">${esc(p.name)}</td><td><b>${r.pt}</b>pt</td>${pool?`<td><b>¥${r.yen.toLocaleString()}</b></td>`:''}</tr>`}).join('')}
     </table></div>`;
   if(!hasTeams) return main;
   // (b) チーム別合計: 個人行（prows）の合算のみ。未所属はポイント/配分額が付いたときだけ行を出す
@@ -229,7 +234,12 @@ function renderScorecard(g, parts, teams){
     body=sortPids(parts, scSortInd).map(pid=>pRow(pid)).join('');
     note=t('sc.noteHidden');
   }
-  return `<div class="card"><h2 class="lbh"><span>${t('sc.title')}${teams?t('sc.teamSuffix'):''} <span class="tag tagtie">${n>=18?t('sc.allHoles'):n+'/18H'}</span></span>
+  /* 指示⑤: カード全体を <details open> 化（rl-sc と同UX）。summary=見出し（既存キー流用）＋開封数タグ。
+     開閉状態は scOpen[okey]（表ごと独立の揮発）。表の内容・並び・印は不変 */
+  const okey=teams?'team':'ind';
+  return `<details class="sc-tgl"${scOpen[okey]?' open':''} ontoggle="scOpenToggle('${okey}',this.open)">
+    <summary>${t('sc.title')}${teams?t('sc.teamSuffix'):''} <span class="tag tagtie">${n>=18?t('sc.allHoles'):n+'/18H'}</span></summary>
+    <div class="in"><h2 class="lbh sc-ctl">
       <span class="scsw-wrap"><span class="scsw-l">${t('sc.sort')}</span>${sortSw}</span>
       <span class="tgl ${show.totals?'on':'off'}" onclick="toggleShow('totals')">${t('sc.totalsTgl')} ${show.totals?t('btn.show'):t('btn.hide')}</span></h2>
     <div class="reveal-bar">
@@ -240,7 +250,7 @@ function renderScorecard(g, parts, teams){
     </div>
     <table class="sc2" class="mt8">${SC_COLGROUP}${head}${parRow}${body}</table>
     <div class="muted" class="mt6">${note} ${t('sc.noteCols')}${n<18?t('sc.noteOpen'):''}</div>
-  </div>`;
+  </div></details>`;
 }
 
 // グロス/ネット専用の順位カード（名前・スコアを表ごと master ＋順位ごとの目隠しボタンで制御。バッジは常時表示）
@@ -327,7 +337,7 @@ function renderTeamOverall(g){
 }
 
 /* ---- チーム戦ニアドラ・ヒーローカード（team-points.md §6.2③）----
-   .rl-standing/.rl-st 共用＋縦積みバリアント .tp-nd。本数=niadoraTeamCount（calc と同値保証）・本数降順（同数=登録順の安定ソート）。
+   .rl-standing/.rl-st 共用＋縦積みバリアント .tp-nd。本数=開封済みホールのみの表示側カウント（全開封で niadoraTeamCount と一致＝calc と同値保証）・本数降順（同数=登録順の安定ソート）。
    勝ち点タグ=文字併記（勝者に緑 +1・同数に橙 +0.5/+1/3）＝総合タブの種目別勝ち点表セルと同じ値。
    ヒーローは常時表示＝目隠しなし（#87 指示⑨で master トグル撤去・総合カード④と同じ扱い）。
    下部にホール別勝者カード群を併設（renderPrizeHero(g,true)＝チーム名併記・#87 指示⑤）。伏せ状態は個人戦ニアドラと共有＝開封演出はこちら側で行う。
@@ -337,13 +347,19 @@ function renderTeamNiadora(g){
   const {teams:wt,events}=teamWinPoints(g);
   const ev=events.find(e=>e.key==='niadora');
   const winIds=ev?ev.winners.map(i=>wt[i].id):[];
-  const npOf=T=>niapinHolesOf(g).filter(h=>{const pid=(g.prizes.niapinWinner||{})[h];return !!pid&&T.memberIds.includes(pid);}).length;
-  const dcOf=T=>draconHolesOf(g).filter(h=>{const pid=(g.prizes.draconWinner||{})[h];return !!pid&&T.memberIds.includes(pid);}).length;
-  const rows=teams.map(tm=>({tm,n:niadoraTeamCount(g,tm),np:npOf(tm),dc:dcOf(tm)})).sort((a,b)=>b.n-a.n);
+  /* 2026-08-30 指示④: ヒーローの本数・NP/DC内訳は下部ホール別カードの「開封済み」ホールのみカウント（表示側フィルタ・
+     開封状態=pzMode/pzExcept は個人戦と共有の揮発）。全ホール開封時は niadoraTeamCount(g,tm) と一致（計算側は不変）。
+     勝ち点タグは全開封時のみ表示＝部分開封中のネタバレ防止（teamWinPoints・種目別勝ち点表は不変） */
+  const opened=h=>!pzMasked(h);
+  const npOf=T=>niapinHolesOf(g).filter(h=>{const pid=(g.prizes.niapinWinner||{})[h];return !!pid&&T.memberIds.includes(pid)&&opened(h);}).length;
+  const dcOf=T=>draconHolesOf(g).filter(h=>{const pid=(g.prizes.draconWinner||{})[h];return !!pid&&T.memberIds.includes(pid)&&opened(h);}).length;
+  const allOpen=[...niapinHolesOf(g).filter(h=>(g.prizes.niapinWinner||{})[h]),
+                 ...draconHolesOf(g).filter(h=>(g.prizes.draconWinner||{})[h])].every(opened);
+  const rows=teams.map(tm=>{const np=npOf(tm),dc=dcOf(tm);return {tm,n:np+dc,np,dc};}).sort((a,b)=>b.n-a.n);   // 並び=現表示値の降順
   const blocks=rows.map(({tm,n,np,dc})=>{
     const col=tmColor(tm.name);
     const sub=`NP ${np} ・ DC ${dc}`;   // NP/DC はリテラル略号（言語非依存）
-    const tag=winIds.includes(tm.id)
+    const tag=(allOpen&&winIds.includes(tm.id))
       ?`<span class="tp-nd-tagrow"><span class="tag ${ev.winners.length>1?'tagtie':'tagwin'}">${t('team.winpt')} +${tpShare(ev.winners.length)}</span></span>`:'';
     return `<span class="rl-st tp-nd"><span class="rl-st-team" style="color:${col}">${esc(tm.name)}</span><span class="rl-st-h">${n}</span><span class="tp-nd-sub">${sub}</span>${tag}</span>`; }).join('');
   const holeCards=(niapinHolesOf(g).length||draconHolesOf(g).length)? renderPrizeHero(g,true) : '';   // 対象ホールなしは併設カードも省略

@@ -80,7 +80,13 @@ const everyLabel=k=> k==='none'?t('every.s.none'):k==='every1'?'E1(−18)':'E2(�
 const EYE='<svg class="ei" viewBox="0 0 24 24"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7z"/><circle cx="12" cy="12" r="3"/></svg>';
 const EYEOFF='<svg class="ei" viewBox="0 0 24 24"><path d="M3 3l18 18M10.6 10.6a3 3 0 004.2 4.2M9.9 5.2A9.7 9.7 0 0112 5c6.5 0 10 7 10 7a17 17 0 01-3.2 3.9M6.1 6.1A17 17 0 002 12s3.5 7 10 7a9.7 9.7 0 003.2-.5"/></svg>';
 const posBadge=(rank,first)=>`<span class="rankno${first?' r1':''}">${rank}</span>`;
-/* チーム名から識別色を引く（値はトークン＝ライト/ダークで自動反転 §11.8）。塗りに使う場合の文字色は var(--bg) */
-function tmColor(name){ return /レッド|赤/.test(name)?'var(--tm-red)':/ブルー|青/.test(name)?'var(--tm-blue)'
-  :/グリーン|緑/.test(name)?'var(--tm-green)':/イエロー|黄/.test(name)?'var(--tm-yellow)':'var(--tm-gray)'; }
+/* チーム識別色（§11.8 トークン＝light/dark 自動反転・2026-08-30-team-colors.md §4）。設定色(team.color)優先・未設定/不正値は名前導出。
+   返り値は 'var(--tm-<key>)' 固定形式（roulette.js rColorBg の '-bg)' 置換が依存・load-bearing）。塗りに使う場合の文字色は var(--bg) */
+const TM_KEYS=['red','blue','green','yellow','gray'];
+function tmKeyByName(name){ return /レッド|赤/.test(name)?'red':/ブルー|青/.test(name)?'blue'
+  :/グリーン|緑/.test(name)?'green':/イエロー|黄/.test(name)?'yellow':'gray'; }
+function tmKey(tm){ return (tm&&TM_KEYS.includes(tm.color))?tm.color:tmKeyByName(tm?tm.name:''); }
+function tmColor(name){ const g=typeof curGame==='function'?curGame():null;
+  const tm=g&&g.teams.find(x=>x.name===name);
+  return `var(--tm-${tm?tmKey(tm):tmKeyByName(name)})`; }
 
