@@ -76,7 +76,7 @@ function renderMatch1v1Parts(g){
   const colA=tmColor(v.A.name), colB=tmColor(v.B.name);
   const cards=pairs.map(([a,b])=>{
     const k=m1Key(a,b);
-    const hero=c=>`<div class="m1-hero"><div class="m1-nm" style="color:${colA}">${nameOf(a)}</div><div>${c}</div><div class="m1-nm" style="color:${colB}">${nameOf(b)}</div></div>`;
+    const hero=c=>`<div class="m1-hero"><div class="m1-nm" style="color:${colA}">${nameOf(a)}</div><div class="m1-mid">${c}</div><div class="m1-nm" style="color:${colB}">${nameOf(b)}</div></div>`;   // 中央要素=.m1-mid（3カラムグリッドの中央固定・#103）
     if(!isOpen(a,b))   // 伏せ状態（一組ずつ・未オープン §13.2）: 名前は見える・結果とホール表は隠す
       return `<div class="card">${hero(`<button class="btn gold" onclick="m1OpenCard('${k}')">${t('m1.open')}</button>`)}</div>`;
     const c=one? (m1Opened.get(k)||0) : 18;      // 一組ずつ=組ローカル開封数（オープン直後0）

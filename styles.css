@@ -384,10 +384,15 @@
   .sc2 .rwin{background:var(--win-bg-strong) !important;font-weight:var(--w-bold);color:var(--win-ink) !important}   /* 勝ち：濃緑文字で高コントラスト */
   .sc2 .rtie{background:var(--tie-bg) !important;font-weight:var(--w-bold);color:var(--tie-ink) !important}   /* 引分：濃橙文字 */
   .rlsc td.nm,.rlsc th.nm{width:72px}
-  /* 1 on 1 大型UP表示（投影原則 §11.14 適用第1号・§13.3。中央寄せは §14.3・UP縮小/サマリは §15.3）。--f-rl-* の @media 再定義に自動追従 */
-  .m1-hero{display:flex;justify-content:center;align-items:center;flex-wrap:wrap;
-    column-gap:clamp(12px,4vw,48px);row-gap:4px;text-align:center;margin:4px 0 8px}
-  .m1-nm{font-size:var(--f-rl-name);font-weight:var(--w-bold);line-height:1.15;overflow-wrap:anywhere;max-width:38%}
+  /* 1 on 1 大型UP表示（投影原則 §11.14 適用第1号・§13.3。中央寄せは §14.3・UP縮小/サマリは §15.3）。--f-rl-* の @media 再定義に自動追従。
+     #103: 3カラムグリッド（1fr auto 1fr）＝中央要素（オープンボタン/UP表示）が名前の長さに関係なく常にカード左右中央。
+     左名=右揃え・右名=左揃えでボタンを挟んで対称。長い名前は minmax(0,1fr)＋overflow-wrap で列内折返し（375px 非破綻） */
+  .m1-hero{display:grid;grid-template-columns:minmax(0,1fr) auto minmax(0,1fr);align-items:center;
+    column-gap:clamp(12px,4vw,48px);text-align:center;margin:4px 0 8px}
+  .m1-mid{min-width:0;text-align:center}
+  .m1-nm{font-size:var(--f-rl-name);font-weight:var(--w-bold);line-height:1.15;overflow-wrap:anywhere;min-width:0}
+  .m1-nm:first-child{justify-self:end;text-align:right}
+  .m1-nm:last-child{justify-self:start;text-align:left}
   .m1-big{font-size:var(--f-rl-name);font-weight:var(--w-bold);line-height:1;font-variant-numeric:tabular-nums;white-space:nowrap}   /* 選手名と同サイズ（§15.3） */
   .m1-big.w{color:var(--win)}   /* 勝ち=緑（矢印がリード側を指す＝文字併記） */
   .m1-big.d{color:var(--tie)}   /* AS=橙 */
@@ -407,10 +412,12 @@
   .tp-mx .rtie{background:var(--tie-bg) !important;font-weight:var(--w-bold);color:var(--tie-ink)}
   /* 種目別勝ち点表の大型化（投影 §11.14・2026-08-30 winpoints-reveal §13.6）: 値=--f-rl-name 級・ヘッダ/種目ラベル=0.6倍。
      @media の --f-rl-name 再定義（30→40/44/48px）に自動追従＝新規トークン/新規 @media なし。
-     th の white-space:normal＋overflow-wrap で長いチーム名は列内折返し（列幅を膨らませない） */
-  .tp-mx td{font-size:var(--f-rl-name);font-weight:var(--w-bold);line-height:1.15;padding:4px 10px}
-  .tp-mx th{font-size:calc(var(--f-rl-name)*.6);line-height:1.15;white-space:normal;overflow-wrap:anywhere}
-  .tp-mx td.tal{font-size:calc(var(--f-rl-name)*.6);line-height:1.2}
+     th の white-space:normal＋overflow-wrap で長いチーム名は列内折返し（列幅を膨らませない）。
+     行高は数字にフィット（#103 ユーザー指摘「スクロールが無駄」）: 値セル line-height:1＋上下padding 2px・
+     ヘッダ/種目ラベルも line-height:1.1＋上下padding 3px に圧縮＝縦の間延びを解消 */
+  .tp-mx td{font-size:var(--f-rl-name);font-weight:var(--w-bold);line-height:1;padding:2px 10px}
+  .tp-mx th{font-size:calc(var(--f-rl-name)*.6);line-height:1.1;padding:3px 6px;white-space:normal;overflow-wrap:anywhere}
+  .tp-mx td.tal{font-size:calc(var(--f-rl-name)*.6);line-height:1.1}
   /* 勝ち点タグ（緑・文字併記 §11.14-2）: 文字=win-ink/背景=win-bg＝濃色ベタ塗りなし。引分は既存 .tagtie */
   .tagwin{background:var(--win-bg);color:var(--win-ink)}
   /* チーム戦ニアドラ hero（team-points.md §6.2③）: .rl-st の縦積みバリアント＝名前・本数・内訳が離れず1ブロックで折返す */
