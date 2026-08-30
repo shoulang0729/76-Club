@@ -267,3 +267,11 @@ function tpAnnounceUI(g,key){ const on=!!(g.announced||{})[key];
 ### 11.3 前後比較（追加例）
 - 例E: formats.roulette ON・cur=0・他種目未発表 → 従来: events にルーレット行なし・「発表 0/2」等 → 追補後: ルーレット行が「未確定」で表示・「発表 0/3」。勝ち点・配分は不変（0のまま）。
 - 例F: cur=0 でルーレットの連携ボタン → ルーレット on（standings 全0 の同点山分けが全チームに入る点は仕様どおり＝幹事が押さなければ発生しない）。
+
+## 12. 追補（2026-08-30・バッチ95 追加指示5・ユーザー確定）
+
+- **formats 新キー2つ**（§4 追補・既定 true・migrate per-key バックフィル＝roulette と同型・localStorage 新キーなし）:
+  - `formats.niadoraInd`: OFF で結果発表＞個人戦＞ニアドラタブ（prize）を非表示（表示ゲートのみ。個人賞の配点・データは不変）。計算非干渉。
+  - `formats.niadoraTeam`: OFF でチーム戦＞ニアドラタブ非表示＋ teamWinPoints の niadora 種目を不成立に（F.roulette ゲートと同型）。データ保持・ON 復帰で復元。「連携 n/N」の N は成立種目数なので自動減。
+- **「集計する競技」のグループ整列**: 個人戦/チーム戦の小見出し2グループ（既存キー流用）・順序=各タブ順（個人: gross→net→niadoraInd→β4種／チーム: niadoraTeam→teamGross→teamNet→hbh→best2(β)→vegas(β)→m1→roulette）。
+- i18n: `fmt.niadoraInd`/`fmt.niadoraTeam` ×ja/zh/en 追加。
