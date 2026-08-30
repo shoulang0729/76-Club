@@ -1027,3 +1027,10 @@ m1Result(g,A,B):    upA/upB/half/played を集計。diff = upA − upB（0 か�
 **§4 追補（後方互換・既定マージで補完）**:
 - `game.points.teamRankPts`: number[]（既定 `[10,5]`・defaultPoints 追加＝既存ゲームは state.js の既定マージで自動補完）。
 - `points.teamGross/teamNet/holeByHole/best2ball/roulette` は**廃止フィールド**（defaultPoints から削除・既存データは残置・非参照。`prizes.niapinHoles` と同じパターン）。localStorage キー・formats キー集合・prizes 構造は不変（ニアドラ種目に新トグルは設けない）。
+
+### 11.16 次回幹事バッジのオプション化【確定・2026-08-30 ユーザー回答反映・§4/§10.6 追補】
+設計詳細は `docs/handoff/2026-08-29-host-option.md`（改稿版）が正。要点のみ:
+- §10.6 の次回幹事バッジ（ネット2位＋ブービー）を**ゲームごとの設定でON/OFF**にする。**既定=OFF（非表示）**＝既存ゲームもバッジが出なくなる（ユーザー了承済みの挙動変化）。ONで現行表示（バッジ・ハイライト・kanjiExempt 除外繰り下げ）をそのまま復元。
+- **§4 追補**: `game.kanjiBadge`: `boolean`（既定 `false`）。newGame に追加・migrate で undefined→false バックフィル。localStorage は `golfCompe_v1` のまま**新キーなし**。
+- `nextKanji(g)` の判定式（§10.6）は不変。OFF はネットタブ描画時に nextKanji を**呼ばない**だけ（配点 computePoints/computePayout に次回幹事は元々非関与＝§3 非接触）。
+- 設定UI: ゲーム設定タブ（js/game.js）・エブリカード直後に「次回幹事」カード（チェックボックス1行）。i18n 追加キー `game.kanjiCard/kanjiTgl/kanjiNote`（ja/zh/en）。
