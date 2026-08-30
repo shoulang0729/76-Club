@@ -82,7 +82,9 @@ const EYEOFF='<svg class="ei" viewBox="0 0 24 24"><path d="M3 3l18 18M10.6 10.6a
 const posBadge=(rank,first)=>`<span class="rankno${first?' r1':''}">${rank}</span>`;
 /* チーム識別色（§11.8 トークン＝light/dark 自動反転・2026-08-30-team-colors.md §4）。設定色(team.color)優先・未設定/不正値は名前導出。
    返り値は 'var(--tm-<key>)' 固定形式（roulette.js rColorBg の '-bg)' 置換が依存・load-bearing）。塗りに使う場合の文字色は var(--bg) */
-const TM_KEYS=['red','blue','green','yellow','gray'];
+/* TM_KEYS＝スウォッチ表示順かつ自動割当順の単一ソース（team-colors §13.3。gray=最後＝自動割当の最終候補）。
+   tmKeyByName の正規表現は5色のまま拡張しない（既存データの現状表示維持・team-colors §13.3） */
+const TM_KEYS=['red','blue','green','yellow','purple','orange','teal','pink','lime','gray'];
 function tmKeyByName(name){ return /レッド|赤/.test(name)?'red':/ブルー|青/.test(name)?'blue'
   :/グリーン|緑/.test(name)?'green':/イエロー|黄/.test(name)?'yellow':'gray'; }
 function tmKey(tm){ return (tm&&TM_KEYS.includes(tm.color))?tm.color:tmKeyByName(tm?tm.name:''); }
