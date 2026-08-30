@@ -426,6 +426,17 @@
   .tp-nd-sub{font-size:13px;color:var(--sub);font-weight:var(--w-bold);margin-top:2px}
   .tp-nd-tagrow{margin-top:4px}
   .tp-nd-tagrow .tag{margin-left:0}
+  /* 大学対抗（univ-match §6.2・モック承認 2026-08-30）: ヒーローは .rl-st/.tp-nd/.tp-ovh を全面流用＝新規なし。
+     エブリ適用中タグ=アクセント淡地（濃色ベタ塗りなし）。明細表の決着セル=winc 緑（.tp-mx と同パターン・!important はゼブラ対策）。
+     メンバー表の対象者=枠（機能色「採用=枠」・青枠＋「対象」文字併記で色のみに依存しない）・対象外/未使用段=muted */
+  .uv-tagev{background:var(--acc-bg);color:var(--acc-ink)}
+  .uv-tb .winc{background:var(--win-bg) !important;font-weight:var(--w-bold);color:var(--win-ink)}
+  .uv-tb tr.uv-off td,.uv-mem tr.uv-off td{color:var(--sub)}
+  .uv-h3{font-size:var(--f-title);letter-spacing:0}
+  .uv-mem tr.uv-tgt td{border-top:1.5px solid var(--pri);border-bottom:1.5px solid var(--pri)}
+  .uv-mem tr.uv-tgt td:first-child{border-left:1.5px solid var(--pri)}
+  .uv-mem tr.uv-tgt td:last-child{border-right:1.5px solid var(--pri)}
+  .uv-tagsel{background:var(--info-bg);color:var(--pri)}
   @media(min-width:820px){
     :root{--f-rl-hole:66px;--f-rl-name:40px;--f-rl-score:64px}
     .rlwrap{max-width:900px;margin:0 auto}

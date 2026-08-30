@@ -12,6 +12,10 @@ function renderTeamGame(g, g0, parts, key){
      （総合タブに開封バーは無く復旧不能）だった。勝ち点・種目別勝ち点表は announced（連携）ゲートで既に守られている
      ＝未連携行は？マスクのままなのでネタバレなし。他タブ（gross/net/hbh 等）の viewGame マスクは意図どおり不変 */
   if(key==='overall') return renderTeamOverall(g0);
+  /* 大学対抗も g0（総合と同じ #98 前例・univ-match PR#2）: revealHoles 既定0のリロード直後はマスク済み g だと
+     uvMembers（entered 判定）が全滅→対象校0で必ず空。大学対抗タブには開封バーが無い（sc() 非併設＝設計 §6.2）ため
+     総合タブと同じ「復旧不能の空」になる。順位バッジ・勝ち点タグは announced.univMatch ゲートで保護済み */
+  if(key==='univ')  return renderTeamUniv(g0);
   if(key==='nd')    return renderTeamNiadora(g);
   if(key==='gross') return `<div class="rank-wrap">${renderTeams(g,'teamGross')}</div>` + sc();
   if(key==='net')   return `<div class="rank-wrap">${renderTeams(g,'teamNet')}</div>` + sc();
@@ -59,11 +63,11 @@ function setTeamEventPts(key,v){ const g=curGame(); if(!g)return;
    pzCfgOpen と同方式＝揮発の表示状態・localStorage に保存しない（既定=閉・リロードで閉に戻る） */
 let tpEvPtsOpen=false;
 function tpEvPtsToggle(open){ tpEvPtsOpen=open; }
-const TP_EV_LABEL={teamGross:'term.teamGross',teamNet:'term.teamNet',holeByHole:'term.hbh',best2ball:'term.best2',
+const TP_EV_LABEL={teamGross:'term.teamGross',teamNet:'term.teamNet',univMatch:'term.univ',holeByHole:'term.hbh',best2ball:'term.best2',
   roulette:'term.roulette',match1v1:'term.match1v1',vegas:'term.vegas',niadora:'term.niadora'};
 /* 種目別勝ち点表の行順（#87 指示③）＝チーム戦下段タブの生成順（resGameTabs grp='team'・総合を除く）:
-   nd→gross→net→hbh→b2→vegas→m1→roulette。タブ生成順を変えるときは本配列も同期させる */
-const TP_EV_ORDER=['niadora','teamGross','teamNet','holeByHole','best2ball','vegas','match1v1','roulette'];
+   nd→gross→net→univ→hbh→b2→vegas→m1→roulette。タブ生成順を変えるときは本配列も同期させる */
+const TP_EV_ORDER=['niadora','teamGross','teamNet','univMatch','holeByHole','best2ball','vegas','match1v1','roulette'];
 function renderTeamOverall(g){
   const {teams,wins,events}=teamWinPoints(g);
   if(!events.length) return '';   // 成立種目0＝総合カード非表示（配分もされない・§3.4）
@@ -148,5 +152,64 @@ function renderTeamNiadora(g){
     <div class="rl-standing">${blocks}</div>
     <div class="muted mt6">${t('team.noteNiadora')}</div>
     <div class="cardtools mt8">${tpAnnounceUI(g,'niadora')}</div></div>` + holeCards + editPanel;
+}
+
+/* ---- 大学対抗タブ（univMatch・docs/handoff/2026-08-30-univ-match.md §6.2・投影原則 §11.14・モック承認 2026-08-30）----
+   計算・表示は g0 基準（renderTeamGame 側コメント＝総合タブ #98 前例）。値の正は calc.js の uvStanding/teamWinPoints（表示側で再計算しない）。
+   ①学校ヒーロー（.rl-st.tp-nd 共用・r4 順位順で1位が左・校名=チームカラー --f-rl-name・平均ネット=--f-rl-score）
+   ②タイブレーク明細表（4段・決着した段の1位セル=winc 緑・決着後の段は—/muted）
+   ③学校別メンバー表（ネット順・対象者=枠＋「対象」文字併記＝色のみに依存しない・対象外=muted）。
+   順位バッジ・勝ち点タグは連携（announced.univMatch）後のみ。表示は平均系 toFixed(2)/個人ネット 0.1桁。
+   大学対抗固有の進行状態は持たない（揮発変数も localStorage 保存もなし・§6.2） */
+function renderTeamUniv(g){
+  const uv=uvStanding(g);
+  const ann=!!(g.announced||{}).univMatch;
+  const evTag=(g.univ&&g.univ.every)?`<span class="tag uv-tagev">${t('univ.everyOn')}</span>`:'';   // ON時のみ（OFF=規定準拠が無印・§7）
+  const head=`<h2>${t('term.univ')}${evTag}${tpAnnounceUI(g,'univMatch')}</h2>`;
+  if(!uv.rows.length)   // 対象校0（スコア未入力等）＝集計ルールを案内（チームなしは renderTeamGame 冒頭の team.emptyTeams）
+    return `<div class="card">${head}<div class="empty">${t('univ.note')}</div></div>`;
+  const {teams:wt,events}=teamWinPoints(g);
+  const ev=events.find(e=>e.key==='univMatch');
+  const winIds=ev?ev.winners.map(i=>wt[i].id):[];
+  const f2=v=>v.toFixed(2);
+  // 決着段（§4.3 辞書式・§6.2「決着した段を緑」）: 1位と同値の集合を段ごとに絞り、1校に定まった段=決着。
+  // 4段すべて同値の同率1位が残る場合は決着なし（dstage=-1・全段表示＝勝ち点は山分け）
+  let cont=uv.rows, dstage=-1;
+  for(let i=0;i<4;i++){ const nxt=cont.filter(r=>r.r4[i]===cont[0].r4[i]); if(nxt.length===1){ dstage=i; break; } cont=nxt; }
+  const hero=uv.rows.map(r=>{ const col=tmColor(r.t.name);
+    const tag=(ann&&ev&&winIds.includes(r.t.id))
+      ?`<span class="tag ${ev.winners.length>1?'tagtie':'tagwin'}">${t('team.winpt')} +${tpShare(ev.w,ev.winners.length)}</span>`:'';
+    return `<span class="rl-st tp-nd tp-ovh">
+      <span class="rl-st-team" style="color:${col}">${esc(r.t.name)}</span>
+      <span class="rl-st-h">${f2(r.r4[0])}</span>
+      <span class="tp-nd-sub">${t('univ.selOf',{n:r.N,p:r.P})} ・ G ${f2(r.r4[1])}</span>
+      ${ann?`<span class="tp-nd-tagrow">${posBadge(r.rank,r.rank===1)}${tag}</span>`:''}
+    </span>`; }).join('');
+  // タイブレーク明細表（通常サイズ .lb・列=校は r4 順位順）。G は言語非依存のリテラル略号（NP/DC と同じ扱い）
+  const tbLabels=['univ.avgNetSel','univ.avgGrossSel','univ.avgNetAll','univ.avgGrossAll'];
+  const tbHead=`<tr><th class="tal"></th>${uv.rows.map(r=>`<th style="color:${tmColor(r.t.name)}">${esc(r.t.name)}</th>`).join('')}</tr>`;
+  const tbRows=tbLabels.map((k,i)=>{
+    const off=dstage>=0&&i>dstage;   // 決着後の段=未使用（—・muted）
+    const cells=uv.rows.map(r=> off?`<td><span class="muted">—</span></td>`
+      :`<td${(i===dstage&&r.rank===1)?' class="winc"':''}>${f2(r.r4[i])}</td>`).join('');
+    return `<tr${off?' class="uv-off"':''}><td class="tal">${'①②③④'[i]} ${t(k)}</td>${cells}</tr>`; }).join('');
+  const card1=`<div class="card">${head}
+    <div class="rl-standing tp-ovh-wrap">${hero}</div>
+    <div class="scroll mt10"><table class="lb uv-tb">${tbHead}${tbRows}</table></div>
+    <div class="muted mt6">${t('univ.note')}</div>
+    <div class="muted">${t('univ.calcNote')}</div></div>`;
+  // 学校別メンバー表（1カード内に校ごと1表・ネット順＝uvStanding.members の順序キーそのまま）。
+  // 対象者=uv-tgt 枠（採用=枠）＋「対象」タグ＋●・NET太字（モック準拠）。対象外=uv-off（muted）
+  const memTables=uv.rows.map(r=>{ const col=tmColor(r.t.name);
+    const trs=r.members.map((pid,i)=>{ const p=state.players.find(x=>x.id===pid);
+      const inSel=r.sel.includes(pid);
+      const net=uvNetA(g,pid).toFixed(1);
+      return `<tr class="${inSel?'uv-tgt':'uv-off'}"><td>${i+1}</td>
+        <td class="tal">${esc(p?p.name:'?')}${inSel?`<span class="tag uv-tagsel">${t('univ.selMark')}</span>`:''}</td>
+        <td>${uvGrossA(g,pid)}</td><td>${inSel?`<b>${net}</b>`:net}</td><td>${inSel?'●':''}</td></tr>`; }).join('');
+    return `<h3 class="uv-h3" style="color:${col}">${esc(r.t.name)} <span class="tag">${t('univ.selOf',{n:r.N,p:r.P})}</span></h3>
+      <div class="scroll"><table class="lb uv-mem"><tr><th>#</th><th class="tal">${t('col.player')}</th><th>G</th><th>NET</th><th>${t('univ.selMark')}</th></tr>${trs}</table></div>`; }).join('');
+  const card2=`<div class="card"><h2>${t('univ.memTitle')}</h2>${memTables}</div>`;
+  return card1 + card2 + ruleBox('rule.univ');
 }
 
