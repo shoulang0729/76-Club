@@ -294,7 +294,9 @@
   h2.lbh>span:first-child{flex:0 0 auto}
   /* 共通スコアカードの details 化（2026-08-30 指示⑤）: 操作行（並べ替え/合計値トグル）は summary 外の h2 だが
      .card 外なので余白・フォントだけ整える（下罫線なし・タイトルは summary 側） */
-  .sc-tgl .sc-ctl{margin:2px 0 4px;font-size:var(--f-body)}
+  /* スコア表の操作行（開封バー＋並び＋合計値）を1行に。狭幅は wrap で折り返し（2026-08-30 指示） */
+  .sc-tgl .sc-ctl{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin:2px 0 6px;font-size:var(--f-body)}
+  .sc-tgl .sc-ctl .reveal-bar{margin-top:0}
   .lbnote{font-size:var(--f-small);font-weight:var(--w-bold);color:var(--sub);overflow:hidden;text-overflow:ellipsis;min-width:0;white-space:nowrap}
   /* score card (共通スコア表) */
   .sc2{table-layout:fixed;width:100%;font-size:12px;border-collapse:collapse}

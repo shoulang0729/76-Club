@@ -189,9 +189,10 @@ function renderTeamUniv(g){
       ${ann?`<span class="tp-nd-tagrow">${posBadge(r.rank,r.rank===1)}${tag}</span>`:''}
     </span>`; }).join('');
   // タイブレーク明細表（通常サイズ .lb・列=校は r4 順位順）。G は言語非依存のリテラル略号（NP/DC と同じ扱い）
-  const tbLabels=['univ.avgNetSel','univ.avgGrossSel','univ.avgNetAll','univ.avgGrossAll'];
+  // ③④（全員平均）は 2026-08-30 指示で表示から削除（判定＝dstage の算出には引き続き r4 の4段すべてを使う）
+  const tbLabels=['univ.avgNetSel','univ.avgGrossSel'];
   const tbHead=`<tr><th class="tal"></th>${uv.rows.map(r=>`<th style="color:${tmColor(r.t.name)}">${esc(r.t.name)}</th>`).join('')}</tr>`;
-  // §14.3: ①〜④すべて常に数値表示（決着後の段も参考値として見せる）。決着段の1位セルだけ winc 緑＝どの段で決まったかを示す
+  // §14.7: 表示は①②のみ（③④は非表示）。決着段が①②のときだけ1位セルを winc 緑にする
   const tbRows=tbLabels.map((k,i)=>{
     const cells=uv.rows.map(r=>`<td${(i===dstage&&r.rank===1)?' class="winc"':''}>${f2(r.r4[i])}</td>`).join('');
     return `<tr><td class="tal">${'①②③④'[i]} ${t(k)}</td>${cells}</tr>`; }).join('');

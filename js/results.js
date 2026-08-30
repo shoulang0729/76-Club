@@ -240,14 +240,18 @@ function renderScorecard(g, parts, teams, uvSel){
   const okey=teams?'team':'ind';
   return `<details class="sc-tgl"${scOpen[okey]?' open':''} ontoggle="scOpenToggle('${okey}',this.open)">
     <summary>${t('sc.title')}${teams?t('sc.teamSuffix'):''} <span class="tag tagtie">${n>=18?t('sc.allHoles'):n+'/18H'}</span></summary>
-    <div class="in"><h2 class="lbh sc-ctl">
+    <div class="in">
+    <!-- 縦スペース節約（2026-08-30 指示）: 開封バーと 並び/合計値 を1行に統合。
+         狭幅では flex-wrap で従来どおり2段に折り返す。ボタン・トグルの機能と順序は不変 -->
+    <div class="sc-ctl">
+      <div class="reveal-bar">
+        <button class="btn gray sm" onclick="resetHoles()" ${n<=0?'disabled':''}>${t('btn.reset')}</button>
+        <button class="btn gray sm" onclick="closeHole()" ${n<=0?'disabled':''}>${t('sc.prev')}</button>
+        <button class="btn gold sm" onclick="openNextHole()" ${n>=18?'disabled':''}>${t('sc.next')}</button>
+        <button class="btn gray sm" onclick="openAllHoles()" ${n>=18?'disabled':''}>${t('btn.all')}</button>
+      </div>
       <span class="scsw-wrap"><span class="scsw-l">${t('sc.sort')}</span>${sortSw}</span>
-      <span class="tgl ${show.totals?'on':'off'}" onclick="toggleShow('totals')">${t('sc.totalsTgl')} ${show.totals?t('btn.show'):t('btn.hide')}</span></h2>
-    <div class="reveal-bar">
-      <button class="btn gray sm" onclick="resetHoles()" ${n<=0?'disabled':''}>${t('btn.reset')}</button>
-      <button class="btn gray sm" onclick="closeHole()" ${n<=0?'disabled':''}>${t('sc.prev')}</button>
-      <button class="btn gold sm" onclick="openNextHole()" ${n>=18?'disabled':''}>${t('sc.next')}</button>
-      <button class="btn gray sm" onclick="openAllHoles()" ${n>=18?'disabled':''}>${t('btn.all')}</button>
+      <span class="tgl ${show.totals?'on':'off'}" onclick="toggleShow('totals')">${t('sc.totalsTgl')} ${show.totals?t('btn.show'):t('btn.hide')}</span>
     </div>
     <table class="sc2${uvSel?' uvsc':''}">${SC_COLGROUP}${head}${parRow}${body}</table>
     <div class="muted">${note} ${t('sc.noteCols')}${n<18?t('sc.noteOpen'):''}</div>
