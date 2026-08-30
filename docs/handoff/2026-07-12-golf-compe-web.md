@@ -1050,3 +1050,9 @@ m1Result(g,A,B):    upA/upB/half/played を集計。diff = upA − upB（0 か�
 ### §11.19 種目別勝ち点の重み設定（2026-08-30・event-weights）
 
 **§4 追補**: `points.teamEventPts`（種目キー8つ→0以上の整数・既定全1）を追加。チーム種目の勝ち点は「勝者に weight（同点は weight/n 山分け）」に一般化（既定全1で従来の勝ち点1と完全一致・migrate per-key バックフィル）。設定UIは結果発表＞チーム戦＞総合の折りたたみ。詳細 `docs/handoff/2026-08-30-winpoints-reveal.md` §13。
+
+
+### §11.20 大学対抗（univMatch）【確定・2026-08-30・§3/§4 追補】
+**詳細設計の正**: `docs/handoff/2026-08-30-univ-match.md`。
+**§3 追補（新規純関数のみ・既存計算は不変）**: `uvTargetN(P)=P<=0?0:min(P,round(5+(P−5)×0.5))`（四捨五入・N は参加者数を超えない）。対象者=ネット昇順N名（同ネットはグロス→登録順）。成績=対象者平均ネット→対象者平均グロス→全員平均ネット→全員平均グロスの4段辞書式（すべて平均・Q4）。ネット定義は**独立計算**（Wパーカット・HDCP上限 男36/女40・係数0.8固定・periaCoef/periaCap 非連動。上限判定は既存 `player.gender`）。**エブリ適用オプション `g.univ.every`（既定 OFF）**: ON 時は §11.12 H と同順（エブリ先・各ホール −1/−2 → その値で Wパーカット・隠し集計）。勝ち点種目 `univMatch` として teamWinPoints に追加（vals=順位・asc）。
+**§4 追補（後方互換・migrate 補完）**: `formats.univMatch`: bool（既定 false・β=BETA_FMT 追加）／`game.univ`: `{ every:false }`（bool・エブリ適用オプション）／`points.teamEventPts.univMatch`: 1（per-key バックフィルで自動補完）／`announced.univMatch`（object キー追加のみ・スキーマ変更なし）。localStorage キー・既存フィールド・**players スキーマは不変**（`player.gender` は既存を参照）。
