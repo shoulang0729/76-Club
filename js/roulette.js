@@ -231,7 +231,8 @@ function renderTeams(g, only){
   // master トグルは表の下（結果が先・操作が後＝追加指示⑪・§11.14 幹事操作は控えめ配置）
   const card=(key,title,valFn,dir,note)=>{ const rows=teams.map(t=>({t,v:valFn(t)})).sort((a,b)=> dir==='desc'? b.v-a.v : a.v-b.v);
     const on = tgMode[key]==='show';
-    const tools=`<div class="cardtools mt8"><span class="tgl ${on?'on':'off'}" onclick="toggleTgAll('${key}')">${on?t('ns.allShow'):t('ns.allHide')}</span></div>`;
+    // 発表ボタン（winpoints-reveal §5.2・card の key と種目 key は一致）: 目隠しトグルと同列の控えめ配置（§11.14）
+    const tools=`<div class="cardtools mt8"><span class="tgl ${on?'on':'off'}" onclick="toggleTgAll('${key}')">${on?t('ns.allShow'):t('ns.allHide')}</span>${tpAnnounceUI(g,key)}</div>`;
     return `<div class="card tight"><h2>${title}</h2>${note?`<div class="muted" style="margin-bottom:4px">${note}</div>`:''}<table class="lb"><tr><th class="c-eye"></th><th class="c-pos">${t('col.rank')}</th><th>${t('col.team')}</th><th class="c-val">${dir==='desc'?'H':t('col.total')}</th></tr>
       ${rows.map((r,i)=>{ const m=tgMasked(key,r.t.id);
         const nm = m ? '<span class="mask">？？？</span>' : esc(r.t.name);
@@ -247,7 +248,7 @@ function renderTeams(g, only){
     if(vs.teams.length<2){ out+=`<div class="card tight"><h2>${t('term.vegas')}</h2><div class="muted">${t('vegas.needTeams')}</div></div>`; }
     else{ const rows=vs.teams.map((T,i)=>({t:T,v:vs.tot[i]})).sort((a,b)=>b.v-a.v);
       const on = tgMode.vegas==='show';
-      const tools=`<div class="cardtools mt8"><span class="tgl ${on?'on':'off'}" onclick="toggleTgAll('vegas')">${on?t('ns.allShow'):t('ns.allHide')}</span></div>`;
+      const tools=`<div class="cardtools mt8"><span class="tgl ${on?'on':'off'}" onclick="toggleTgAll('vegas')">${on?t('ns.allShow'):t('ns.allHide')}</span>${tpAnnounceUI(g,'vegas')}</div>`;
       out+=`<div class="card tight"><h2>${t('term.vegas')}</h2><table class="lb"><tr><th class="c-eye"></th><th class="c-pos">${t('col.rank')}</th><th>${t('col.team')}</th><th class="c-val">${t('vegas.total')}</th></tr>
         ${rows.map((r,i)=>{ const m=tgMasked('vegas',r.t.id);
           const nm = m ? '<span class="mask">？？？</span>' : esc(r.t.name);

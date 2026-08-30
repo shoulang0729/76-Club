@@ -150,8 +150,10 @@ function vegasHoleWins(g){ const teams=g.teams.filter(T=>vegasPair(g,T));   // �
       if(n!=null){ if(n>0)wins[a]++; else if(n<0)wins[b]++; } }   // 0（フリップ後も同数字）・null（未入力）は加算なし
   return {teams,wins};
 }
-/* §3.1〜3.2 種目別勝ち点。teams=順位対象チーム（メンバー1人以上かつ1H以上入力済み）。
-   返り値 { teams, wins:number[], events:[{key,winners:int[],vals:(number|null)[]}] }（表示側 §6 と共用の正）。
+/* §3.1〜3.2 種目別勝ち点（＋2026-08-30-winpoints-reveal.md §3 の部分上書き＝発表後反映）。
+   teams=順位対象チーム（メンバー1人以上かつ1H以上入力済み）。
+   返り値 { teams, wins:number[], events:[{key,winners:int[],vals:(number|null)[],on:bool}] }（表示側 §6 と共用の正）。
+   wins は確定(on)種目のみの合計。未確定種目の winners/vals も従来どおり計算して返す（表示はマスク・発表の瞬間に正が既にある状態を保つ）。
    rlStandings/holesWon/vegasHoleWins は独自に g.teams をフィルタするため index 前提にせず team.id で突合する。 */
 function teamWinPoints(g){
   const entered=pid=>(g.scores[pid]||[]).some(v=>v!=null&&v!=='');
@@ -159,21 +161,27 @@ function teamWinPoints(g){
   const wins=teams.map(()=>0), events=[];
   if(teams.length<2) return {teams,wins,events};   // 成立条件（共通）：対象チーム2以上
   const F=chFormats(g);   // αではβ種目（best2ball/vegas）を懸けない（§11.12 C）
+  /* 確定判定（winpoints-reveal §3.2/§3.3）: 勝ち点算入＝成立 かつ 確定(on) の AND（D9）。
+     ルーレットのみ 18H終了(cur>=18)で自動確定・他7種目は発表フラグ g.announced（データ保存・D1/D2）。
+     viewGame の Object.assign コピーでも announced は素通しで参照できる */
+  const A=g.announced||{};
+  const evOn=key=> key==='roulette' ? ((curGame()||g).roulette.cur>=18) : !!A[key];
   const add=(key,vals,dir)=>{   // 種目の成立判定＋勝ち点1（同点は 1/同点チーム数 で山分け・§3.2）
     const live=vals.map((v,i)=>v!=null?i:-1).filter(i=>i>=0);
     if(live.length<2)return;   // 種目の対象チームが1以下＝不成立
     const best=(dir==='asc'?Math.min:Math.max)(...live.map(i=>vals[i]));
     const winners=live.filter(i=>vals[i]===best);
-    winners.forEach(i=>wins[i]+=1/winners.length);
-    events.push({key,winners,vals});
+    const on=evOn(key);
+    if(on) winners.forEach(i=>wins[i]+=1/winners.length);   // on の種目だけ wins に算入（未確定は勝ち点0・D3）
+    events.push({key,winners,vals,on});   // 未確定種目も events には載せる（総合タブの「未確定」行用・D6）
   };
   const byId=(list,fn)=>teams.map(t=>{ const j=list.findIndex(x=>x.id===t.id); return j>=0?fn(j):null; });
   if(F.teamGross) add('teamGross', teams.map(t=>t.memberIds.reduce((a,pid)=>a+effGross(g,pid),0)),'asc');
   if(F.teamNet) add('teamNet', teams.map(t=>Math.round(t.memberIds.reduce((a,pid)=>a+netScore(g,pid),0)*10)/10),'asc');
   if(F.holeByHole){ const hw=holesWon(g); if(hw.won.some(w=>w>0)) add('holeByHole', byId(hw.teams,j=>hw.won[j]),'desc'); }
   if(F.best2ball) add('best2ball', teams.map(t=>best2(g,t)),'asc');
-  // ルーレット対抗：formats トグルなし・進行実績（決着ホール≥1）があれば自動で1種目。現行どおり実ゲーム curGame() 基準
-  const st=rlStandings(curGame()||g);
+  // ルーレット対抗：F.roulette ゲート（要件D・OFFなら評価せず種目不成立）。ONは進行実績（決着ホール≥1）で成立・18H終了で自動確定。現行どおり実ゲーム curGame() 基準
+  const st=F.roulette? rlStandings(curGame()||g) : {teams:[],won:[]};
   if(st.won.some(w=>w>0)) add('roulette', byId(st.teams,j=>st.won[j]),'desc');
   // 1 on 1：マッチ勝利数（引分は勝利数に入れない）。個人配点 m1win/m1draw は computePoints 側で従来どおり別途加算
   if(F.match1v1&&g.match1v1&&(g.match1v1.pairs||[]).length){ const v=m1Valid(g);
@@ -218,7 +226,7 @@ function computePoints(g){
   // teams（§11.15・team-points §3.4）：種目別勝ち点→総合順位（同点は同順位・満額＝1,1,3方式）→ teamRankPts をチーム各員に満額加算
   if(g.teams.length){
     const {teams,wins,events}=teamWinPoints(g);
-    if(events.length){   // 成立種目0なら配分しない
+    if(events.some(e=>e.on)){   // 確定（発表済み）種目が1つ以上あれば暫定配分・発表0なら配分しない（winpoints-reveal §3.4 D4）
       const rows=teams.map((t,i)=>({t,v:wins[i]})); rows.sort((a,b)=>b.v-a.v);
       let rank=0,prev=null;
       rows.forEach((r,i)=>{ if(prev===null||r.v!==prev){rank=i+1;prev=r.v;}
