@@ -75,7 +75,7 @@ function renderGame(){
   </div>`;
   }
 
-  // 大学対抗 設定カード（β且つON時のみ・univ-match §6.3。Vegas 設定カードと同型・setFmt→renderGame 再描画で出没。
+  // 大学対抗 設定カード（ON時のみ・univ-match §6.3／§14.6 でα昇格。Vegas 設定カードと同型・setFmt→renderGame 再描画で出没。
   // 設定はエブリ適用オプションの1項目のみ＝上限36/40・係数0.8・Wパーカットは規定固定値でUI化しない）
   if(F.univMatch){
     html += `<div class="card"><h2>${t('fmt.univMatch')}</h2>
