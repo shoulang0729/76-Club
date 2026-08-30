@@ -15,6 +15,11 @@ function renderGame(){
     <label style="display:flex;gap:8px;align-items:center;font-size:14px"><input type="checkbox" ${g.womenEvery.enabled?'checked':''} onchange="setWE(this.checked)"> ${t('game.everyApply')}</label>
     <div class="muted" class="mt6">${t('game.everyNote')}</div></div>`;
 
+  // 次回幹事バッジ（コンペごと・既定OFF・2026-08-29-host-option.md §5）
+  html += `<div class="card"><h2>${t('game.kanjiCard')}</h2>
+    <label style="display:flex;gap:8px;align-items:center;font-size:14px"><input type="checkbox" ${g.kanjiBadge?'checked':''} onchange="setKanjiBadge(this.checked)"> ${t('game.kanjiTgl')}</label>
+    <div class="muted" class="mt6">${t('game.kanjiNote')}</div></div>`;
+
   const F=g.formats;
   const fchk=(k,label)=>`<label><input type="checkbox" ${F[k]?'checked':''} onchange="setFmt('${k}',this.checked)"> ${label}</label>`;
   // β系フォーマットのトグルは β版でだけ表示・選択可（§11.12 C）。α版でも g.formats の値自体は保持する
@@ -73,6 +78,7 @@ function renderGame(){
 function setG(k,v){ const g=curGame(); g[k]=v; save(); if(k==='name'||k==='date'||k==='course')render(); }
 function setCap(v){ const g=curGame(); g.periaCap = v===''?null:parseFloat(v); save(); }
 function setWE(v){ curGame().womenEvery.enabled=v; save(); }
+function setKanjiBadge(v){ curGame().kanjiBadge=v; save(); }
 function setFmt(k,v){ curGame().formats[k]=v; save(); renderGame(); }
 function setPoints(k,v){ curGame().points[k]=v.split(',').map(x=>parseInt(x.trim())).filter(x=>!isNaN(x)); save(); }
 function setPointsNum(k,v){ curGame().points[k]=parseInt(v)||0; save(); }

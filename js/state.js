@@ -18,6 +18,7 @@ function migrate(s){
   (s.games||[]).forEach(g=>{
     if(!g.womenEvery) g.womenEvery={enabled:false};
     if(g.womenEvery.enabled===undefined) g.womenEvery.enabled=false;
+    if(g.kanjiBadge===undefined) g.kanjiBadge=false;   // 次回幹事バッジ表示（既定OFF・§11.16 / 2026-08-29-host-option.md）
     if(!g.points) g.points=defaultPoints();
     else { const d=defaultPoints(); for(const k in d) if(g.points[k]===undefined) g.points[k]=d[k]; }
     if(g.prizePool===undefined) g.prizePool=0;
@@ -59,6 +60,7 @@ function newGame(){
     hidden:Array(18).fill(false),
     periaCoef:0.8, periaCap:null,
     womenEvery:{enabled:false},
+    kanjiBadge:false,   // 次回幹事バッジ表示（既定OFF・§11.16 / 2026-08-29-host-option.md）
     teams:[],
     participants:[],
     scores:{},
