@@ -4,7 +4,8 @@ function renderPlayers(){
   const g=curGame();
   /* カラースウォッチ行のラベル（2026-08-30-team-colors.md §5.2 ★）:
      下の g.teams.map の map 変数 t が i18n の t() を隠蔽するため、map の前に hoist しておく */
-  const TL={label:t('team.colorLabel'),auto:t('team.colorAuto'),red:t('tmc.red'),blue:t('tmc.blue'),green:t('tmc.green'),yellow:t('tmc.yellow'),gray:t('tmc.gray')};
+  const TL={label:t('team.colorLabel'),auto:t('team.colorAuto'),red:t('tmc.red'),blue:t('tmc.blue'),green:t('tmc.green'),yellow:t('tmc.yellow'),gray:t('tmc.gray'),
+    purple:t('tmc.purple'),orange:t('tmc.orange'),teal:t('tmc.teal'),pink:t('tmc.pink'),lime:t('tmc.lime')};
   // 参加者・チーム対抗カード（ゲーム未選択時は msg.needGame を1つ表示）（§11.12 N）
   const gameCards = !g ? `<div class="empty">${t('msg.needGame')}</div>`
     : `<div class="card"><h2>${t('game.partsCard')}</h2>
@@ -137,10 +138,22 @@ function delPlayer(id){ if(!confirm(t('confirm.delete')))return;
 function toggleParticipant(pid){ const g=curGame(); const i=g.participants.indexOf(pid);
   if(i<0){ g.participants.push(pid); g.scores[pid]=g.scores[pid]||Array(18).fill(null); }
   else { g.participants.splice(i,1); } save(); renderPlayers(); }
-function addTeam(){ const g=curGame(); const names=['レッド','ブルー','グリーン','イエロー'];
-  g.teams.push({id:uid(),name:'チーム'+names[g.teams.length%4],memberIds:[]}); save(); renderPlayers(); }
+/* 既定色の重複回避自動割当（team-colors §14）。使用中判定は「有効色」（設定色 or 名前導出＝tmKey）。
+   ① 名前導出色が空いていれば優先（gray 導出=未知名フォールバックなので優先しない ★§14.2）
+   ② 使用中なら TM_KEYS 先頭から最初の未使用色 ③ 全10色使用中は名前導出（重複許容・警告なし） */
+function tmPickColor(g,name){ const used=new Set(g.teams.map(t=>tmKey(t)));
+  const nk=tmKeyByName(name);
+  if(nk!=='gray' && !used.has(nk)) return nk;
+  return TM_KEYS.find(k=>!used.has(k)) || nk; }
+/* addTeam/autoTeams: 生成チームに color を明示保存（後で名前を変えても色が変わらない＝決定的。team-colors §14.1）。
+   既定名は日本語固定の初期データ値（i18n 対象外）・10種循環（§14.3） */
+function addTeam(){ const g=curGame();
+  const names=['レッド','ブルー','グリーン','イエロー','パープル','オレンジ','ティール','ピンク','ライム','グレー'];
+  const name='チーム'+names[g.teams.length%10];
+  g.teams.push({id:uid(),name,memberIds:[],color:tmPickColor(g,name)}); save(); renderPlayers(); }
 function autoTeams(n){ const g=curGame(); const names=['レッド','ブルー','グリーン'];
-  g.teams=[]; for(let i=0;i<n;i++)g.teams.push({id:uid(),name:'チーム'+names[i],memberIds:[]});
+  g.teams=[]; for(let i=0;i<n;i++){ const name='チーム'+names[i];
+    g.teams.push({id:uid(),name,memberIds:[],color:tmPickColor(g,name)}); }
   g.participants.forEach((pid,i)=>g.teams[i%n].memberIds.push(pid)); save(); renderPlayers(); }
 function setTeamName(id,v){ curGame().teams.find(t=>t.id===id).name=v; save(); renderPlayers(); }   // 再描画＝名前プレビュー色・自動ドットの追従（team-colors §5.1）
 /* チームカラー設定（team-colors §5）: 自動=フィールド削除（JSON を汚さない）。色は tmColor が全画面で解決 */

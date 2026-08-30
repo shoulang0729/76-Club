@@ -21,8 +21,11 @@
     --e2-bg:#efe7f5; --e2-ink:#7d3c98;   /* エブリE2バッジ（紫） */
     /* チーム識別色（塗りの上の文字は --bg。文字/枠にもそのまま使う） */
     --tm-red:#c0392b; --tm-blue:#2471a3; --tm-green:#186a3b; --tm-yellow:#b9770e; --tm-gray:#5d6d7e;
+    /* 新5色（10色化・2026-08-30-team-colors.md §13） */
+    --tm-purple:#7d3c98; --tm-orange:#d35400; --tm-teal:#0e7c86; --tm-pink:#c2377f; --tm-lime:#66801a;
     /* チームカラー淡色（ルーレット勝ちカード塗り・JS inline から参照。2026-08-20-roulette-standings.md §9.1） */
     --tm-red-bg:#fbe3df; --tm-blue-bg:#dcecf7; --tm-green-bg:#daf0e2; --tm-yellow-bg:#f9ecd2; --tm-gray-bg:#e7ecf1;
+    --tm-purple-bg:#f0e2f7; --tm-orange-bg:#fbe7d9; --tm-teal-bg:#d9f0f2; --tm-pink-bg:#f9e0ed; --tm-lime-bg:#ecf3d2;
     /* 角丸3段 / 太さ3段 / サイズ */
     --r-sm:6px; --r-md:10px; --r-pill:99px;
     --w-reg:400; --w-med:600; --w-bold:800;
@@ -44,7 +47,9 @@
     --red:#ff6a4d; --danger-bg:#3d1a16; --danger-line:#6b2f27;
     --e2-bg:#2e2440; --e2-ink:#d3b8ee;
     --tm-red:#ff8b7a; --tm-blue:#62b0e8; --tm-green:#4fcf8c; --tm-yellow:#e0b04a; --tm-gray:#9fb0c4;
+    --tm-purple:#c084e8; --tm-orange:#f0954a; --tm-teal:#4cc7d4; --tm-pink:#ee7ec2; --tm-lime:#b5cf4f;   /* 新5色（team-colors §13） */
     --tm-red-bg:#45231d; --tm-blue-bg:#16344a; --tm-green-bg:#173f2b; --tm-yellow-bg:#423512; --tm-gray-bg:#242f40;
+    --tm-purple-bg:#33204a; --tm-orange-bg:#452a10; --tm-teal-bg:#123c42; --tm-pink-bg:#4a1e3c; --tm-lime-bg:#303f12;
   }
   html,body{margin:0}
   body{font-family:"Noto Sans JP","Noto Sans",-apple-system,"Hiragino Kaku Gothic ProN",Meiryo,sans-serif;
