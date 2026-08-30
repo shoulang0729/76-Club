@@ -259,7 +259,7 @@
   .rank-wrap .lb{font-size:var(--f-body);table-layout:fixed;width:100%}
   .rank-wrap .lb th,.rank-wrap .lb td{padding:6px 6px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;height:34px}
   .rank-wrap .lb .c-eye{width:40px;padding:2px}
-  .rank-wrap .lb .c-pos{width:30px}
+  .rank-wrap .lb .c-pos{width:38px}   /* 2桁順位（10位〜）が欠けない幅。big時 rankno=16px×2桁＋padding12px を収容 */
   .rank-wrap .lb .c-val{width:66px;text-align:right;padding-right:8px}
   .rank-wrap .lb.big{font-size:var(--f-title)}
   .rank-wrap .lb.big th,.rank-wrap .lb.big td{height:42px}
