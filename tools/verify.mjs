@@ -1,7 +1,10 @@
 #!/usr/bin/env node
 /* 76-Club 検証ハーネス（reviewer / implementer 共用）
-   使い方: node tools/verify.mjs
-   チェック: JS構文 / i18n ja=zh=en 完全一致・空値・en日本語残存 / 使用キー未定義参照 / CSS孤立var() / 計算回帰(#3・Vegas)
+   使い方: node tools/verify.mjs [--refactor <gitref>]
+   チェック: JS構文 / i18n ja=zh=en 完全一致・空値・en日本語残存 / 使用キー未定義参照 / 未使用キー / CSS孤立var() / 計算回帰(#3・Vegas)
+   --refactor <gitref>（例 origin/main）: 挙動不変リファクタPR用の追加チェック。
+     指定 ref と作業ツリーの js/*.js＋styles.css を「トリム後の非空行のマルチセット」としてファイル横断で合算比較する
+     （分割・移動は行の所属ファイルが変わるだけ＝合算マルチセットは一致するはず）。通常実行には影響しない。
    すべて PASS で exit 0、1つでも失敗で exit 1。 */
 import fs from 'node:fs';
 import vm from 'node:vm';
@@ -56,6 +59,40 @@ try {
   miss.length ? bad(`未定義参照 ${JSON.stringify(miss.slice(0,10))}`) : ok(`未定義参照なし（使用${used.length}種）`);
 } catch (err) { bad('使用キー走査失敗: ' + err.message); }
 
+// 3b) 未使用 i18n キー（定義されているのに js/** と index.html のどこからも参照されないキー）
+console.log('■ i18n 未使用キー');
+try {
+  // 辞書リテラルの範囲を再抽出（この範囲は走査対象から除外＝キー定義自身を「使用」と誤認しない）
+  const isrc = fs.readFileSync(root + '/js/i18n.js', 'utf8');
+  const di = isrc.indexOf('I18N'); const ds = isrc.indexOf('{', di);
+  let dd = 0, de = -1;
+  for (let p = ds; p < isrc.length; p++) { const c = isrc[p]; if (c === '{') dd++; else if (c === '}') { dd--; if (dd === 0) { de = p; break; } } }
+  let scan = html;
+  for (const f of fs.readdirSync(root + '/js')) {
+    let t = fs.readFileSync(`${root}/js/${f}`, 'utf8');
+    if (f === 'i18n.js') t = t.slice(0, ds) + t.slice(de + 1);   // 辞書部分だけ除外（t() 実装等の残部は走査する）
+    scan += '\n' + t;
+  }
+  /* 動的キー連結の allowlist（コードに実在する連結呼び出しのみ列挙。プレフィックス一致で「使用扱い」）:
+     - 'ch.'         … home.js renderHome の t('ch.'+c) / t('ch.'+c+'.desc') / t('ch.enter',{v:t('ch.'+c)})、
+                       nav.js toggleChannel/render の t('ch.'+CHANNEL)（c,CHANNEL ∈ {a,b}）
+     - 'tab.'        … nav.js の tabLabel = k => t('tab.'+k)
+     - 'result.sub.' … results.js renderResult の grpBtn: t('result.sub.'+k)（k ∈ ind/team/pts） */
+  const DYN_PREFIX = ['ch.', 'tab.', 'result.sub.'];
+  /* 既知の未参照キー（グランドファーザー）: i18n 既存キーは互換維持（CLAUDE.md）のため辞書からは削除しない。
+     削除は別途 Issue で判断。ここに載せた分は検出から除外＝新規の未使用キーは引き続き FAIL する。
+     - 'team.emptyFmt' … 2026-08-30 時点で参照なし（m1.emptyFmt のみ使用・過去のリニューアルで参照が消えた模様） */
+  const KNOWN_UNUSED = ['team.emptyFmt'];
+  const escRe = (k) => k.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  const jaKeys = Object.keys(I18N.ja);
+  const unused = jaKeys.filter(k =>
+    !DYN_PREFIX.some(p => k.startsWith(p)) &&
+    !KNOWN_UNUSED.includes(k) &&
+    !new RegExp(`['"\`]${escRe(k)}['"\`]`).test(scan));   // 引用符で囲まれた完全一致＝リテラル参照（data-i18n / t() / 配列・マップ値を包括）
+  unused.length ? bad(`未使用キー ${unused.length}件 ${JSON.stringify(unused.slice(0, 10))}`)
+                : ok(`未使用キーなし（定義${jaKeys.length}・動的prefix${DYN_PREFIX.length}・既知除外${KNOWN_UNUSED.length}）`);
+} catch (err) { bad('未使用キー走査失敗: ' + err.message); }
+
 // 4) CSS 孤立 var()
 console.log('■ CSS トークン');
 try {
@@ -90,6 +127,36 @@ try {
   const net = F.vegasHoleNet(gv, gv.teams[0], gv.teams[1], 0);
   (net === 29) ? ok(`Vegas netA=${net}`) : bad(`Vegas 期待29 実際 ${net}`);
 } catch (err) { bad('計算回帰失敗: ' + err.message); }
+
+// 6) --refactor <gitref>: 挙動不変リファクタの行マルチセット一致（フラグ指定時のみ・通常実行は素通り）
+//    比較対象 = js/*.js ＋ styles.css。各行を trim → 非空行のみ → ファイル横断で合算した多重集合を ref と比較する。
+//    ファイル分割・移動（行の所属ファイルが変わるだけ）は一致のまま、行の追加・削除・書き換えは差分として出る。
+//    新規ファイルは作業ツリー側にのみ存在してよい（合算比較なので自然に扱える）。
+const rfIdx = process.argv.indexOf('--refactor');
+if (rfIdx >= 0) {
+  const ref = process.argv[rfIdx + 1] || 'origin/main';   // 省略時は origin/main
+  console.log(`■ リファクタ行一致（vs ${ref}）`);
+  try {
+    const targets = (files) => files.filter(f => f === 'styles.css' || /^js\/[^/]+\.js$/.test(f));
+    const refFiles = targets(execSync(`git ls-tree -r --name-only ${JSON.stringify(ref)} -- js styles.css`, { cwd: root, encoding: 'utf8' }).trim().split('\n').filter(Boolean));
+    const wtFiles = targets([...fs.readdirSync(root + '/js').map(f => 'js/' + f), 'styles.css'].filter(f => fs.existsSync(root + '/' + f)));
+    const bag = (texts) => { const m = new Map();
+      for (const t of texts) for (const raw of t.split('\n')) { const l = raw.trim(); if (l) m.set(l, (m.get(l) || 0) + 1); }
+      return m; };
+    const refBag = bag(refFiles.map(f => execSync(`git show ${JSON.stringify(ref + ':' + f)}`, { cwd: root, encoding: 'utf8', maxBuffer: 64 * 1024 * 1024 })));
+    const wtBag = bag(wtFiles.map(f => fs.readFileSync(root + '/' + f, 'utf8')));
+    const diff = (a, b) => { const out = []; for (const [l, n] of a) { const d = n - (b.get(l) || 0); if (d > 0) out.push([l, d]); } return out; };
+    const lost = diff(refBag, wtBag), added = diff(wtBag, refBag);   // lost=ref にのみ / added=作業ツリーにのみ
+    const nOf = (d) => d.reduce((a, [, n]) => a + n, 0);
+    const sample = (d) => d.slice(0, 5).map(([l, n]) => `  ${n > 1 ? `(x${n}) ` : ''}${l.length > 120 ? l.slice(0, 120) + '…' : l}`).join('\n');
+    if (!lost.length && !added.length) ok(`行マルチセット一致（ref ${refFiles.length}ファイル / 作業ツリー ${wtFiles.length}ファイル）`);
+    else {
+      bad(`行マルチセット不一致 消失${nOf(lost)}行 / 新規${nOf(added)}行`);
+      if (lost.length) console.log(`  --- 消失行サンプル（${ref} にのみ存在）---\n${sample(lost)}`);
+      if (added.length) console.log(`  --- 新規行サンプル（作業ツリーにのみ存在）---\n${sample(added)}`);
+    }
+  } catch (err) { bad('リファクタ比較失敗: ' + String(err.stderr || err.message).slice(0, 300)); }
+}
 
 console.log(fails ? `\n❌ 検証 NG（${fails}件）` : '\n✅ 検証 全PASS');
 process.exit(fails ? 1 : 0);
