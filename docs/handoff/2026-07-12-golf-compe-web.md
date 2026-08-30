@@ -1042,3 +1042,7 @@ m1Result(g,A,B):    upA/upB/half/played を集計。diff = upA − upB（0 か�
 - **§10.6 の判定式を上書き**: 旧「免除者を除外したリストで数え直す」filter 方式 → 新「ネット順リスト（ranked・タイブレーク込み）上の対象位置から方向シフト」方式。`nextKanji(g)` の返り値は pid 配列に変更（呼び出しは results.js net 分岐のみ・表示専用＝配点非関与は不変）。前後比較例は新ファイル追補 §13（migrate 既定では対象本人・経路上免除のケースで旧と完全一致。旧 filter 方式固有の副作用ケース＝経路外免除のみ是正として差）。
 - **§4 追補**: `game.kanjiRanks:{ r1:{enabled,dir}, r2:{enabled,dir}, booby:{enabled,dir} }`（dir:'down'|'up'）。既定＝migrate バックフィル: `{r1:{enabled:false,dir:'down'}, r2:{enabled:true,dir:'down'}, booby:{enabled:true,dir:'up'}}`＝旧 kanjiBadge:true の挙動を保存する組合せ。単一方向 `kanjiShift` 案は未実装のまま廃案（データに痕跡なし）。localStorage 新キーなし。
 - 設定UI: 既存「次回幹事」カード内にサブ設定（マスターON時のみ表示・各順位=チェック＋方向 select・OFF行の select は disabled）。i18n 追加 `game.kanjiRanks/kanjiR1/kanjiR2/kanjiBooby/kanjiR1Down/kanjiR1Up/kanjiR2Down/kanjiR2Up/kanjiBoobyDown/kanjiBoobyUp`（10キー・方向は具体例つき文言）＋`game.kanjiTgl/kanjiNote` の文言更新（ja/zh/en）。
+
+### §11.18 チーム勝ち点の「発表後反映」化＋formats.roulette（2026-08-30・winpoints-reveal）
+
+**§4 追補**: game に `announced`（種目別の発表済みフラグ・object・既定 `{}`）と `formats.roulette`（boolean・既定 true）を追加。チーム種目の勝ち点は「成立かつ確定（発表済み。ルーレットのみ 18H 終了で自動）」の種目のみ算入する（詳細 `docs/handoff/2026-08-30-winpoints-reveal.md` §3）。`announced` はデータ（幹事の記録）であり、開封・めくり等の演出状態（揮発・§11.14）とは別物。旧データの発表済み補完は行わない（挙動変化・ユーザー了承 2026-08-30）。

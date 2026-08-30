@@ -41,7 +41,7 @@ function resGameTabs(grp,g){ const F=chFormats(g); const T=[];
     if(F.best2ball)  T.push(['b2',    t('term.best2')]);
     if(F.vegas)      T.push(['vegas', t('term.vegas')]);
     if(F.match1v1)   T.push(['m1',    t('result.sub.match1v1')]);
-    T.push(['roulette', t('result.sub.roulette')]);              // 常時（format トグルなし・現行踏襲）
+    if(F.roulette) T.push(['roulette', t('result.sub.roulette')]);   // ルーレット対抗トグル連動（winpoints-reveal 要件D。OFF時はタブ消失→tabs[0]フォールバック）
   }
   return T;
 }
@@ -265,15 +265,15 @@ function rankCardNS(title, pids, valFn, dir, fmt, table, hlMap){
   return `<div class="card tight wide"><h2 class="lbh"><span>${title}</span></h2>${body}${tools}</div>`;
 }
 
-/* チーム戦グループ（§5.2）: key ごとに 当該対抗カード（上）＋チーム別スコア表（下・グロス/ネット/HBH と総合のみ）。
+/* チーム戦グループ（§5.2）: key ごとに 当該対抗カード（上）＋チーム別スコア表（下・グロス/ネット/HBH のみ）。
    'm1'/'roulette' は renderResult 側で renderMatch1v1Parts / renderRouletteParts を直接使う（sticky 同居 D15・roulette-standings §5）。
-   総合=①チーム総合カード＋②種目別勝ち点表→③スコア表、nd=ニアドラ・ヒーローカード（team-points §6.2①③・配置=regroup §6） */
+   総合=①チーム総合カード＋②種目別勝ち点表の2つのみ（スコア表なし・winpoints-reveal 要件A）、nd=ニアドラ・ヒーローカード（team-points §6.2①③・配置=regroup §6） */
 function renderTeamGame(g, g0, parts, key){
   const teams=g.teams.filter(t=>t.memberIds.length);
   if(!teams.length)
     return `<div class="card"><h2>${t('team.title')}</h2><div class="empty">${t('team.emptyTeams')}</div></div>`;
   const sc=()=>renderScorecard(g, g.participants, teams);
-  if(key==='overall') return renderTeamOverall(g) + sc();
+  if(key==='overall') return renderTeamOverall(g);
   if(key==='nd')    return renderTeamNiadora(g);
   if(key==='gross') return `<div class="rank-wrap">${renderTeams(g,'teamGross')}</div>` + sc();
   if(key==='net')   return `<div class="rank-wrap">${renderTeams(g,'teamNet')}</div>` + sc();
@@ -283,11 +283,23 @@ function renderTeamGame(g, g0, parts, key){
   return '';
 }
 
-/* ---- チーム総合カード＋種目別勝ち点表（team-points.md §6.2①・投影原則 §11.14）----
+/* ---- 発表ボタン（winpoints-reveal §5.2・D1/D8・投影原則 §11.14「幹事操作は控えめ配置」）----
+   g.announced はデータ（幹事の運営記録）＝save() で golfCompe_v1 に保存（開封・めくり演出の揮発状態とは別物）。
+   ボタンは常時活性・不成立種目の発表フラグは休眠（算入は 成立∧on の AND・D9）。取り消しは可逆・confirm なし（D8） */
+function tpAnnounce(key,on){ const g=curGame(); if(!g)return;
+  (g.announced=g.announced||{})[key]=!!on; save(); renderResult(); }
+function tpAnnounceUI(g,key){ const on=!!(g.announced||{})[key];
+  return on
+    ? `<span class="tag" style="background:var(--win);color:var(--on-fill)">${t('team.announced')}</span>
+       <button class="btn gray sm" onclick="tpAnnounce('${key}',false)">${t('team.unannounce')}</button>`
+    : `<button class="btn gold sm" onclick="tpAnnounce('${key}',true)">${t('team.announce')}</button>`; }
+
+/* ---- チーム総合カード＋種目別勝ち点表（team-points.md §6.2①・winpoints-reveal §5.1・投影原則 §11.14）----
    総合順位・勝ち点は calc.js の teamWinPoints(g) だけを正とする（表示側で再計算しない）。
    総合順位はヒーロー型の左右均等横並び（.tp-nd 縦積みブロック共用・2026-08-30 #87 指示④）。
    大型勝ち点=チームカラー・勝ちセル=緑（値併記）＝モック承認済み。
-   目隠し（eye・master トグル）は総合順位カードから撤去（#87 指示④）。種目別勝ち点表の tgMasked('overall') 参照は現状維持。 */
+   目隠し（'overall' 系 tgMasked）は廃止＝発表状態連動マスク（未確定行の？）が代替（winpoints-reveal 要件A/D6）。
+   ヘッダは発表進捗タグ「発表 n/N」（全発表で「確定」緑・D5）。順位バッジ・配分タグは発表≥1 のときのみ＝computePoints のゲートと一致 */
 function tpFmtWin(v){   // 勝ち点合計の表示（1→"1"・0.5刻み→"2.5"・1/3混じり→小数2桁）
   if(Math.abs(v-Math.round(v))<1e-9) return String(Math.round(v));
   if(Math.abs(v*2-Math.round(v*2))<1e-9) return v.toFixed(1);
@@ -303,31 +315,37 @@ function renderTeamOverall(g){
   const {teams,wins,events}=teamWinPoints(g);
   if(!events.length) return '';   // 成立種目0＝総合カード非表示（配分もされない・§3.4）
   const P=g.points||{};
+  const N=events.length, n=events.filter(e=>e.on).length;   // 発表進捗（winpoints-reveal D5）。n=N(≥1)で「確定」
+  const prog = n===N ? `<span class="tag" style="background:var(--win);color:var(--on-fill)">${t('status.fixed')}</span>`
+                     : `<span class="tag tagtie">${t('team.annProg',{n,N})}</span>`;
   const rows=teams.map((tm,i)=>({tm,i,v:wins[i]})); rows.sort((a,b)=>b.v-a.v);
   let rank=0,prev=null;
   rows.forEach((r,idx)=>{ if(prev===null||r.v!==prev){rank=idx+1;prev=r.v;} r.rank=rank; r.p=(P.teamRankPts||[])[rank-1]||0; });
-  // ヒーロー横並び（#87 指示④）: 順=勝ち点降順（従来の順位順のまま）。目隠しなし・値/順位/配分は不変
+  // ヒーロー横並び（#87 指示④）: 順=勝ち点降順。勝ち点=確定(on)分のみの積み上げ（teamWinPoints が正）。
+  // 順位バッジ＋配分タグは発表≥1 のときのみ（n=0 はチーム名と「0」だけ＝computePoints の配分ゲートと一致・D5）
   const hero=rows.map(r=>{ const col=tmColor(r.tm.name);
     return `<span class="rl-st tp-nd tp-ovh">
       <span class="rl-st-team" style="color:${col}">${esc(r.tm.name)}</span>
       <span class="tp-ov-pt" style="color:${col}">${tpFmtWin(r.v)}</span>
-      <span class="tp-nd-tagrow">${posBadge(r.rank,r.rank===1)}<span class="tag">${t('team.rankTag',{rank:r.rank,p:r.p})}</span></span>
+      ${n>=1?`<span class="tp-nd-tagrow">${posBadge(r.rank,r.rank===1)}<span class="tag">${t('team.rankTag',{rank:r.rank,p:r.p})}</span></span>`:''}
     </span>`; }).join('');   // 配分は各員満額（人数割りしない・D4）
-  // 種目別勝ち点表（補助・通常サイズ）: 行=成立種目・列=チーム。勝ち=緑＋値・山分け=橙＋獲得分・負け=空欄・対象外=—
+  // 種目別勝ち点表（補助・通常サイズ）: 行=成立種目・列=チーム。勝ち=緑＋値・山分け=橙＋獲得分・負け=空欄・対象外=—。
+  // 未確定(!on)行=ラベルに「未確定」タグ＋値セルは対象外含め全チーム？マスク（勝者ネタバレ防止・D6）
   // 行順=チーム戦の下段ゲームタブ（resGameTabs 左→右・総合を除く）に一致（2026-08-30 ユーザー指示・#87）。
   // 表示順のみの並べ替え＝teamWinPoints の値・成立判定は不変。タブに無いキーは末尾（安定ソートで元順維持）
   const mxEvs=[...events].sort((a,b)=>{ const o=k=>{ const i=TP_EV_ORDER.indexOf(k); return i<0?TP_EV_ORDER.length:i; }; return o(a.key)-o(b.key); });
-  const mxHead=`<tr><th class="tal">${t('team.matrixTitle')}</th>${teams.map(tm=>{ const m=tgMasked('overall',tm.id);
-    return `<th${m?'':` style="color:${tmColor(tm.name)}"`}>${m?'？？？':esc(tm.name)}</th>`; }).join('')}</tr>`;
-  const mxRows=mxEvs.map(ev=>`<tr><td class="tal">${t(TP_EV_LABEL[ev.key]||ev.key)}</td>${teams.map((tm,i)=>{
-    if(tgMasked('overall',tm.id)) return '<td><span class="mask">？</span></td>';
+  const mxHead=`<tr><th class="tal">${t('team.matrixTitle')}</th>${teams.map(tm=>
+    `<th style="color:${tmColor(tm.name)}">${esc(tm.name)}</th>`).join('')}</tr>`;
+  const mxRows=mxEvs.map(ev=>`<tr><td class="tal">${t(TP_EV_LABEL[ev.key]||ev.key)}${ev.on?'':` <span class="tag tagtie">${t('team.pending')}</span>`}</td>${teams.map((tm,i)=>{
+    if(!ev.on) return '<td><span class="mask">？</span></td>';
     if(ev.vals[i]==null) return '<td><span class="muted">—</span></td>';
     if(ev.winners.includes(i)) return `<td class="${ev.winners.length>1?'rtie':'winc'}"><b>${tpShare(ev.winners.length)}</b></td>`;
     return '<td></td>'; }).join('')}</tr>`).join('');
-  return `<div class="card"><h2 class="lbh"><span>${t('team.overallTitle')} ${statusBadge(g)}</span></h2>
+  return `<div class="card"><h2 class="lbh"><span>${t('team.overallTitle')} ${prog}</span></h2>
     <div class="rl-standing tp-ovh-wrap">${hero}</div>
     <div class="scroll mt10"><table class="lb tp-mx">${mxHead}${mxRows}</table></div>
     <div class="muted mt6">${t('team.noteOverall')}</div>
+    <div class="muted">${t('team.noteAnnounce')}</div>
     <div class="muted">${t('pts.teamRank')}: ${(P.teamRankPts||[]).join(', ')}</div>
   </div>`;
 }
@@ -355,13 +373,14 @@ function renderTeamNiadora(g){
   const blocks=rows.map(({tm,n,np,dc})=>{
     const col=tmColor(tm.name);
     const sub=`NP ${np} ・ DC ${dc}`;   // NP/DC はリテラル略号（言語非依存）
-    const tag=(allOpen&&winIds.includes(tm.id))
+    const tag=(ev&&ev.on&&allOpen&&winIds.includes(tm.id))   // 勝ち点タグは「発表済み(on)かつ全開封」でのみ表示（winpoints-reveal §5.2＝マスクと整合）
       ?`<span class="tp-nd-tagrow"><span class="tag ${ev.winners.length>1?'tagtie':'tagwin'}">${t('team.winpt')} +${tpShare(ev.winners.length)}</span></span>`:'';
     return `<span class="rl-st tp-nd"><span class="rl-st-team" style="color:${col}">${esc(tm.name)}</span><span class="rl-st-h">${n}</span><span class="tp-nd-sub">${sub}</span>${tag}</span>`; }).join('');
   const holeCards=(niapinHolesOf(g).length||draconHolesOf(g).length)? renderPrizeHero(g,true) : '';   // 対象ホールなしは併設カードも省略
   return `<div class="card"><h2 class="lbh"><span>${t('term.niadora')}</span></h2>
     <div class="rl-standing">${blocks}</div>
-    <div class="muted mt6">${t('team.noteNiadora')}</div></div>` + holeCards;
+    <div class="muted mt6">${t('team.noteNiadora')}</div>
+    <div class="cardtools mt8">${tpAnnounceUI(g,'niadora')}</div></div>` + holeCards;
 }
 
 /* ---- 1 on 1 マッチプレー タブ（§11.13・docs/handoff/2026-08-20-1on1-match.md §13 が正。一組ずつモードの開封は §14・編集UIの置き場所とサマリ表示は §15 が正）----
@@ -431,7 +450,8 @@ function renderMatch1v1Parts(g){
     <span class="seg"><button class="${one?'':'on'}" onclick="m1SetMode('all')">${t('m1.modeAll')}</button><button class="${one?'on':''}" onclick="m1SetMode('one')">${t('m1.modeOne')}</button></span>
     ${one?`<button class="btn gold sm" onclick="m1OpenNext()" ${allOpen?'disabled':''}>${t('m1.openNext')}</button>
       <button class="btn gray sm" onclick="m1OpenAllCards()">${t('m1.openAllCards')}</button>
-      <button class="btn gray sm" onclick="m1CoverAll()">${t('m1.coverAll')}</button>`:''}</div></div>`;
+      <button class="btn gray sm" onclick="m1CoverAll()">${t('m1.coverAll')}</button>`:''}</div>
+    <div class="cardtools mt8">${tpAnnounceUI(g,'match1v1')}</div></div>`;   // 発表ボタン（winpoints-reveal §5.2。開封演出 m1Opened は揮発のまま・発表だけがデータに残る）
   // 対戦カード（1試合=1カード・登録リスト順）: hero=大型UP表示（§13.3）＋[一組ずつ: カード内開封バー §14.2]＋ホール表（値=adjHole・勝ち=rwin・ハーフ=rtie・未開封=空欄）
   const H=[...Array(18).keys()];
   const colg=`<colgroup><col class="cnm">${H.map(()=>'<col class="ch">').join('')}</colgroup>`;

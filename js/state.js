@@ -32,6 +32,8 @@ function migrate(s){
     else { if(g.vegas.flip===undefined) g.vegas.flip=true; if(!g.vegas.cap) g.vegas.cap='doublePar'; }
     if(g.formats && g.formats.match1v1===undefined) g.formats.match1v1=false;   // 1 on 1 マッチプレー（§11.13）
     if(!g.match1v1) g.match1v1={ teamA:null, teamB:null, pairs:[] };
+    if(g.formats && g.formats.roulette===undefined) g.formats.roulette=true;   // ルーレット対抗トグル（α・既定ON=現状「常時有効」の後方互換。winpoints-reveal D7）
+    if(g.announced===undefined) g.announced={};   // 種目別の発表済みフラグ（winpoints-reveal §4.2）。救済補完はしない（D10・既存ゲームは全種目未発表スタート＝ユーザー了承済み）
   });
 }
 /* changeN/challengeM は「ハーフ9Hあたり」の回数（§11.3・2026-08-16に意味変更。既存ゲームの値もハーフあたりとして解釈） */
@@ -71,7 +73,8 @@ function newGame(){
     points:defaultPoints(), prizePool:0, roulette:newRoulette(),
     vegas:{ flip:true, cap:'doublePar' },   // ラスベガス設定（§11.11）
     match1v1:{ teamA:null, teamB:null, pairs:[] },   // 1 on 1 マッチプレーの抽選結果（§11.13）
-    formats:{ gross:true, net:true, teamGross:true, teamNet:true, holeByHole:true,
+    announced:{},   // 種目別の発表済みフラグ（データ＝幹事の記録。演出の開封状態〔揮発〕とは別物・winpoints-reveal §4.1）
+    formats:{ gross:true, net:true, teamGross:true, teamNet:true, holeByHole:true, roulette:true,
       stableford:true, nassau:true, olympic:true, callaway:false, best2ball:false, vegas:false, match1v1:false }
   };
 }

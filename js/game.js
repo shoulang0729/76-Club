@@ -41,18 +41,21 @@ function renderGame(){
   html += `<div class="card"><h2>${t('game.fmtCard')} ${CHANNEL==='b'?`<span class="tag tagbeta">${t('ch.b')}</span>`:''}</h2><div class="fmtgrid">
     ${fchk('gross',t('fmt.gross'))}${fchk('net',t('fmt.net'))}
     ${fchk('teamGross',t('fmt.teamGross'))}${fchk('teamNet',t('fmt.teamNet'))}
-    ${fchk('holeByHole',t('fmt.hbh'))}${bchk('stableford',t('fmt.stableford'))}
-    ${bchk('nassau',t('fmt.nassau'))}${bchk('olympic',t('fmt.olympic'))}
+    ${fchk('holeByHole',t('fmt.hbh'))}${fchk('roulette',t('fmt.roulette'))}
+    ${bchk('stableford',t('fmt.stableford'))}${bchk('nassau',t('fmt.nassau'))}${bchk('olympic',t('fmt.olympic'))}
     ${bchk('callaway',t('fmt.callaway'))}${bchk('best2ball',t('fmt.best2'))}
     ${bchk('vegas',t('fmt.vegas'))}${fchk('match1v1',t('fmt.match1v1'))}
   </div></div>`;
 
-  html += `<div class="card"><h2>${t('game.rlCard')}</h2>
+  // ルーレット設定カードはルーレット対抗ON時のみ表示（winpoints-reveal §5.3。β Vegas 設定カードと同型・setFmt→renderGame 再描画で出没）
+  if(F.roulette){
+    html += `<div class="card"><h2>${t('game.rlCard')}</h2>
     <div class="muted">${t('game.rlNote')}</div>
     <div class="row" class="mt8">
       <div class="fx1"><label class="fl">${t('game.rlChangeN')}</label><input type="number" min="0" max="9" value="${g.roulette.changeN}" onchange="setRoulette('changeN',this.value)"></div>
       <div class="fx1"><label class="fl">${t('game.rlChallengeM')}</label><input type="number" min="0" max="9" value="${g.roulette.challengeM}" onchange="setRoulette('challengeM',this.value)"></div>
     </div></div>`;
+  }
 
   // Vegas 個別設定（β且つチェックON時のみ表示・2026-08-20-game-split.md §3 #7b。setFmt→renderGame 再描画で出没）
   if(CHANNEL==='b' && F.vegas){
