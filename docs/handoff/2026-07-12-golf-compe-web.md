@@ -1046,3 +1046,7 @@ m1Result(g,A,B):    upA/upB/half/played を集計。diff = upA − upB（0 か�
 ### §11.18 チーム勝ち点の「発表後反映」化＋formats.roulette（2026-08-30・winpoints-reveal）
 
 **§4 追補**: game に `announced`（種目別の発表済みフラグ・object・既定 `{}`）と `formats.roulette`（boolean・既定 true）を追加。チーム種目の勝ち点は「成立かつ確定（発表済み。ルーレットのみ 18H 終了で自動）」の種目のみ算入する（詳細 `docs/handoff/2026-08-30-winpoints-reveal.md` §3）。`announced` はデータ（幹事の記録）であり、開封・めくり等の演出状態（揮発・§11.14）とは別物。旧データの発表済み補完は行わない（挙動変化・ユーザー了承 2026-08-30）。
+
+### §11.19 種目別勝ち点の重み設定（2026-08-30・event-weights）
+
+**§4 追補**: `points.teamEventPts`（種目キー8つ→0以上の整数・既定全1）を追加。チーム種目の勝ち点は「勝者に weight（同点は weight/n 山分け）」に一般化（既定全1で従来の勝ち点1と完全一致・migrate per-key バックフィル）。設定UIは結果発表＞チーム戦＞総合の折りたたみ。詳細 `docs/handoff/2026-08-30-winpoints-reveal.md` §13。

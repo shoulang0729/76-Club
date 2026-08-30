@@ -275,3 +275,184 @@ function tpAnnounceUI(g,key){ const on=!!(g.announced||{})[key];
   - `formats.niadoraTeam`: OFF でチーム戦＞ニアドラタブ非表示＋ teamWinPoints の niadora 種目を不成立に（F.roulette ゲートと同型）。データ保持・ON 復帰で復元。「連携 n/N」の N は成立種目数なので自動減。
 - **「集計する競技」のグループ整列**: 個人戦/チーム戦の小見出し2グループ（既存キー流用）・順序=各タブ順（個人: gross→net→niadoraInd→β4種／チーム: niadoraTeam→teamGross→teamNet→hbh→best2(β)→vegas(β)→m1→roulette）。
 - i18n: `fmt.niadoraInd`/`fmt.niadoraTeam` ×ja/zh/en 追加。
+
+---
+
+## 13. 追補（2026-08-30・種目別勝ち点の重み設定＋勝ち点表の大型化）
+
+- **区分**: 【確定（ユーザー要件2件）＋設計判断は既定で決定（§13.11）】
+- **ユーザー要件（原文）**: ①「チーム戦の勝ち点配点を操作したい。総合の画面でゲーム毎に勝ち点を設定できるようにして。」②「種目別勝ち点の表のフォントを大きくして」
+- **★load-bearing**: §13.3（`teamWinPoints` の wins 加算 `1→weight`・`computePoints` 配分ゲート）は §3 系の上書き。**既定（全種目 weight=1）で現行と完全一致**（§13.4 例G が受け入れ条件）。
+- **前提コード**: js/calc.js `teamWinPoints`(158-202)・`computePoints` チームブロック(229-238)／js/results.js `tpShare`(309)・`renderTeamOverall`(315-352)・`renderTeamNiadora` 勝ち点タグ(377-378)／js/state.js `defaultPoints`(47-50)・migrate 既定マージ(24-25)／styles.css `.tp-mx`(404-407)・投影トークン `--f-rl-*`(33・@820:417・@1194付近:453・@1366:483)。
+
+### 13.1 決定事項
+
+| # | 論点 | 決定（既定） | 根拠 |
+|---|------|------|------|
+| D11 | データの持ち方 | `g.points.teamEventPts`（object・種目キー8つ→number）。既定は**全種目 1**＝現行完全互換 | 既存 `points` 構造（teamRankPts と同居）・親タスク例示の命名。formats のキー集合には触れない |
+| D12 | 値の型 | **0以上の整数のみ**（既定1・0=勝ち点対象外・上限なし・小数不可） | 既存 points 系は全て整数（`setPoints`/`setPointsNum` が parseInt）。山分け表示が「w/n の分数」で単純に一般化（§13.5）。0.5点相当は全種目を2倍して整数化すれば表現可能 |
+| D13 | 同点山分け | 勝ち点 **weight/同点チーム数**（現行 1/n の一般化） | §3.2 の規則系を維持 |
+| D14 | 設定UIの場所 | **結果発表＞チーム戦＞総合カード最下部の `<details>` 折りたたみ**（ユーザー指定画面）。**ゲーム設定タブには置かない** | ユーザー指定「総合の画面で」。投影原則 §11.14「幹事操作は控えめ配置＝details」。行内 input は投影される表を汚し誤操作リスク。重複配置回避は本ファイル §5.4 の「勝者登録パネルは個人戦側のみ」と同じ慣例 |
+| D15 | 設定行の対象 | **採用中の全種目**（`chFormats(g)` ゲート通過＝§13.5 の show 表）。成立前でも事前設定可 | 幹事はラウンド前に配点を決めたい。不成立種目を隠すと「なぜ行が無い」混乱 |
+| D16 | weight=0 の意味 | 種目は従来どおり成立・連携・表に表示（勝者セルは緑「0」）。**配分トリガにしない**＝`computePoints` ゲートを `events.some(e=>e.on && e.w>0)` に変更 | w=0 だけ連携した状態で「全チーム勝ち点0＝同点1位＝全員に teamRankPts[0]」となる事故防止。全1既定では w=1>0 なので現行ゲートと完全同値 |
+| D17 | 発表進捗 n/N | **不変**（w=0 種目も N に数える） | n/N は「連携作業の進捗」表示であり配点と独立。例外を作らない |
+| D18 | 重みの可視化 | 種目別勝ち点表のラベルセルに、**weight≠1 のときのみ** `×2` 等をリテラル併記（i18n キー不要） | 投影観客が「この種目は2点」と分かる。全1（通常運用）では表示ゼロ＝現行見た目不変 |
+| D19 | 表の大型化 | セル値=`--f-rl-name` 級（30→40/44/48px 自動追従）・ヘッダ/ラベル=`calc(var(--f-rl-name)*.6)`。375px・3チームまで横スクロールなし、4チーム以上は既存 `.scroll` で横スクロール許容 | §11.14（投影主役・トークン共用・新規トークン/新規 @media なし）。§13.6 に具体指定 |
+| D20 | 無効入力 | `Math.max(0,parseInt(v)||0)`＝空欄/非数は 0。onchange で即再描画し結果の 0 が見える | 既存 `setPointsNum` 慣例（`parseInt(v)||0`）に非負クランプを追加 |
+
+### 13.2 データモデル（§4 追補）
+
+```jsonc
+"points": {
+  // ...既存（teamRankPts:[10,5] ほか）は不変...
+  "teamEventPts": {   // ★新設: 種目別勝ち点の重み（0以上の整数・既定 全1＝現行互換）
+    "niadora":1, "teamGross":1, "teamNet":1, "holeByHole":1,
+    "best2ball":1, "vegas":1, "match1v1":1, "roulette":1
+  }
+}
+```
+
+- js/state.js: `defaultPoints()` に `teamEventPts:{…全1…}` を追加。object 全体の欠落は既存の既定マージ（state.js:25）で自動補完。**将来キー追加に備え per-key バックフィルを migrate に1行追加**（formats の per-key 慣例と同型）:
+  ```js
+  { const d=defaultPoints().teamEventPts, w=g.points.teamEventPts;
+    for(const k in d) if(w[k]===undefined) w[k]=d[k]; }
+  ```
+- localStorage キー・`formats` キー集合・`announced`・backup（全 state 素通し）は不変。viewGame の Object.assign コピーは `points` 参照を共有＝素通しで参照可。
+- **正本追記案**（`2026-07-12-golf-compe-web.md` §4 末尾へ・PM が反映）:
+  > **§4 追補（2026-08-30・event-weights）**: `points.teamEventPts`（種目キー8つ→0以上の整数・既定全1）を追加。チーム種目の勝ち点は「勝者に weight（同点は weight/n 山分け）」に一般化（既定全1で従来の勝ち点1と完全一致）。詳細 `docs/handoff/2026-08-30-winpoints-reveal.md` §13。
+
+### 13.3 計算変更（js/calc.js・★load-bearing・§3.2/§3.3 の一般化）
+
+```js
+function teamWinPoints(g){
+  ...
+  const W=(g.points&&g.points.teamEventPts)||{};          // ★新設
+  const wOf=key=> W[key]===undefined?1:W[key];            // 未定義キーは 1（防御的既定）
+  const add=(key,vals,dir)=>{
+    ...（live/best/winners・on 判定は現行のまま）
+    const w=wOf(key);                                     // ★
+    if(on) winners.forEach(i=>wins[i]+=w/winners.length); // ★ 旧: 1/winners.length
+    events.push({key,winners,vals,on,w});                 // ★ w を追加（表示用）
+  };
+  ...（各種目の成立条件・勝敗値の計算式は一切不変）
+}
+```
+
+```js
+// computePoints のチームブロック（D16・1箇所）
+if(events.some(e=>e.on)){          // 旧
+if(events.some(e=>e.on&&e.w>0)){   // 新: w>0 の連携済み種目が1つ以上あれば配分
+```
+
+- 順位付け（wins 降順・1,1,3方式）・`teamRankPts` 各員満額・`computePayout` 按分・個人配点全ブロックは**不変**。
+- 返り値の形は `events[].w` の追加のみ（`{teams,wins,events}` 同じ）。
+
+### 13.4 前後比較（★受け入れ条件・例Aの成績値を継続使用）
+
+例Aの成績（グロス R勝ち／ネット R勝ち／HBH B勝ち／ルーレット B勝ち／ニアドラ R勝ち・5種目すべて連携済み・`teamRankPts=[10,5]`）を共通前提とする。
+
+| 例 | 設定 | 前（現行＝全種目1固定） | 後（本設計） |
+|---|------|------|------|
+| **G（既定・完全互換）** | teamEventPts 未設定 or 全1 | R3 / B2 / G0 → R各員+10・B各員+5・G+0 | **完全一致**（wins・配分・個人pt とも 1pt も変わらない）。migrate 補完後の既存ゲームも同値 |
+| **H（重みで順位逆転）** | holeByHole=3・他1 | R3 / B2（R 1位） | R: 1+1+1=3 ／ B: **3**+1=**4** ／ G0 → **B 1位各員+10・R 2位各員+5** |
+| **I（重みで同点発生）** | teamGross=2・ネット/ニアドラを formats OFF（HBH・ルーレット・グロスの3種目） | R1 / B2 → B 単独1位 | R: **2** ／ B: 1+1=**2** → **同点1位・両チーム各員+10**・G 3位+0（同点条件が重みで変わる例） |
+| **J（山分け×重み）** | holeByHole=3 で2チーム同点 | 各0.5 | 各 **1.5**（表は「1.5」）。3チーム同点なら各1（表は「1」）。w=2・3チーム同点は各2/3（表は「2/3」） |
+| **K（w=0・D16）** | vegas=0・vegas のみ連携済み | （w 概念なし。連携1種目で配分発動＝全チーム山分け分で順位） | vegas は表に出て勝者セルは緑「**0**」・wins 全0・**配分は発動しない**（e.w>0 ゲート）。w>0 の種目を連携した時点から配分開始 |
+
+個人配点（net/gross/niapin/dracon/m1win/m1draw）は全例で前後 1pt も変わらない。
+
+### 13.5 UI（js/results.js）
+
+**設定 details（総合カード最下部・D14）**:
+
+```js
+function setTeamEventPts(key,v){ const g=curGame(); if(!g)return;
+  (g.points.teamEventPts=g.points.teamEventPts||{})[key]=Math.max(0,parseInt(v)||0);
+  save(); renderResult(); }   // グローバル関数（inline onchange 前提・ESM化しない）
+```
+
+- `renderTeamOverall` の返却 HTML 末尾（`pts.teamRank` 行の後）に追加。既存クラスのみ（`details`/`.in`/`.ptsrow`/`.ptsedit`＝新規 CSS なし）:
+  ```html
+  <details class="mt10"><summary>${t('team.evPtsTitle')}</summary><div class="in">
+    <div class="muted">${t('team.evPtsNote')}</div>
+    <!-- TP_EV_ORDER 順・採用中の種目のみ（D15）。ラベルは TP_EV_LABEL の term.* を流用 -->
+    <div class="ptsrow"><span>${t(TP_EV_LABEL[key])}</span><span class="ptsedit">
+      <input type="number" min="0" step="1" value="${w}" onchange="setTeamEventPts('${key}',this.value)"></span></div>
+    ...
+  </div></details>
+  ```
+- 採用判定（D15・`F=chFormats(g)`）: niadora=`F.niadoraTeam`／teamGross・teamNet・holeByHole・best2ball・vegas・match1v1・roulette=各 `F.<key>`（β種目は chFormats がαで false を返すので自動で消える）。
+- `renderTeamOverall` が `events.length===0` で早期 return するため、**成立種目0のときは設定UIも出ない**（総合カード自体が非表示＝現行仕様のまま。設定はチーム作成・スコア入力後に行う運用で足りる）。
+- ゲーム設定タブ（js/game.js）は**無変更**（teamRankPts 行は従来どおりゲーム設定側・重複配置しない）。
+
+**表示の一般化**:
+
+- `tpShare` を weight 対応に変更（呼び出し2箇所: 総合表 results.js:343・ニアドラタグ:378 を `tpShare(ev.w,ev.winners.length)` に）:
+  ```js
+  function tpShare(w,n){ const v=w/n;
+    if(Number.isInteger(v)) return String(v);
+    if(Number.isInteger(v*2)) return v.toFixed(1);
+    return w+'/'+n; }   // w=1 は従来の '1'/'0.5'/'1/3' と完全一致
+  ```
+- 種目別勝ち点表のラベルセル: `ev.w!==1` のとき `<span class="muted">×${ev.w}</span>` を種目名の後に併記（D18・リテラル「×」＝i18n キー不要）。
+- 総合勝ち点の合計表示 `tpFmtWin` は不変（整数/.5/小数2桁の既存規則で weight 合成値もカバー）。
+
+### 13.6 種目別勝ち点表の大型化（styles.css・要件②・§11.14）
+
+`.tp-mx` ブロック（styles.css:404-407 付近）に追記。**新規トークン・新規 @media なし**（`--f-rl-name` の @820/@1194 付近/@1366 再定義に自動追従: 30→40/44/48px）:
+
+```css
+/* 種目別勝ち点表の大型化（投影 §11.14・2026-08-30 §13）: 値=--f-rl-name 級・ヘッダ/ラベル=0.6倍 */
+.tp-mx td{font-size:var(--f-rl-name);font-weight:var(--w-bold);line-height:1.15;padding:4px 10px}
+.tp-mx th{font-size:calc(var(--f-rl-name)*.6);line-height:1.15;white-space:normal;overflow-wrap:anywhere}
+.tp-mx td.tal{font-size:calc(var(--f-rl-name)*.6);line-height:1.2}
+```
+
+- **値セル**（勝ち点数字・「？」マスク・「—」）: 30px 太字（@820:40px／@1366:48px）。行高は font+padding で約42px（基準幅）→自動拡大。
+- **チーム名ヘッダ th**: 約18px（→24/26/29px）。`white-space:normal`（`.lb th` の nowrap を上書き）＋ `overflow-wrap:anywhere` で長いチーム名は**列内折返し**（列幅を膨らませない）。チームカラーの inline color は現行のまま。
+- **種目ラベル td.tal**: ヘッダと同じ 0.6 倍（値が主役・ラベルは補助）。「未確定」タグ・「×2」併記は既存 `.tag`/`.muted` サイズのまま。
+- **375px 方針（D19）**: 3チームまで横スクロールなしで収まる想定（値列 約75px×3＋ラベル列 約140px ≒ 365px）。4チーム以上は既存の `.scroll` ラッパで横スクロール許容（レイアウトを壊さない）。`calc()` は既存採用例あり（`.npdc-kind` の min()/cqw）。
+- 機能色（winc=緑地緑字/rtie=橙・!important のゼブラ対策）は不変。ライト/ダークともトークン参照のみ。
+
+### 13.7 i18n（js/i18n.js・ja/zh/en 3言語同時・キー集合完全一致）
+
+**追加 2キー**:
+
+| key | ja | zh | en |
+|-----|----|----|----|
+| `team.evPtsTitle` | 種目別勝ち点の配点設定 | 分项胜点分值设置 | Event win-point values |
+| `team.evPtsNote` | 各種目の勝ちチームに入る勝ち点（0以上の整数・既定1・0で対象外・同点は山分け） | 每个项目获胜队伍所得胜点（0以上整数・默认1・0为不计・平局平分） | Win points for each event's winner (integer ≥0, default 1, 0 = excluded, ties split) |
+
+**値の更新 1キー**（キー集合不変・weight 一般化に合わせ文言修正）:
+
+| key | ja | zh | en |
+|-----|----|----|----|
+| `team.noteOverall` | 各種目の総合1位に設定した勝ち点（既定1・同点は山分け）。勝ち点合計の順位で配分ポイントをチーム各員に加算 | 每个项目的总冠军队获得所设胜点(默认1・平局平分)。按胜点合计名次向全队每人加分 | Winner of each event gets its configured win points (default 1, ties split). Rank points go to every member by overall standing |
+
+### 13.8 触る範囲 / 触らない範囲
+
+- **触る**: js/state.js（defaultPoints＋migrate per-key 1行）／js/calc.js（teamWinPoints の w・computePoints ゲート1箇所）／js/results.js（tpShare 拡張・renderTeamOverall の details＋×w 併記・renderTeamNiadora のタグ呼び出し引数・setTeamEventPts 新設）／js/i18n.js（+2キー・noteOverall 値更新×3言語）／styles.css（.tp-mx 3行）／index.html（`?v=` 一括更新のみ）。
+- **触らない**: 各種目の勝敗値計算式・成立条件・`announced` 連携フロー（§3〜§11）・`teamRankPts` と配分ロジック本体・`computePayout`・localStorage キー・backup.js・js/game.js（ポイントカード無変更）・js/nav.js・総合ヒーロー（.tp-ovh）と発表進捗 n/N・ニアドラ hero の構成（タグ値の tpShare 引数のみ）・`--f-rl-*` トークン値と @media。
+
+### 13.9 受け入れ条件
+
+1. `node tools/verify.mjs` 全PASS（i18n 3言語パリティ +2キー・既存計算回帰 #3/Vegas 不変）。
+2. **例G**: teamEventPts 未設定（既存ゲーム migrate 補完）と全1設定で、勝ち点・総合順位・配分・個人ptが**現行と完全一致**。種目別勝ち点表の見た目も「×w」併記なし＝数値内容は現行同等。
+3. **例H/I**: 重み変更が総合勝ち点・順位・配分タブに即反映。重みにより同点1位（両チーム各員 teamRankPts[0] 満額）が成立する。
+4. **例J**: 山分けが w/n（1.5・2/3 等の表記規則＝§13.5 tpShare）。ニアドラ hero の勝ち点タグも同じ値。
+5. **例K**: w=0 種目は連携しても wins 0・勝者セル緑「0」・その種目だけでは配分が発動しない。
+6. 設定UI: 総合カード最下部の details 内に**採用中の種目のみ**が TP_EV_ORDER 順で並び、0以上の整数を設定→即再描画・リロード後も保持（`golfCompe_v1`）。負数/小数/空欄は 0 or 切り捨てにクランプ。ゲーム設定タブに重み入力が**無い**こと。
+7. フォント: 値セルが `--f-rl-name` 級・@820/@1366 で自動拡大・375px 3チームで横スクロールなし・4チームは .scroll 横スクロール・長いチーム名は列内折返し。winc/rtie の機能色と「？」マスク・「未確定」タグが大型化後も機能（色だけに頼らず文字併記維持）。
+8. ライト/ダーク・投影表示で非破綻（新規トークンなし・濃色ベタ塗りなし）。
+
+### 13.10 推奨PR分割
+
+**1PR で可**（js/state.js＋js/calc.js＋js/results.js＋js/i18n.js＋styles.css＋index.html `?v=`）。既定全1で完全互換のため winpoints 本体（§9）のような2段構えは不要。計算変更は §13.3 の2箇所のみで、PR 本文に §13.4 例G〜K の前後比較を必ず記載（§3 load-bearing）。
+
+### 13.11 既定で決めた点（ユーザー質問は不要と判断・PM が覆す場合の代替案つき）
+
+| # | 決定 | 代替案（覆す場合） |
+|---|------|------|
+| 1 | 値は 0以上の整数のみ（D12） | 0.5 刻み許容にする場合: setTeamEventPts を `Math.max(0,Math.round(parseFloat(v)*2)/2||0)` に・tpShare は現行式のまま一般化可・§13.4 例は再計算不要 |
+| 2 | 設定UIは総合画面の details のみ・ゲーム設定に置かない（D14） | ゲーム設定にも置く場合: ポイントカード「チーム戦」節に同 ptsrow を複製（onchange は同じ setTeamEventPts・renderGame 再描画） |
+| 3 | w=0 は配分トリガにしない（D16） | 現行ゲート維持なら computePoints は無変更（ただし w=0 のみ連携で全員 teamRankPts[0] の事故が残る） |
