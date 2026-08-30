@@ -8,8 +8,8 @@ let resGame={ ind:'prize', team:'overall' };  // グループ別の選択中ゲ�
 /* ニアドラヒーローの伏せ演出（§5.1.1 D18・nsMode/nsExcept と同型の揮発状態。キー=ホールindex・NP/DC は対象ホールが素で排他） */
 let pzMode='show'; let pzExcept=new Set();
 /* 2026-08-30 指示⑤: 共通スコアカード（renderScorecard）の開閉。ルーレットの rlScOpen と同型の揮発状態
-   （localStorage 非保存・再描画をまたいで維持）。表ごとに独立: 'ind'=個人戦・'team'=チーム別。既定=表示(open) */
-let scOpen={ind:true,team:true};
+   （localStorage 非保存・再描画をまたいで維持）。表ごとに独立: 'ind'=個人戦・'team'=チーム別。既定=閉（#97） */
+let scOpen={ind:false,team:false};
 function scOpenToggle(k,open){ scOpen[k]=open; }
 function pzMasked(h){ return (pzMode==='hide') !== pzExcept.has(h); }
 function togglePzAll(){ pzMode = pzMode==='show'?'hide':'show'; pzExcept.clear(); renderResult(); }

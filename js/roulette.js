@@ -83,8 +83,8 @@ function rlMarks(g){
   }
   return mark;
 }
-/* スコアカードの開閉（§11.14: <details open> の控えめ操作・既定=表示）。揮発の表示状態＝localStorage に保存しない */
-let rlScOpen=true;
+/* スコアカードの開閉（§11.14: <details> の控えめ操作・既定=閉 #97）。揮発の表示状態＝localStorage に保存しない */
+let rlScOpen=false;
 function rlScToggle(open){ rlScOpen=open; }
 function rlScorecard(g){
   const teams=rTeams(g); const R=g.roulette; const h=R.cur<18?R.cur:-1; const cols=[...Array(18).keys()]; const mark=rlMarks(g);
