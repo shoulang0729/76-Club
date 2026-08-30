@@ -1034,3 +1034,11 @@ m1Result(g,A,B):    upA/upB/half/played を集計。diff = upA − upB（0 か�
 - **§4 追補**: `game.kanjiBadge`: `boolean`（既定 `false`）。newGame に追加・migrate で undefined→false バックフィル。localStorage は `golfCompe_v1` のまま**新キーなし**。
 - `nextKanji(g)` の判定式（§10.6）は不変。OFF はネットタブ描画時に nextKanji を**呼ばない**だけ（配点 computePoints/computePayout に次回幹事は元々非関与＝§3 非接触）。
 - 設定UI: ゲーム設定タブ（js/game.js）・エブリカード直後に「次回幹事」カード（チェックボックス1行）。i18n 追加キー `game.kanjiCard/kanjiTgl/kanjiNote`（ja/zh/en）。
+
+### 11.17 次回幹事：対象順位の選択＋順位ごとの繰り上げ/繰り下げ【確定・2026-08-30 ユーザー回答反映・§11.16/§10.6 追補＝判定式を上書き】
+設計詳細は `docs/handoff/2026-08-29-host-option.md` の**追補 §10〜§17（確定版）** が正。要点のみ:
+- 対象順位を **1位/2位/ブービーの個別 ON/OFF**（複数可）に拡張。マスタースイッチ `kanjiBadge` は維持（既定 false 不変）。ON かつ全順位 OFF はバッジなしの有効状態。
+- 免除（kanjiExempt）時のシフト方向は**順位ごとに選択**（ユーザー確定）: `'down'`＝下の順位へ（2位→3位。ブービーは最下位方向）／`'up'`＝上の順位へ。連続免除は歩き続け、リスト端を越えたらその対象は該当なし（1位で 'up' は免除時に常に該当なし）。複数対象が同一人物ならバッジ1個。
+- **§10.6 の判定式を上書き**: 旧「免除者を除外したリストで数え直す」filter 方式 → 新「ネット順リスト（ranked・タイブレーク込み）上の対象位置から方向シフト」方式。`nextKanji(g)` の返り値は pid 配列に変更（呼び出しは results.js net 分岐のみ・表示専用＝配点非関与は不変）。前後比較例は新ファイル追補 §13（migrate 既定では対象本人・経路上免除のケースで旧と完全一致。旧 filter 方式固有の副作用ケース＝経路外免除のみ是正として差）。
+- **§4 追補**: `game.kanjiRanks:{ r1:{enabled,dir}, r2:{enabled,dir}, booby:{enabled,dir} }`（dir:'down'|'up'）。既定＝migrate バックフィル: `{r1:{enabled:false,dir:'down'}, r2:{enabled:true,dir:'down'}, booby:{enabled:true,dir:'up'}}`＝旧 kanjiBadge:true の挙動を保存する組合せ。単一方向 `kanjiShift` 案は未実装のまま廃案（データに痕跡なし）。localStorage 新キーなし。
+- 設定UI: 既存「次回幹事」カード内にサブ設定（マスターON時のみ表示・各順位=チェック＋方向 select・OFF行の select は disabled）。i18n 追加 `game.kanjiRanks/kanjiR1/kanjiR2/kanjiBooby/kanjiR1Down/kanjiR1Up/kanjiR2Down/kanjiR2Up/kanjiBoobyDown/kanjiBoobyUp`（10キー・方向は具体例つき文言）＋`game.kanjiTgl/kanjiNote` の文言更新（ja/zh/en）。
