@@ -5,7 +5,7 @@ function seenTop(){ return localStorage.getItem('golfCompe_seenTop')==='1'; }
 function setSeenTop(v){ localStorage.setItem('golfCompe_seenTop', v?'1':'0'); }
 
 // 各版で遊べるゲーム名の一覧（i18n の fmt.* をそのまま使う＝辞書の二重管理を避ける）
-const ALPHA_GAMES=['fmt.net','fmt.gross','fmt.teamGross','fmt.teamNet','fmt.hbh','fmt.univMatch','fmt.match1v1','term.roulette','term.niapin','term.dracon'];
+const ALPHA_GAMES=['fmt.net','fmt.gross','fmt.teamGross','fmt.teamNet','fmt.hbh','fmt.univMatch','fmt.match1v1','fmt.customMatch','term.roulette','term.niapin','term.dracon'];
 const BETA_GAMES =['fmt.stableford','fmt.olympic','fmt.callaway','fmt.nassau','fmt.best2','fmt.vegas'];
 
 // 概要サブタブ（2026-08-20-home-subtabs.md §4）: 1カラム全幅。ガイド→α/β解説→α/βカード50:50→skip

@@ -24,6 +24,10 @@ function renderTeamGame(g, g0, parts, key){
   if(key==='hbh')   return `<div class="rank-wrap">${renderTeams(g,'holeByHole')}</div>` + sc();
   if(key==='b2')    return `<div class="rank-wrap">${renderTeams(g,'best2ball')}</div>`;
   if(key==='vegas') return `<div class="rank-wrap">${renderTeams(g,'vegas')}</div>` + ruleBox('rule.vegas');
+  /* 任意対決は g0（生ゲーム）を渡す（custom-match §6.1）: 総合タブと同じ理由＝本タブに開封バーが無く、
+     revealHoles=0 のリロード直後に viewGame マスク後の g を渡すと teamWinPoints の対象チームが全滅し勝敗タグが復旧不能に消える。
+     値はスコア非依存なのでマスクを通す意味もない。ネタバレ保護は announced.customMatch ゲートで担保 */
+  if(key==='custom') return renderTeamCustom(g0) + ruleBox('rule.custom');
   return '';
 }
 
@@ -66,10 +70,14 @@ function setTeamEventPts(key,v){ const g=curGame(); if(!g)return;
 let tpEvPtsOpen=false;
 function tpEvPtsToggle(open){ tpEvPtsOpen=open; }
 const TP_EV_LABEL={teamGross:'term.teamGross',teamNet:'term.teamNet',univMatch:'term.univ',holeByHole:'term.hbh',best2ball:'term.best2',
-  roulette:'term.roulette',match1v1:'term.match1v1',vegas:'term.vegas',niadora:'term.niadora'};
+  roulette:'term.roulette',match1v1:'term.match1v1',vegas:'term.vegas',niadora:'term.niadora',customMatch:'term.custom'};
+/* 種目ラベル（任意対決だけユーザー入力名を優先・§11.21）。名前が空なら i18n 既定（term.custom）にフォールバック。
+   ユーザー入力は esc() 必須（辞書文字列と違い HTML が混ざり得る） */
+function tpEvLabel(g,key){ const nm=(key==='customMatch')?(((g&&g.custom&&g.custom.name)||'').trim()):'';
+  return nm? esc(nm) : t(TP_EV_LABEL[key]||key); }
 /* 種目別勝ち点表の行順（#87 指示③）＝チーム戦下段タブの生成順（resGameTabs grp='team'・総合を除く）:
    nd→gross→net→univ→hbh→b2→vegas→m1→roulette。タブ生成順を変えるときは本配列も同期させる */
-const TP_EV_ORDER=['niadora','teamGross','teamNet','univMatch','holeByHole','best2ball','vegas','match1v1','roulette'];
+const TP_EV_ORDER=['niadora','teamGross','teamNet','univMatch','holeByHole','best2ball','vegas','match1v1','roulette','customMatch'];
 function renderTeamOverall(g){
   const {teams,wins,events}=teamWinPoints(g);
   if(!events.length) return '';   // 成立種目0＝総合カード非表示（配分もされない・§3.4）
@@ -95,7 +103,7 @@ function renderTeamOverall(g){
   const mxEvs=[...events].sort((a,b)=>{ const o=k=>{ const i=TP_EV_ORDER.indexOf(k); return i<0?TP_EV_ORDER.length:i; }; return o(a.key)-o(b.key); });
   const mxHead=`<tr><th class="tal">${t('team.matrixTitle')}</th>${teams.map(tm=>
     `<th style="color:${tmColor(tm.name)}">${esc(tm.name)}</th>`).join('')}</tr>`;
-  const mxRows=mxEvs.map(ev=>`<tr><td class="tal">${t(TP_EV_LABEL[ev.key]||ev.key)}${ev.w!==1?` <span class="muted">×${ev.w}</span>`:''}${ev.on?'':` <span class="tag tagtie">${t('team.pending')}</span>`}</td>${teams.map((tm,i)=>{
+  const mxRows=mxEvs.map(ev=>`<tr><td class="tal">${tpEvLabel(g,ev.key)}${ev.w!==1?` <span class="muted">×${ev.w}</span>`:''}${ev.on?'':` <span class="tag tagtie">${t('team.pending')}</span>`}</td>${teams.map((tm,i)=>{
     if(!ev.on) return '<td><span class="mask">？</span></td>';
     if(ev.vals[i]==null) return '<td><span class="muted">—</span></td>';
     if(ev.winners.includes(i)) return `<td class="${ev.winners.length>1?'rtie':'winc'}"><b>${tpShare(ev.w,ev.winners.length)}</b></td>`;
@@ -106,7 +114,7 @@ function renderTeamOverall(g){
   // 開閉は手動トグルのみ＝tpEvPtsOpen（揮発）で再描画をまたいで維持（pzCfgOpen と同方式・重み入力の再描画で閉じない）
   const F=chFormats(g), W=P.teamEventPts||{};
   const evPtsRows=TP_EV_ORDER.filter(k=> k==='niadora'?F.niadoraTeam:F[k]).map(k=>
-    `<div class="ptsrow"><span>${t(TP_EV_LABEL[k]||k)}</span><span class="ptsedit"><input type="number" min="0" step="1" value="${W[k]===undefined?1:W[k]}" onchange="setTeamEventPts('${k}',this.value)"></span></div>`).join('');
+    `<div class="ptsrow"><span>${tpEvLabel(g,k)}</span><span class="ptsedit"><input type="number" min="0" step="1" value="${W[k]===undefined?1:W[k]}" onchange="setTeamEventPts('${k}',this.value)"></span></div>`).join('');
   const evPts=evPtsRows?`<details class="mt10"${tpEvPtsOpen?' open':''} ontoggle="tpEvPtsToggle(this.open)"><summary>${t('team.evPtsTitle')}</summary><div class="in">
       <div class="muted">${t('team.evPtsNote')}</div>${evPtsRows}</div></details>`:'';
   return `<div class="card"><h2 class="lbh"><span>${t('team.overallTitle')} ${prog}</span></h2>
@@ -211,3 +219,60 @@ function uvScSel(g){ const uv=uvStanding(g); if(!uv.rows.length) return null;
   uv.rows.forEach(r=>{ r.sel.forEach(pid=>sel.add(pid)); team[r.t.id]={n:r.N,p:r.P}; });
   return {sel,team}; }
 
+
+/* ---- 任意対決タブ（customMatch・docs/handoff/2026-08-31-custom-match.md §6.2・投影原則 §11.14・モック承認 2026-08-31）----
+   スコアから一切計算しない「幹事入力ポイント」だけで勝敗が決まるチーム種目（§11.21）。
+   大型ヒーローが主役・幹事の入力UIは最下部の <details>（既定=閉）。既存クラスのみ＝新規CSSなし。
+   引数は g0（生ゲーム）＝renderTeamGame 側のコメント参照（マスク後の g を渡すとリロード直後にタグが消える）。
+   勝敗タグ・順位バッジの正は teamWinPoints(g).events の customMatch（表示側で勝者を再計算しない＝univ/ニアドラと同じ規律）。
+   タグは announced.customMatch（ev.on）のときだけ＝未連携はネタバレ防止（総合タブの？マスクと整合）。
+   色のみに依存しない（緑タグ＝「勝ち」・橙タグ＝「引分」の文字併記・勝ち点は数値併記）。 */
+let cmCfgOpen=false;   // 入力パネルの開閉（pzCfgOpen / tpEvPtsOpen と同方式＝揮発の表示状態・localStorage に保存しない）
+function cmCfgToggle(open){ cmCfgOpen=open; }
+/* セッター（グローバル関数・inline onchange 前提／ESM化しない）。golfCompe_v1 に保存 */
+function setCustomName(v){ const g=curGame(); if(!g)return;
+  (g.custom=g.custom||{name:'',pts:{}}).name=String(v||'').slice(0,20); save(); renderResult(); }
+function setCustomPts(tid,v){ const g=curGame(); if(!g)return;
+  const c=(g.custom=g.custom||{name:'',pts:{}}); c.pts=c.pts||{};
+  const s=String(v==null?'':v).trim();
+  if(s===''){ delete c.pts[tid]; }                       // 空欄＝未入力に戻す（0 とは区別する）
+  else { const n=Number(s); if(!isFinite(n))return; c.pts[tid]=Math.round(n*10)/10; }
+  save(); renderResult(); }
+function renderTeamCustom(g){
+  const teams=g.teams.filter(t=>t.memberIds.length);   // スコア未入力チームも出す（幹事が入力漏れに気づける・§6.2-1）
+  const C=g.custom||{name:'',pts:{}}, P=C.pts||{};
+  const val=T=>{ const v=P[T.id]; if(v==null||v==='')return null; const n=Number(v); return isFinite(n)?n:null; };
+  const {teams:wt,events}=teamWinPoints(g);
+  const ev=events.find(e=>e.key==='customMatch');
+  const winIds=ev?ev.winners.map(i=>wt[i].id):[];
+  const head=`<h2>${tpEvLabel(g,'customMatch')}${tpAnnounceUI(g,'customMatch')}</h2>`;
+  // 並び=ポイント降順・未入力は末尾・同値は g.teams の登録順（安定ソート）。順位は入力済みのみで算出（同値は同順位 1,1,3）
+  const rows=teams.map((tm,i)=>({tm,i,v:val(tm)}));
+  rows.sort((a,b)=>{ if(a.v==null&&b.v==null) return a.i-b.i; if(a.v==null) return 1; if(b.v==null) return -1;
+    return b.v-a.v || a.i-b.i; });
+  const ent=rows.filter(r=>r.v!=null);
+  let rank=0,prev=null;
+  ent.forEach((r,idx)=>{ if(prev===null||r.v!==prev){rank=idx+1;prev=r.v;} r.rank=rank; });
+  const fmt=v=>String(Math.round(v*10)/10);
+  const hero=rows.map(r=>{ const col=tmColor(r.tm.name), unset=r.v==null;
+    const tag=(ev&&ev.on&&!unset&&winIds.includes(r.tm.id))
+      ?`<span class="tag ${ev.winners.length>1?'tagtie':'tagwin'}">${ev.winners.length>1?t('custom.tie'):t('custom.win')}</span>`
+       +`<span class="tag">${t('team.winpt')} +${tpShare(ev.w,ev.winners.length)}</span>`:'';
+    return `<span class="rl-st tp-nd tp-ovh">
+      <span class="rl-st-team" style="color:${col}">${esc(r.tm.name)}</span>
+      <span class="rl-st-h"${unset?' style="color:var(--sub)"':''}>${unset?'—':fmt(r.v)}</span>
+      ${unset?`<span class="tp-nd-sub">${t('custom.unset')}</span>`:''}
+      ${(ev&&ev.on&&!unset)?`<span class="tp-nd-tagrow">${posBadge(r.rank,r.rank===1)}${tag}</span>`:''}
+    </span>`; }).join('');
+  const body=ent.length? `<div class="rl-standing tp-ovh-wrap">${hero}</div>`
+                       : `<div class="empty">${t('custom.emptyPts')}</div>`;   // 全未入力＝ヒーローの代わりに案内（入力 details は必ず出す）
+  const note=(!ev&&ent.length)?`<div class="muted mt6">${t('custom.needTeams')}</div>`:'';
+  const ptsRows=teams.map(tm=>{ const v=P[tm.id];
+    return `<div class="ptsrow"><span style="color:${tmColor(tm.name)}">● ${esc(tm.name)}</span><span class="ptsedit">`
+      +`<input type="number" step="any" value="${v==null?'':esc(String(v))}" onchange="setCustomPts('${tm.id}',this.value)"></span></div>`; }).join('');
+  const edit=`<details class="prize-edit mt10"${cmCfgOpen?' open':''} ontoggle="cmCfgToggle(this.open)"><summary>${t('custom.ptsTitle')}</summary><div class="in">
+      <label class="fl">${t('custom.name')}</label>
+      <input type="text" maxlength="20" value="${esc(C.name||'')}" placeholder="${esc(t('custom.namePh'))}" onchange="setCustomName(this.value)">
+      <div class="muted mt6">${t('custom.ptsNote')}</div>${ptsRows}</div></details>`;
+  return `<div class="card">${head}${body}${note}${edit}</div>`;
+}
