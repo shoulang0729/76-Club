@@ -28,8 +28,14 @@ function renderBasic(){
 }
 // 幹事メニュー（動作確認用・目立たせない。Phase2で幹事のみ表示に制限予定）
 function hostMenuCard(){
+  // テストデータのパターン選択（2026-08-31-testdata-patterns.md §7）。選択は揮発変数 sdPat（localStorage 非保存）
+  const sp=SD_PATTERNS.find(x=>x.key===sdPat)||SD_PATTERNS[0];
   return `<details><summary>${t('host.summary')}</summary><div class="in">
     <div class="muted" style="margin-bottom:8px">${t('host.note')}</div>
+    <label class="fl">${t('host.seedPattern')}</label>
+    <select onchange="sdSetPat(this.value)">${SD_PATTERNS.map(x=>
+      `<option value="${x.key}" ${x.key===sp.key?'selected':''}>${esc(t(x.label))}</option>`).join('')}</select>
+    <div class="muted" id="sdDesc" style="margin:6px 0 8px">${esc(t(sp.desc))}</div>
     <button class="btn gold sm" onclick="seedTestData()">${t('host.seedBtn')}</button>
     <div class="muted">${t('host.seedNote')}</div>
   </div></details>`;
