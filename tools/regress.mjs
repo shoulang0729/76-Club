@@ -137,6 +137,40 @@ const CASES = {
       roulette: false, niadoraInd: false, niadoraTeam: false, stableford: false, olympic: false,
       callaway: false, nassau: false, best2ball: false, vegas: false, match1v1: false },
   }) },
+  // F) 任意対決・同点（α・§11.21 / 2026-08-31-custom-match.md §9-6）: 3チーム。pts={T1:5,T2:5}（T3 は未入力=null）・
+  //    重み2・連携済み → winners=[0,1]・vals=[5,5,null]・wins=[1,1,0]（w/n=2/2=1）。他のチーム種目は全 OFF
+  customTie: { channel: 'a', game: baseGame({
+    teams: [
+      { id: 'T1', name: 'レッド', memberIds: ['p01', 'p02', 'p03', 'p04'] },
+      { id: 'T2', name: 'ブルー', memberIds: ['p05', 'p06', 'p07', 'p08'] },
+      { id: 'T3', name: 'グリーン', memberIds: ['p09', 'p10', 'p11', 'p12'] },
+    ],
+    participants: ALL.slice(),
+    scores: mkScores(ALL, (pi, h) => ((pi * 5 + h * 3 + (pi * h) % 4) % 6) - 2),
+    custom: { name: 'ビンゴ大会', pts: { T1: 5, T2: 5 } },
+    points: { teamEventPts: { customMatch: 2 } },   // 残りキーは migrate が既定(全1)補完
+    announced: { customMatch: true },
+    formats: { gross: true, net: true, customMatch: true, teamGross: false, teamNet: false, holeByHole: false,
+      roulette: false, niadoraInd: false, niadoraTeam: false, stableford: false, olympic: false,
+      callaway: false, nassau: false, best2ball: false, vegas: false, match1v1: false, univMatch: false },
+  }) },
+  // G) 任意対決・全未入力（α）: 同構成で custom={name:'',pts:{}} → add の live<2 で種目不成立＝
+  //    events に customMatch の要素が出ない・wins=[0,0,0]・computePoints のチーム配分もゼロ
+  customNone: { channel: 'a', game: baseGame({
+    teams: [
+      { id: 'T1', name: 'レッド', memberIds: ['p01', 'p02', 'p03', 'p04'] },
+      { id: 'T2', name: 'ブルー', memberIds: ['p05', 'p06', 'p07', 'p08'] },
+      { id: 'T3', name: 'グリーン', memberIds: ['p09', 'p10', 'p11', 'p12'] },
+    ],
+    participants: ALL.slice(),
+    scores: mkScores(ALL, (pi, h) => ((pi * 5 + h * 3 + (pi * h) % 4) % 6) - 2),
+    custom: { name: '', pts: {} },
+    points: { teamEventPts: { customMatch: 2 } },
+    announced: { customMatch: true },
+    formats: { gross: true, net: true, customMatch: true, teamGross: false, teamNet: false, holeByHole: false,
+      roulette: false, niadoraInd: false, niadoraTeam: false, stableford: false, olympic: false,
+      callaway: false, nassau: false, best2ball: false, vegas: false, match1v1: false, univMatch: false },
+  }) },
 };
 
 /* ============ vm 読込と実行 ============ */

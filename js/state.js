@@ -37,6 +37,10 @@ function migrate(s){
     if(!g.match1v1) g.match1v1={ teamA:null, teamB:null, pairs:[] };
     if(g.formats && g.formats.univMatch===undefined) g.formats.univMatch=false;   // 大学対抗（§11.20・2026-08-30-univ-match.md）
     if(!g.univ) g.univ={every:false}; else if(g.univ.every===undefined) g.univ.every=false;   // 大学対抗設定（エブリ適用オプション・既定OFF）
+    if(g.formats && g.formats.customMatch===undefined) g.formats.customMatch=false;   // 任意対決（§11.21・2026-08-31-custom-match.md）
+    if(!g.custom) g.custom={name:'',pts:{}};   // 任意対決の設定（種目名＋チームID→ポイント。既定＝空＝種目不成立）
+    else { if(typeof g.custom.name!=='string') g.custom.name='';
+           if(!g.custom.pts || typeof g.custom.pts!=='object') g.custom.pts={}; }
     if(g.formats && g.formats.roulette===undefined) g.formats.roulette=true;   // ルーレット対抗トグル（α・既定ON=現状「常時有効」の後方互換。winpoints-reveal D7）
     if(g.formats && g.formats.niadoraInd===undefined) g.formats.niadoraInd=true;    // ニアドラ個人タブ表示トグル（α・既定ON=後方互換。バッチ95追加5・roulette と同型）
     if(g.formats && g.formats.niadoraTeam===undefined) g.formats.niadoraTeam=true;  // ニアドラチーム種目トグル（α・既定ON=後方互換。バッチ95追加5・roulette と同型）
@@ -54,7 +58,7 @@ function defaultPoints(){ return {
   teamRankPts:[10,5], niapin:2, dracon:2,
   m1win:2, m1draw:1,   // 1 on 1 マッチプレー（§11.13）：勝者+2pt/引分両者+1pt（個人にのみ加算）
   teamEventPts:{ niadora:1, teamGross:1, teamNet:1, univMatch:1, holeByHole:1,   // 種目別勝ち点の重み（0以上の整数・既定 全1＝現行互換。winpoints-reveal §13.2）
-    best2ball:1, vegas:1, match1v1:1, roulette:1 } }; }
+    best2ball:1, vegas:1, match1v1:1, roulette:1, customMatch:1 } }; }
 function save(){ localStorage.setItem(LS_KEY, JSON.stringify(state)); }
 function uid(){ return Math.random().toString(36).slice(2,9); }
 function toast(m){ const t=document.getElementById('toast'); t.textContent=m; t.classList.add('show');
@@ -83,9 +87,11 @@ function newGame(){
     vegas:{ flip:true, cap:'doublePar' },   // ラスベガス設定（§11.11）
     univ:{ every:false },   // 大学対抗設定（エブリ適用オプション・既定OFF＝規定準拠。§11.20）
     match1v1:{ teamA:null, teamB:null, pairs:[] },   // 1 on 1 マッチプレーの抽選結果（§11.13）
+    custom:{ name:'', pts:{} },   // 任意対決（§11.21・幹事入力ポイントのみで勝敗。name 空＝i18n 既定名）
     announced:{},   // 種目別の発表済みフラグ（データ＝幹事の記録。演出の開封状態〔揮発〕とは別物・winpoints-reveal §4.1）
     formats:{ gross:true, net:true, niadoraInd:true, niadoraTeam:true, teamGross:true, teamNet:true, holeByHole:true, roulette:true,
-      stableford:true, nassau:true, olympic:true, callaway:false, best2ball:false, vegas:false, match1v1:false, univMatch:false }
+      stableford:true, nassau:true, olympic:true, callaway:false, best2ball:false, vegas:false, match1v1:false, univMatch:false,
+      customMatch:false }
   };
 }
 
