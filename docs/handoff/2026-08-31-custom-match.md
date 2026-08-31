@@ -117,6 +117,8 @@ function customPts(g,T){ const c=g&&g.custom; if(!c||!c.pts) return null;
 - `computePoints` の gate `events.some(e=>e.on && e.w>0)` は変更なし。**任意対決だけを連携した場合もチーム配分が始まる**（Q2「他種目と同じ」の帰結・意図どおり）。
 - `F.customMatch` 既定 false → 既存ゲーム・既存フィクスチャでは `add` すら呼ばれない＝**regress 差分ゼロ**。
 
+**追補（2026-08-31・PM 判断／PR-A で実装）**: `teamWinPoints` 内の `anyTeamEvent`（ニアドラのチーム種目成立条件）に **`F.customMatch` を含める**。任意対決だけを採用している場合もニアドラがチーム種目として成立するのが自然なため（`F.teamGross||…||F.match1v1||F.customMatch||st.won.some(...)`）。`customMatch` は既定 OFF のため現行挙動は不変（regress 差分ゼロ）。
+
 **開封演出（revealHoles）との関係**: 任意対決の値はスコア非依存なので `viewGame` のマスクの影響を受けない（`Object.assign` の浅いコピーで `g.custom` は素通し）。ただし `teamWinPoints` 冒頭の対象チーム判定は「メンバーが1H以上入力済み」なので、**スコアが1打も入っていない段階では種目自体が成立しない**（`teams.length<2` の早期 return）。これは全チーム種目共通の前提であり変更しない（§10）。表示側は §6.1 のとおり **`g0`（生ゲーム）** を渡してこの副作用を回避する。
 
 ### 4.4 数値例（前後比較・すべて `teamRankPts=[10,5]`／3チーム T1レッド・T2ブルー・T3グリーン／全員スコア入力済み）

@@ -197,6 +197,12 @@ function vegasHoleWins(g){ const teams=g.teams.filter(T=>vegasPair(g,T));   // �
       if(n!=null){ if(n>0)wins[a]++; else if(n<0)wins[b]++; } }   // 0（フリップ後も同数字）・null（未入力）は加算なし
   return {teams,wins};
 }
+/* ---- 任意対決（customMatch・§11.21・docs/handoff/2026-08-31-custom-match.md §4）----
+   幹事が入力したチーム別ポイントだけで勝敗を決める（スコアからは一切計算しない＝§3 の計算式に非接触）。
+   未入力（キー無し・空文字・非数）は null＝対象外。0 は正規の入力値（未入力とは区別する）。 */
+function customPts(g,T){ const c=g&&g.custom; if(!c||!c.pts) return null;
+  const v=c.pts[T.id]; if(v==null||v==='') return null;
+  const n=Number(v); return isFinite(n)? n : null; }
 /* §3.1〜3.2 種目別勝ち点（＋2026-08-30-winpoints-reveal.md §3 の部分上書き＝発表後反映）。
    teams=順位対象チーム（メンバー1人以上かつ1H以上入力済み）。
    返り値 { teams, wins:number[], events:[{key,winners:int[],vals:(number|null)[],on:bool,w:int}] }（表示側 §6 と共用の正。w=種目別勝ち点の重み・§13.3）。
@@ -250,9 +256,11 @@ function teamWinPoints(g){
     if(uv.rows.length>=2) add('univMatch', teams.map(t=>{ const r=uv.rows.find(x=>x.t.id===t.id); return r?r.rank:null; }),'asc'); }
   // ニアドラ（§3.3.1）：F.niadoraTeam ゲート（バッチ95追加5・F.roulette と同型。OFFで種目不成立・データ保持）
   // ＋従来条件＝他のチーム種目が1つ以上採用中（=チーム戦をやっている）かつ チームに数えた本数合計≥1
-  const anyTeamEvent=F.teamGross||F.teamNet||F.holeByHole||F.best2ball||F.vegas||F.match1v1||st.won.some(w=>w>0);
+  const anyTeamEvent=F.teamGross||F.teamNet||F.holeByHole||F.best2ball||F.vegas||F.match1v1||F.customMatch||st.won.some(w=>w>0);
   if(F.niadoraTeam && anyTeamEvent){ const nd=teams.map(t=>niadoraTeamCount(g,t));
     if(nd.reduce((a,b)=>a+b,0)>=1) add('niadora', nd,'desc'); }
+  // 任意対決（§11.21）：幹事入力ポイントの最大が勝ち（同点は山分け）。全未入力/入力1チームは add の live<2 で不成立
+  if(F.customMatch) add('customMatch', teams.map(t=>customPts(g,t)),'desc');
   return {teams,wins,events};
 }
 
