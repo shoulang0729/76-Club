@@ -78,7 +78,58 @@ const SD_PATTERNS = [
             { name:'チームグリーン', color:'green', members:[2,5,8,11] } ],
     np:[0,1,2,3], dc:[4,5,6,7],                       // ニアドラ本数 レッド3・ブルー3・グリーン2
     announced:{ teamGross:true, niadora:true },       // 5種目中2種目だけ発表済み（段階表示）
-    roulette:{ changeN:3, challengeM:1, cur:9 } }     // 前半9H 進行済み・後半分のチェンジ/チャレンジ付与済み
+    roulette:{ changeN:3, challengeM:1, cur:9 } },    // 前半9H 進行済み・後半分のチェンジ/チャレンジ付与済み
+
+  /* §5.5 大学対抗（31名・4校）。uvTargetN の丸め（14→10 / 7→6 / 5→5）・HDCP上限（男36/女40）＋
+     ダブルパーカット・学校同点の②平均グロス決着（北稜 vs 西京）を実データで確認する */
+  { key:'p3', label:'seed.p3', desc:'seed.p3d', seed:20260903, ch:'a',
+    name:'テストコンペ3 大学対抗', date:'2026-09-03', course:'テスト国際CC', off:12,
+    every:false, pool:20000,
+    formats:{ gross:true,net:true,niadoraInd:false,niadoraTeam:false,teamGross:false,teamNet:false,holeByHole:false,
+      roulette:false,stableford:false,nassau:false,olympic:false,callaway:false,best2ball:false,vegas:false,match1v1:false,univMatch:true },
+    players:[
+      // 東都大学 14名（index 0-13）。末尾2名は全ホール par+4 固定＝HDCP上限（男36/女40）とダブルパーカットの検証用
+      { g:'M', s:1 }, { g:'M', s:0 }, { g:'M', s:2 }, { g:'F', s:1 }, { g:'M', s:1 }, { g:'M', s:2 }, { g:'M', s:0 },
+      { g:'M', s:1 }, { g:'F', s:2 }, { g:'M', s:1 }, { g:'M', s:2 }, { g:'M', s:1 },
+      { g:'M', pd:4 }, { g:'F', pd:4 },
+      // 南山大学 7名（index 14-20）
+      { g:'M', s:1 }, { g:'M', s:0 }, { g:'F', s:2 }, { g:'M', s:1 }, { g:'M', s:2 }, { g:'M', s:1 }, { g:'M', s:3 },
+      // 北稜大学 5名（index 21-25）。c1=index21 は hole1/hole3 を固定して西京との差分を作る
+      { g:'M', s:1, abs:{1:5, 3:5} }, { g:'M', s:2 }, { g:'F', s:1 }, { g:'M', s:2 }, { g:'M', s:1 },
+      // 西京大学 5名（index 26-30）＝北稜のスコアをコピー。d1=index26 だけ hole3 +5（隠し・2×par ちょうど）／hole1 +1
+      { g:'M', copy:21, abs:{1:6, 3:10} }, { g:'M', copy:22 }, { g:'F', copy:23 }, { g:'M', copy:24 }, { g:'M', copy:25 }
+    ],
+    teams:[ { name:'東都大学', color:'red',    members:[0,1,2,3,4,5,6,7,8,9,10,11,12,13] },
+            { name:'南山大学', color:'blue',   members:[14,15,16,17,18,19,20] },
+            { name:'北稜大学', color:'green',  members:[21,22,23,24,25] },
+            { name:'西京大学', color:'yellow', members:[26,27,28,29,30] } ] },
+
+  /* §5.6 1 on 1 マッチプレー（10名・2チーム×5組）。B側はA側のスコアをコピーし hole0-5 にだけ差分＝
+     6H以降は全ハーフ。結果は A 3勝1敗1引分（レッド 3-1 ブルー・AS 1） */
+  { key:'p4', label:'seed.p4', desc:'seed.p4d', seed:20260904, ch:'a',
+    name:'テストコンペ4 1on1 マッチプレー', date:'2026-09-04', course:'テスト国際CC', off:43,
+    every:false, pool:15000,
+    points:{ teamRankPts:[10,5] },
+    formats:{ gross:true,net:true,niadoraInd:true,niadoraTeam:true,teamGross:true,teamNet:true,holeByHole:true,
+      roulette:false,stableford:false,nassau:false,olympic:false,callaway:false,best2ball:false,vegas:false,match1v1:true,univMatch:false },
+    players:[
+      // A側（チームレッド・index 0-4）: hole0-5 は par+1 固定／hole6-17 は seeded
+      { g:'M', s:1, pdh:{0:1,1:1,2:1,3:1,4:1,5:1} },
+      { g:'F', s:2, pdh:{0:1,1:1,2:1,3:1,4:1,5:1} },
+      { g:'M', s:1, pdh:{0:1,1:1,2:1,3:1,4:1,5:1} },
+      { g:'M', s:2, pdh:{0:1,1:1,2:1,3:1,4:1,5:1} },
+      { g:'F', s:1, pdh:{0:1,1:1,2:1,3:1,4:1,5:1} },
+      // B側（チームブルー・index 5-9）: A側の同組をコピー＋hole0-5 の差分（§5.6 の表）
+      { g:'M', copy:0, pdh:{0:2,1:2,2:2,3:1,4:1,5:1} },   // #1 A 3UP 勝ち
+      { g:'F', copy:1, pdh:{0:0,1:0,2:0,3:0,4:2,5:1} },   // #2 B 3UP 勝ち
+      { g:'M', copy:2, pdh:{0:2,1:2,2:0,3:0,4:1,5:1} },   // #3 AS（引分）
+      { g:'M', copy:3, pdh:{0:2,1:1,2:1,3:1,4:1,5:1} },   // #4 A 1UP 勝ち
+      { g:'F', copy:4, pdh:{0:1,1:1,2:1,3:1,4:1,5:2} }    // #5 A 1UP 勝ち
+    ],
+    teams:[ { name:'チームレッド', color:'red',  members:[0,1,2,3,4] },
+            { name:'チームブルー', color:'blue', members:[5,6,7,8,9] } ],
+    m1:{ a:0, b:1, pairs:[[0,5],[1,6],[2,7],[3,8],[4,9]] },
+    np:[0,5,1,6], dc:[2,7,3,4] }                          // ニアドラ本数 レッド5・ブルー3
 ];
 
 let sdPat = 'p1';   // 選択中パターン（揮発・localStorage には保存しない・D7）
