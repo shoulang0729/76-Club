@@ -129,7 +129,43 @@ const SD_PATTERNS = [
     teams:[ { name:'チームレッド', color:'red',  members:[0,1,2,3,4] },
             { name:'チームブルー', color:'blue', members:[5,6,7,8,9] } ],
     m1:{ a:0, b:1, pairs:[[0,5],[1,6],[2,7],[3,8],[4,9]] },
-    np:[0,5,1,6], dc:[2,7,3,4] }                          // ニアドラ本数 レッド5・ブルー3
+    np:[0,5,1,6], dc:[2,7,3,4] },                         // ニアドラ本数 レッド5・ブルー3
+
+  /* §5.7 β種目一式（8名・4チーム×ちょうど2名＝ラスベガスの資格条件）。生成後 setChannel('b') でβへ自動切替（D11） */
+  { key:'p5', label:'seed.p5', desc:'seed.p5d', seed:20260905, ch:'b',
+    name:'テストコンペ5 β種目一式', date:'2026-09-05', course:'テスト国際CC', off:53,
+    every:true, pool:16000,
+    formats:{ gross:true,net:true,niadoraInd:true,niadoraTeam:true,teamGross:true,teamNet:true,holeByHole:true,
+      roulette:false,stableford:true,nassau:true,olympic:true,callaway:true,best2ball:true,vegas:true,match1v1:false,univMatch:false },
+    /* hole0（par4）を固定してラスベガスのフリップを確実に発動。数字は「エブリ適用後」なので
+       エブリ選手は生スコアを＋1/＋2して調整（レッド 3&5=35 / ブルー 5&6=56 / グリーン 5&5 / イエロー 6&6）。
+       index0 は hole8（par5）を 2 に固定＝オリンピックの −3以下（10点）を1名以上出す */
+    players:[
+      { g:'M', e:'none',   s:0, abs:{0:3, 8:2} }, { g:'M', e:'none',   s:2, abs:{0:5} },   // レッド
+      { g:'M', e:'none',   s:1, abs:{0:5} },      { g:'F', e:'none',   s:3, abs:{0:6} },   // ブルー
+      { g:'F', e:'every1', s:0, abs:{0:6} },      { g:'M', e:'none',   s:3, abs:{0:5} },   // グリーン（index4 は E1＝生6→エブリ後5）
+      { g:'M', e:'none',   s:2, abs:{0:6} },      { g:'F', e:'every2', s:1, abs:{0:8} }    // イエロー（index7 は E2＝生8→エブリ後6）
+    ],
+    teams:[ { name:'チームレッド',   color:'red',    members:[0,1] },
+            { name:'チームブルー',   color:'blue',   members:[2,3] },
+            { name:'チームグリーン', color:'green',  members:[4,5] },
+            { name:'チームイエロー', color:'yellow', members:[6,7] } ] },
+
+  /* §5.8 小規模・エッジ（4名・2チーム）。同順位・未入力ホール・賞金プール0・NP/DC 一部未設定の表示確認 */
+  { key:'p6', label:'seed.p6', desc:'seed.p6d', seed:20260906, ch:'a',
+    name:'テストコンペ6 小規模・エッジ', date:'2026-09-06', course:'テスト国際CC', off:61,
+    every:true, pool:0, kanjiBadge:true,
+    formats:{ gross:true,net:true,niadoraInd:true,niadoraTeam:true,teamGross:true,teamNet:true,holeByHole:true,
+      roulette:true,stableford:false,nassau:false,olympic:false,callaway:false,best2ball:false,vegas:false,match1v1:false,univMatch:false },
+    players:[
+      { g:'M', e:'none',   b:'1970-05-05', pd:1 },            // E1：E2 と同性・同一生年月日＝tieBreak 0＝同順位
+      { g:'M', e:'none',   b:'1970-05-05', pd:1 },            // E2
+      { g:'F', e:'every1', b:'1985-01-01', pd:2 },            // E3：エブリ後は par+1 相当
+      { g:'M', e:'none',   b:'1990-01-01', pd:1, cut:12 }     // E4：12H以降は未入力（暫定表示・HBH の cnt ガード）
+    ],
+    teams:[ { name:'チームレッド', color:'red',  members:[0,2] },
+            { name:'チームブルー', color:'blue', members:[1,3] } ],
+    np:[0,2], dc:[1] }                                        // NP は4H中2H・DC は4H中1Hだけ勝者設定（残りは「—」表示）
 ];
 
 let sdPat = 'p1';   // 選択中パターン（揮発・localStorage には保存しない・D7）
