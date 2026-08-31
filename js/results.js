@@ -40,6 +40,7 @@ function resGameTabs(grp,g){ const F=chFormats(g); const T=[];
     if(F.vegas)      T.push(['vegas', t('term.vegas')]);
     if(F.match1v1)   T.push(['m1',    t('result.sub.match1v1')]);
     if(F.roulette) T.push(['roulette', t('result.sub.roulette')]);   // ルーレット対抗トグル連動（winpoints-reveal 要件D。OFF時はタブ消失→tabs[0]フォールバック）
+    if(F.customMatch) T.push(['custom', tpEvLabel(g,'customMatch')]);   // 任意対決（§11.21・custom-match §6.1。ラベルはユーザー入力の種目名・空なら term.custom）
   }
   return T;
 }

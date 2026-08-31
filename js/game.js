@@ -50,7 +50,7 @@ function renderGame(){
     ${fchk('niadoraTeam',t('fmt.niadoraTeam'))}${fchk('teamGross',t('fmt.teamGross'))}${fchk('teamNet',t('fmt.teamNet'))}
     ${fchk('univMatch',t('fmt.univMatch'))}${fchk('holeByHole',t('fmt.hbh'))}${bchk('best2ball',t('fmt.best2'))}
     ${bchk('vegas',t('fmt.vegas'))}${fchk('match1v1',t('fmt.match1v1'))}
-    ${fchk('roulette',t('fmt.roulette'))}
+    ${fchk('roulette',t('fmt.roulette'))}${fchk('customMatch',t('fmt.customMatch'))}
   </div></div>`;
 
   // ルーレット設定カードはルーレット対抗ON時のみ表示（winpoints-reveal §5.3。β Vegas 設定カードと同型・setFmt→renderGame 再描画で出没）

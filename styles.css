@@ -81,7 +81,6 @@
     padding:0 2px;height:var(--h-tabrow);font-size:var(--f-body);font-weight:var(--w-bold);cursor:pointer;letter-spacing:.02em;white-space:nowrap}
   .subnav button.on{color:var(--strong);border-bottom-color:var(--pri)}
   @media(max-width:374px){ .subnav{gap:4px} .subnav button{font-size:12px} }
-  .tagbeta{background:var(--acc-bg);color:var(--acc-ink)}
   /* トップ（ホーム）画面（§11.12 B） */
   /* ホームのα/β 2カラム（全幅で50:50・560px以下で縦積み。game-split §2 の CSS を無改変で採用） */
   .chwrap{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px}
@@ -129,10 +128,13 @@
   .mt6{margin-top:6px}.mt8{margin-top:8px}.mt10{margin-top:10px}
   .fx1{flex:1}
   .tal{text-align:left}
-  .tagtie{background:var(--tie);color:var(--on-fill)}
   .hdrsel{background:var(--card);color:var(--ink);border:1px solid var(--line);border-radius:var(--r-pill);padding:8px 10px;font-weight:var(--w-bold);width:auto;min-height:40px}
   .muted{color:var(--sub);font-size:var(--f-small)}
   .tag{font-size:var(--f-small);padding:1px 6px;border-radius:var(--r-sm);background:var(--surface-2);color:var(--sub);margin-left:4px;font-weight:var(--w-bold)}
+  /* .tag の派生（2026-08-31 修正）: 以前は .tag より前に定義されており、同一詳細度の後勝ちで
+     背景がグレーに上書きされて機能色が死んでいた（引分=橙・β=アクセント）。.tag の直後へ移動して復旧 */
+  .tagtie{background:var(--tie);color:var(--on-fill)}
+  .tagbeta{background:var(--acc-bg);color:var(--acc-ink)}
   .pill{display:inline-block;background:var(--surface-2);color:var(--ink);border-radius:var(--r-pill);padding:2px 9px;font-size:var(--f-small);font-weight:var(--w-bold)}
   .pill.f{background:var(--danger-bg);color:var(--red)}
   .pill.e1{background:var(--info-bg);color:var(--pri)}
