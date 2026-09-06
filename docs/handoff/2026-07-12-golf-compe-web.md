@@ -1066,3 +1066,20 @@ m1Result(g,A,B):    upA/upB/half/played を集計。diff = upA − upB（0 か�
 **詳細設計の正**: `docs/handoff/2026-08-31-peria-options.md`。
 **§3 追補（`periaHdcp` にオプション分岐を追加。両方OFF＝既定＝現行式と完全に同一）**: 幹事会社の集計 Excel（`寄与 = MIN(par, スコア−par) × 1.2` を隠し12ホール合計し `MIN(…,36)`・下限クランプなし）に合わせるための per-game オプション。①**ダブルパーカット `g.periaDblPar`**（既定 false）: 隠しホールの集計値を `Math.min(v, 2*par[i])` で頭打ち。**HDCP 算定にのみ適用しグロスには適用しない**（`uvGrossA` と同じ規律）。エブリ ON 時の `min` 判定は**エブリ適用後の値**（`adjHole` の戻り値）に対して行う（§11.12 H・`uvHdcpA` と同順）。②**HDCPマイナス許可 `g.periaAllowNeg`**（既定 false）: `if(hd<0)hd=0` の 0 クリップを外す。ただし**隠し12ホールが全て入力済みのときのみ有効**（経過ラウンド・段階開封中は従来どおり 0 クリップ＝表示破綻の防止。18H 完了時の値は Excel と一致）。上限 `g.periaCap` の判定・丸め `Math.round(hd*10)/10` は**従来どおり**（マイナス許可と上限は独立・上限は上側のみ）。`periaCoef` 既定 0.8・隠し par 合計 48・規定打数 72 のとき 76-Club 一般式 `(Σ12×1.5 − 規定打数)×0.8` は Excel の `Σ MIN(par, スコア−par) × 1.2` と数学的に一致する（実データ検証: グロス92・隠し12H合計61 → HDCP 15.6・ネット 76.4）。**大学対抗 `uv*` には非連動**（`uvHdcpA` は規定準拠の独立計算のまま＝`periaCoef`/`periaCap` 非連動の前例と同じ）。他の種目関数（stableford/olympic/callaway/nassau の判定式/holesWon/vegas/m1/niadora/customMatch）には非接触（ネット経由で値が動く範囲は `docs/handoff/2026-08-31-peria-options.md` §4）。
 **§4 追補（後方互換・migrate 補完）**: `game.periaDblPar`: bool（既定 false）／`game.periaAllowNeg`: bool（既定 false）。いずれも `periaCoef`/`periaCap` と同じ per-game トップレベル。`newGame()` に既定値・`migrate()` に `undefined` バックフィルを追加。`dupGame`（ディープコピー）・backup（`state` 丸ごと export ＋ import 時 `migrate`）は変更不要。**localStorage キー集合・players スキーマ・formats/points/announced は不変**（新種目ではないので `BETA_FMT`/`teamEventPts`/`TP_EV_ORDER` に追加しない）。UI はゲーム設定タブの既存「ダブルペリア設定」カードにチェックボックス2つ＋注記1行（新規カードなし・セッターは既存 `setG`）。
+
+### §11.23 コースマスタ（コースライブラリ）【確定・2026-09-06・§4 追補】
+**詳細設計の正**: `docs/handoff/2026-09-06-course-master.md`（rev.2）。実装: PR #134（データモデル＋読込/保存）・PR #135（管理パネル）。
+**§4 追補（後方互換・migrate 補完）**:
+```jsonc
+"courses": [ { "id":"c1", "name":"○○CC",
+   "nines":[ {"id":"n1","name":"西","par":[5,3,4,4,4,4,4,3,5]}, {"id":"n2","name":"北","par":[4,5,3,4,4,3,5,4,4]} ],
+   "note":"", "updatedAt":"2026-09-06" } ],   // コースライブラリ（9H単位）
+"games": [ { ..., "courseRef": {"courseId":"c1","outId":"n1","inId":"n2"} } ]   // 弱参照・計算からは非参照（null 可）
+```
+- ゴルフ場を **9ホールのコース（ナイン）の集合**として `state.courses` に保存する。27H/36H のゴルフ場に対応（組合せごとのレコードを作らない）。保存時に **par が完全一致するナインは再利用**する。
+- コンペごとに OUT/IN の2ナインを選び、**コピー方式**で `g.par`（18要素のフラット配列）へ展開する。参照方式は採らない（ライブラリを1つ直すと過去の全コンペの HDCP と順位が遡って変わるため）。**ライブラリの削除・改名で過去のコンペは一切変化しない**。`courseRef` が dangling になった場合は未リンク扱い。
+- **`nines[].par` は migrate と読込時の二重ガードで必ず9要素に正規化**する。ここが崩れると `g.par.length !== 18` となり §3 に波及する唯一の経路。
+- 計算は `g.par` を読むだけなので **§3 は非接触**（`js/calc.js` の差分ゼロを受け入れ条件とした）。**`g.hidden`（隠し12）はライブラリに含めず、読込時に引き直しもしない**（ペリア HDCP が黙って変わるのを防ぐ）。
+- ニアピン/ドラコンは従来どおり `g.par` から導出（§3.6）＝**読み込めば自動で決まる**（「ショート・ロングのニアドラ自動設定」は本機能の帰結であり追加実装は不要）。
+- **localStorage キーは増やさない**（`golfCompe_v1` 内。選択状態と管理パネルの開閉は揮発の JS 変数）。
+- **外部 API からのコースデータ取得は不採用**（根拠は `2026-09-06-course-master.md` §12。静的サイトに API キーを置けない・CORS・日本のカバレッジ）。代替は §11.24 相当の貼り付け取込（#126）。
