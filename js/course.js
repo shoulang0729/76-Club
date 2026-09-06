@@ -6,7 +6,10 @@ function renderCourse(){
   const g=curGame();
   if(!g){ el.innerHTML=`<div class="empty">${t('msg.needGame')}</div>`; return; }
 
-  let html = `<div class="card"><h2>${t('game.courseCard')}</h2>
+  clibSync(g);
+  let html = clibCard(g);
+
+  html += `<div class="card"><h2>${t('game.courseCard')}</h2>
     <div class="muted">${t('game.hiddenNote',{n:`<b id="hidCount">${g.hidden.filter(Boolean).length}</b>`})}</div>
     <div class="row" style="margin:8px 0"><button class="btn sec sm" onclick="randomHidden()">${t('game.random12')}</button>
       <button class="btn gray sm" onclick="clearHidden()">${t('btn.clear')}</button></div>
@@ -57,4 +60,125 @@ function courseGrid(g,s,e){
       <tr><td class="name">Par</td>${H.map(i=>`<td class="${g.hidden[i]?'hidden-h':''}"><input type="number" min="3" max="6" value="${g.par[i]}" onchange="setPar(${i},this.value)"></td>`).join('')}${cols.map(c=>`<td class="sum">${c.f(g.par)}</td>`).join('')}</tr>
       <tr><td class="name">${t('game.rowHidden')}</td>${H.map(i=>`<td class="${g.hidden[i]?'hidden-h':''}"><input type="checkbox" ${g.hidden[i]?'checked':''} onchange="toggleHidden(${i})"></td>`).join('')}${cols.map(()=>`<td class="sum">-</td>`).join('')}</tr>
     </table></div>`;
+}
+/* ============================ COURSE LIBRARY（コースライブラリ・2026-09-06-course-master.md） ============================ */
+/* ゴルフ場を「9ホールのコース（ナイン）の集合」として state.courses に保存し、OUT/IN の2ナインを選んで
+   g.par（18要素のフラット配列）へ*コピー方式*で展開する。計算(§3)は g.par を読むだけなので非接触（同書 §7）。
+   選択状態は揮発の module 変数（localStorage キーは増やさない・同書 §6）。 */
+let clibSel = { courseId:null, outId:null, inId:null };   // 読込元の選択（揮発）
+let clibSaveTo = '';                                      // 保存先ゴルフ場ID（''＝新しいゴルフ場・揮発）
+let clibGid = null;                                       // 選択状態を紐づけているゲームID（切替時に選択をリセット）
+
+/* 唯一の変換ロジック（同書 §5）。必ず length 18 になる（読込側ガードと migrate 正規化で二重に担保） */
+function clibExpand(out, inn){ return out.par.slice(0,9).concat(inn.par.slice(0,9)); }
+
+function clibNineLabel(c,n){ return n.name || t('clib.nineNo',{n:c.nines.indexOf(n)+1}); }
+function clibVenueLabel(c){ return c.name || t('clib.untitled'); }
+function clibToday(){ return new Date().toISOString().slice(0,10); }
+/* g.courseRef を解決（マスタ削除後は null＝未リンク扱い。dangling でも無害・同書 §4.3） */
+function clibLinked(g){
+  const r = g && g.courseRef; if(!r) return null;
+  const c = state.courses.find(x=>x.id===r.courseId); if(!c) return null;
+  const o = c.nines.find(n=>n.id===r.outId), i = c.nines.find(n=>n.id===r.inId);
+  if(!o||!i) return null;
+  return { c, o, i, canUpdate:r.outId!==r.inId,
+    label:t('clib.combo',{course:clibVenueLabel(c), out:clibNineLabel(c,o), in:clibNineLabel(c,i)}) };
+}
+/* 揮発の選択状態を現在のデータに合わせて整合させる（未選択なら g.courseRef から復元・同書 §6） */
+function clibSync(g){
+  const has = id => state.courses.some(c=>c.id===id);
+  /* コンペを切り替えたら選択をリセット（保存先の既定は「新しいゴルフ場」＝§8.3）。直後に g.courseRef から復元する */
+  if(g && g.id!==clibGid){ clibGid=g.id; clibSel={courseId:null,outId:null,inId:null}; clibSaveTo=''; }
+  if(clibSel.courseId && !has(clibSel.courseId)) clibSel={courseId:null,outId:null,inId:null};
+  if(!clibSel.courseId){
+    const r = g && g.courseRef;
+    if(r && has(r.courseId)) clibSel={courseId:r.courseId, outId:r.outId, inId:r.inId};
+  }
+  const c = state.courses.find(x=>x.id===clibSel.courseId);
+  if(c){
+    if(!c.nines.some(n=>n.id===clibSel.outId)) clibSel.outId = c.nines[0]?.id || null;
+    if(!c.nines.some(n=>n.id===clibSel.inId))  clibSel.inId  = (c.nines[1]||c.nines[0])?.id || null;
+  }else{ clibSel.outId=null; clibSel.inId=null; }
+  if(clibSaveTo && !has(clibSaveTo)) clibSaveTo='';
+}
+/* カード（コースタブの先頭・同書 §8.1）。既存クラスのみ使用＝新規 CSS ゼロ */
+function clibCard(g){
+  const cs = state.courses.slice().sort((a,b)=>String(b.updatedAt||'').localeCompare(String(a.updatedAt||'')));
+  const c = state.courses.find(x=>x.id===clibSel.courseId) || null;
+  const nineOpts = sel => c ? c.nines.map(n=>`<option value="${n.id}" ${n.id===sel?'selected':''}>${esc(clibNineLabel(c,n))}</option>`).join('') : '';
+  const venueOpts = sel => cs.map(x=>`<option value="${x.id}" ${x.id===sel?'selected':''}>${esc(clibVenueLabel(x))}${x.note?' / '+esc(x.note):''}</option>`).join('');
+  const L = clibLinked(g);
+  let h = `<div class="card"><h2>${t('clib.card')}</h2>
+    <div class="muted">${t('clib.note')}</div>
+    <div class="row mt8"><div class="fx1"><label class="fl">${t('clib.venue')}</label>
+      <select onchange="clibPickVenue(this.value)"><option value="">${t('game.selectPh')}</option>${venueOpts(clibSel.courseId)}</select></div></div>
+    <div class="row mt6">
+      <div class="fx1"><label class="fl">${t('clib.outNine')}</label><select onchange="clibPickNine('out',this.value)">${nineOpts(clibSel.outId)}</select></div>
+      <div class="fx1"><label class="fl">${t('clib.inNine')}</label><select onchange="clibPickNine('in',this.value)">${nineOpts(clibSel.inId)}</select></div>
+      <button class="btn sm" onclick="clibLoad()">${t('clib.load')}</button>
+    </div>`;
+  if(L) h += `<div class="muted mt6">${t('clib.linked',{name:esc(L.label)})}</div>`;
+  h += `<div class="muted mt6">${t('clib.hiddenHint')}</div>
+    <div class="row mt8"><div class="fx1" style="min-width:200px"><label class="fl">${t('clib.saveTo')}</label>
+      <select onchange="clibPickTarget(this.value)"><option value="">${t('clib.newVenue')}</option>${venueOpts(clibSaveTo)}</select></div>
+      <button class="btn sec sm" onclick="clibSave()">${t('clib.save')}</button>
+      ${(L&&L.canUpdate)?`<button class="btn gray sm" onclick="clibUpdate()">${t('clib.update')}</button>`:''}
+    </div>
+    <div class="muted mt6">${t('clib.saveNote')}</div>`;
+  if(L && !L.canUpdate) h += `<div class="muted mt6">${t('clib.updateNg')}</div>`;
+  return h+`</div>`;
+}
+function clibPickVenue(id){
+  const c = state.courses.find(x=>x.id===id);
+  clibSel = c ? { courseId:c.id, outId:c.nines[0]?.id||null, inId:(c.nines[1]||c.nines[0])?.id||null }
+              : { courseId:null, outId:null, inId:null };
+  renderCourse();
+}
+function clibPickNine(which,id){ if(which==='out') clibSel.outId=id||null; else clibSel.inId=id||null; }
+function clibPickTarget(id){ clibSaveTo=id||''; }
+/* 読込（同書 §8.2）: 書き込むのは g.par / g.course / g.courseRef の3つだけ。g.hidden は絶対に触らない */
+function clibLoad(){
+  const g=curGame(); if(!g) return;
+  const c=state.courses.find(x=>x.id===clibSel.courseId); if(!c) return;
+  const o=c.nines.find(n=>n.id===clibSel.outId), i=c.nines.find(n=>n.id===clibSel.inId);
+  if(!o||!i) return;
+  if(o.par.length!==9 || i.par.length!==9) return toast(t('toast.badFile'));   // ★読込時ガード（g.par を必ず18要素に保つ）
+  const label=t('clib.combo',{course:clibVenueLabel(c), out:clibNineLabel(c,o), in:clibNineLabel(c,i)});
+  if(!confirm(t('clib.cfmLoad',{name:label}))) return;
+  g.par=clibExpand(o,i);
+  g.course=label;
+  g.courseRef={ courseId:c.id, outId:o.id, inId:i.id };
+  save(); render(); toast(t('clib.loadedT'));
+}
+/* 保存（同書 §8.3）: 現在の18Hを前半9／後半9に割る。既存ゴルフ場では par 一致のナインを再利用＝ナインが増殖しない */
+function clibSave(){
+  const g=curGame(); if(!g) return;
+  const front=g.par.slice(0,9), back=g.par.slice(9,18);
+  if(front.length!==9 || back.length!==9) return toast(t('toast.badFile'));
+  let c=state.courses.find(x=>x.id===clibSaveTo);
+  if(!c){
+    c={ id:uid(), name:(g.course||'').trim()||t('clib.untitled'),
+        nines:[{id:uid(),name:'OUT',par:front},{id:uid(),name:'IN',par:back}], note:'', updatedAt:clibToday() };
+    state.courses.push(c);
+    g.courseRef={ courseId:c.id, outId:c.nines[0].id, inId:c.nines[1].id };
+  }else{
+    const findNine = par => c.nines.find(n=> n.par.length===9 && n.par.every((v,k)=>v===par[k]));
+    const addNine  = par => { const n={id:uid(),name:'',par:par}; c.nines.push(n); return n; };
+    const o = findNine(front) || addNine(front);
+    const i = findNine(back)  || addNine(back);
+    c.updatedAt=clibToday();
+    g.courseRef={ courseId:c.id, outId:o.id, inId:i.id };
+  }
+  clibSel={ courseId:g.courseRef.courseId, outId:g.courseRef.outId, inId:g.courseRef.inId };
+  clibSaveTo=c.id;
+  save(); renderCourse(); toast(t('clib.savedT'));
+}
+/* 上書き保存（同書 §8.4）: リンク中かつ OUT≠IN のときだけ。name/note は壊さない */
+function clibUpdate(){
+  const g=curGame(); const L=clibLinked(g);
+  if(!L || !L.canUpdate) return;
+  if(!confirm(t('clib.cfmUpdate',{name:L.label}))) return;
+  L.o.par=g.par.slice(0,9); L.i.par=g.par.slice(9,18);
+  L.c.updatedAt=clibToday();
+  save(); renderCourse(); toast(t('clib.updatedT'));
 }

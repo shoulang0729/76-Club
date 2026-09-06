@@ -15,6 +15,15 @@ function migrate(s){
     if(p.gender===undefined) p.gender='M';
     if(p.birth===undefined) p.birth=null;             // 生年月日(YYYY-MM-DD)。同ネットのタイブレークに使用
   });
+  /* コースライブラリ（2026-09-06-course-master.md §4.4）。localStorage キーは増やさない（golfCompe_v1 内）。
+     ★防御的正規化：nines[].par は必ず9要素。ここが崩れると読込時の g.par が18要素でなくなり §3 に波及する
+     （読込側の clibLoad/clibExpand と合わせて二重ガード） */
+  if(!Array.isArray(s.courses)) s.courses=[];
+  s.courses.forEach(c=>{
+    if(!Array.isArray(c.nines)) c.nines=[];
+    c.nines.forEach(n=>{ if(!Array.isArray(n.par)) n.par=[];
+      while(n.par.length<9) n.par.push(4); if(n.par.length>9) n.par=n.par.slice(0,9); });
+  });
   (s.games||[]).forEach(g=>{
     if(!g.womenEvery) g.womenEvery={enabled:false};
     if(g.womenEvery.enabled===undefined) g.womenEvery.enabled=false;
@@ -46,6 +55,7 @@ function migrate(s){
     if(g.formats && g.formats.niadoraTeam===undefined) g.formats.niadoraTeam=true;  // ニアドラチーム種目トグル（α・既定ON=後方互換。バッチ95追加5・roulette と同型）
     if(g.periaDblPar===undefined) g.periaDblPar=false;      // §11.22（既存ゲームは従来挙動のまま）
     if(g.periaAllowNeg===undefined) g.periaAllowNeg=false;
+    if(g.courseRef===undefined) g.courseRef=null;   // コースライブラリへの弱参照（計算からは非参照・2026-09-06-course-master.md §4.1）
     if(g.announced===undefined) g.announced={};   // 種目別の発表済みフラグ（winpoints-reveal §4.2）。救済補完はしない（D10・既存ゲームは全種目未発表スタート＝ユーザー了承済み）
   });
 }
@@ -75,6 +85,7 @@ function draconHolesOf(g){ return g.par.map((p,i)=>p===5?i:-1).filter(i=>i>=0); 
 function newGame(){
   return {
     id:uid(), name:"新しいコンペ", date:new Date().toISOString().slice(0,10), course:"",
+    courseRef:null,   // コースライブラリへの弱参照 {courseId,outId,inId}（null 可・計算からは非参照。§4.1）
     par:[4,4,3,4,5,4,4,3,4, 4,4,3,4,5,4,4,3,4],
     hidden:Array(18).fill(false),
     periaCoef:0.8, periaCap:null, periaDblPar:false, periaAllowNeg:false,   // §11.22 幹事会社方式オプション（既定OFF＝従来と同一）
