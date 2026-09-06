@@ -68,6 +68,7 @@ function courseGrid(g,s,e){
 let clibSel = { courseId:null, outId:null, inId:null };   // 読込元の選択（揮発）
 let clibSaveTo = '';                                      // 保存先ゴルフ場ID（''＝新しいゴルフ場・揮発）
 let clibGid = null;                                       // 選択状態を紐づけているゲームID（切替時に選択をリセット）
+let clibOpen = false;                                     // 管理 <details> の開閉（揮発・既定は閉じ・同書 §8.5）
 
 /* 唯一の変換ロジック（同書 §5）。必ず length 18 になる（読込側ガードと migrate 正規化で二重に担保） */
 function clibExpand(out, inn){ return out.par.slice(0,9).concat(inn.par.slice(0,9)); }
@@ -126,7 +127,55 @@ function clibCard(g){
     </div>
     <div class="muted mt6">${t('clib.saveNote')}</div>`;
   if(L && !L.canUpdate) h += `<div class="muted mt6">${t('clib.updateNg')}</div>`;
+  h += clibManage(cs);
   return h+`</div>`;
+}
+/* 管理（同書 §8.5）: ゴルフ場ごとのブロック＋ナイン一覧。名前／メモ／ナイン名はインライン編集、削除は confirm 付き。
+   パーの編集はここでは提供しない（コンペに読み込む→既存のパー表で直す→上書き保存）。既定は閉じ・開閉は揮発。 */
+function clibManage(cs){
+  let h = `<details class="mt8" ${clibOpen?'open':''} ontoggle="clibToggleManage(this.open)"><summary>${t('clib.manage')}</summary><div class="in">`;
+  if(!cs.length) return h+`<div class="empty">${t('clib.empty')}</div></div></details>`;
+  h += cs.map(c=>`<div class="mt8">
+      <div class="row">
+        <div class="fx1"><label class="fl">${t('clib.colName')}</label>
+          <input value="${esc(c.name)}" placeholder="${t('clib.untitled')}" onchange="clibSetVenue('${c.id}','name',this.value)"></div>
+        <div class="fx1"><label class="fl">${t('clib.colNote')}</label>
+          <input value="${esc(c.note)}" placeholder="${t('clib.notePh')}" onchange="clibSetVenue('${c.id}','note',this.value)"></div>
+        <button class="btn danger sm" onclick="clibDelVenue('${c.id}')">×</button>
+      </div>
+      <div class="muted mt6">${t('clib.colUpdated')} ${esc(c.updatedAt)}</div>
+      <div class="fl mt6">${t('clib.ninesTitle')}</div>
+      <div class="scroll"><table><tr><th>${t('clib.colName')}</th><th>${t('clib.colPar')}</th><th></th></tr>
+        ${c.nines.map(n=>`<tr>
+          <td><input value="${esc(n.name)}" placeholder="${t('clib.ninePh')}" onchange="clibSetNine('${c.id}','${n.id}','name',this.value)"></td>
+          <td>${sum(n.par,0,9)}</td>
+          <td><button class="btn danger sm" onclick="clibDelNine('${c.id}','${n.id}')">×</button></td>
+        </tr>`).join('')}</table></div>
+    </div>`).join('');
+  return h+`</div></details>`;
+}
+function clibToggleManage(open){ clibOpen=!!open; }   // localStorage には保存しない（表示状態キーを増やさない）
+/* インライン編集（同書 §8.5）: updatedAt は更新しない（パーの版とは別物）。読込済みコンペの g.course は追随しない（コピー方式・§8.6） */
+function clibSetVenue(cid,field,val){
+  const c=state.courses.find(x=>x.id===cid); if(!c) return;
+  c[field]=(val||'').trim(); save(); renderCourse();
+}
+function clibSetNine(cid,nid,field,val){
+  const c=state.courses.find(x=>x.id===cid); const n=c&&c.nines.find(y=>y.id===nid); if(!n) return;
+  n[field]=(val||'').trim(); save(); renderCourse();
+}
+/* 削除（同書 §8.5）: ゲーム側は何も壊れない（g.par は値コピー済み）。dangling な courseRef は未リンク扱いになるだけ */
+function clibDelNine(cid,nid){
+  const c=state.courses.find(x=>x.id===cid); const n=c&&c.nines.find(y=>y.id===nid); if(!n) return;
+  if(!confirm(t('clib.cfmDelNine',{name:clibNineLabel(c,n)}))) return;
+  c.nines=c.nines.filter(y=>y.id!==nid);
+  save(); renderCourse(); toast(t('clib.deletedT'));
+}
+function clibDelVenue(cid){
+  const c=state.courses.find(x=>x.id===cid); if(!c) return;
+  if(!confirm(t('clib.cfmDelVenue',{name:clibVenueLabel(c)}))) return;
+  state.courses=state.courses.filter(x=>x.id!==cid);
+  save(); renderCourse(); toast(t('clib.deletedT'));
 }
 function clibPickVenue(id){
   const c = state.courses.find(x=>x.id===id);
