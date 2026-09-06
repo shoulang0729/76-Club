@@ -94,7 +94,8 @@
   .chcard.on{box-shadow:0 0 0 2px var(--pri) inset}
   .chcard.beta.on{box-shadow:0 0 0 2px var(--acc) inset}
   .chcard .pill{margin:2px 2px 0 0}
-  .seentop{margin-top:2px}
+  /* 「次回から表示しない」は「ようこそ」カードの見出し右端（2026-09-06 指示）。.card h2 が flex なので auto で右寄せ */
+  .seentop{margin-left:auto;font-weight:var(--w-med)}
   @media(max-width:560px){
     header .gamename{font-size:17px}   /* 狭幅はコンペ情報をやや縮小＝1行＋ellipsis（§11.12 K） */
     header h1{display:none}            /* 狭幅は Powered by 表記を非表示＝コンペ情報の可読を優先（#63） */
