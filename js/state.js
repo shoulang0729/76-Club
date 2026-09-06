@@ -44,6 +44,8 @@ function migrate(s){
     if(g.formats && g.formats.roulette===undefined) g.formats.roulette=true;   // ルーレット対抗トグル（α・既定ON=現状「常時有効」の後方互換。winpoints-reveal D7）
     if(g.formats && g.formats.niadoraInd===undefined) g.formats.niadoraInd=true;    // ニアドラ個人タブ表示トグル（α・既定ON=後方互換。バッチ95追加5・roulette と同型）
     if(g.formats && g.formats.niadoraTeam===undefined) g.formats.niadoraTeam=true;  // ニアドラチーム種目トグル（α・既定ON=後方互換。バッチ95追加5・roulette と同型）
+    if(g.periaDblPar===undefined) g.periaDblPar=false;      // §11.22（既存ゲームは従来挙動のまま）
+    if(g.periaAllowNeg===undefined) g.periaAllowNeg=false;
     if(g.announced===undefined) g.announced={};   // 種目別の発表済みフラグ（winpoints-reveal §4.2）。救済補完はしない（D10・既存ゲームは全種目未発表スタート＝ユーザー了承済み）
   });
 }
@@ -75,7 +77,7 @@ function newGame(){
     id:uid(), name:"新しいコンペ", date:new Date().toISOString().slice(0,10), course:"",
     par:[4,4,3,4,5,4,4,3,4, 4,4,3,4,5,4,4,3,4],
     hidden:Array(18).fill(false),
-    periaCoef:0.8, periaCap:null,
+    periaCoef:0.8, periaCap:null, periaDblPar:false, periaAllowNeg:false,   // §11.22 幹事会社方式オプション（既定OFF＝従来と同一）
     womenEvery:{enabled:false},
     kanjiBadge:false,   // 次回幹事バッジ表示（既定OFF・§11.16 / 2026-08-29-host-option.md）
     kanjiRanks:{r1:{enabled:false,dir:'down'},r2:{enabled:true,dir:'down'},booby:{enabled:true,dir:'up'}},   // 対象順位＋順位ごと方向（§11.17）

@@ -9,7 +9,10 @@ function renderGame(){
     <div class="row">
       <div class="fx1"><label class="fl">${t('game.coef')}</label><input type="number" step="0.05" value="${g.periaCoef}" onchange="setG('periaCoef',parseFloat(this.value))"></div>
       <div class="fx1"><label class="fl">${t('game.cap')}</label><input type="number" step="1" value="${g.periaCap??''}" placeholder="${t('game.capPh')}" onchange="setCap(this.value)"></div>
-    </div></div>`;
+    </div>
+    <label class="mt8" style="display:flex;gap:8px;align-items:center;font-size:13px"><input type="checkbox" ${g.periaDblPar?'checked':''} onchange="setG('periaDblPar',this.checked)"> ${t('game.periaCut')}</label>
+    <label class="mt6" style="display:flex;gap:8px;align-items:center;font-size:13px"><input type="checkbox" ${g.periaAllowNeg?'checked':''} onchange="setG('periaAllowNeg',this.checked)"> ${t('game.periaNeg')}</label>
+    <div class="muted mt6">${t('game.periaOptNote')}</div></div>`;
 
   html += `<div class="card"><h2>${t('game.everyCard')}</h2>
     <label style="display:flex;gap:8px;align-items:center;font-size:14px"><input type="checkbox" ${g.womenEvery.enabled?'checked':''} onchange="setWE(this.checked)"> ${t('game.everyApply')}</label>

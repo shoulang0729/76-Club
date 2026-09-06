@@ -5,11 +5,17 @@ function complete(g,pid){ const sc=g.scores[pid]||[]; return sc.filter(v=>v!=nul
 /* ダブルペリアHDCP（★§11.12 H・2026-08-19に算定基準を変更＝§3/§11.2 を上書き）:
    隠し12ホールの合計を「エブリ適用後スコア」(adjHole) 基準で取る。
    ＝①エブリを各ホールに先に反映 → ②その合計からHDCPを算定 → ③ネット＝(エブリ後グロス)−(このHDCP)。
-   エブリ選手はHDCPが小さくなり（0クリップされやすく）ネットが上がる。二重控除にはならない。 */
+   エブリ選手はHDCPが小さくなり（0クリップされやすく）ネットが上がる。二重控除にはならない。
+   ★§11.22（2026-08-31・peria-options）幹事会社方式に合わせる任意オプション2つ。両方OFF（既定）＝上式と完全に同一:
+     ①g.periaDblPar  … 隠しホールの集計値をパーの2倍で頭打ち（エブリ適用後の値に min。グロスは頭打ちしない）
+     ②g.periaAllowNeg … 0クリップを外す（隠し12ホールが全て入力済みのときのみ＝経過表示の暴走防止）。上限 periaCap の判定は従来どおり */
 function periaHdcp(g,pid){
-  let h=0; g.hidden.forEach((hid,i)=>{ if(hid){ const v=adjHole(g,pid,i); if(v!=null)h+=v; } });
+  let h=0; g.hidden.forEach((hid,i)=>{ if(hid){ const v=adjHole(g,pid,i);
+    if(v!=null) h += g.periaDblPar? Math.min(v, 2*g.par[i]) : v; } });
   let hd=(h*1.5 - parTotal(g))*g.periaCoef;
-  if(hd<0)hd=0; if(g.periaCap!=null && hd>g.periaCap)hd=g.periaCap;
+  const neg = g.periaAllowNeg && g.hidden.every((hid,i)=>!hid || adjHole(g,pid,i)!=null);
+  if(hd<0 && !neg)hd=0;
+  if(g.periaCap!=null && hd>g.periaCap)hd=g.periaCap;
   return Math.round(hd*10)/10;
 }
 function enteredCount(g,pid){ return (g.scores[pid]||[]).filter(v=>v!=null&&v!=='').length; }
