@@ -171,6 +171,20 @@ const CASES = {
       roulette: false, niadoraInd: false, niadoraTeam: false, stableford: false, olympic: false,
       callaway: false, nassau: false, best2ball: false, vegas: false, match1v1: false, univMatch: false },
   }) },
+  // H) ペリアオプション（β・§11.22 / 2026-08-31-peria-options.md §2）: カットON＋マイナス許可ON＋上限36。
+  //    p01/p02/p03 は隠し12Hをアンダー＝負のHDCP（マイナス許可の分岐）、p04/p08/p09 は隠しホールで
+  //    ダブルパー超過4ホール（カットの分岐）、p09 はカット後も上限36 に当たる（上限の分岐）。
+  //    womenEvery ON（p03/p07=every1・p05/p10=every2）でエブリ→カットの順序（D2）も踏む。
+  //    握り(nassau)も ON にして net9 経由の HDCP/2 配分を回帰対象に含める。
+  periaOpts: { channel: 'b', game: baseGame({
+    participants: ALL.slice(),
+    scores: mkScores(ALL, (pi, h) => pi < 3 ? ((pi + h) % 3) - 2 : ((pi * 7 + h * 5) % 9) - 2),
+    periaCap: 36, periaDblPar: true, periaAllowNeg: true, prizePool: 10000,
+    prizes: { niapinWinner: { 2: 'p03', 7: 'p08', 11: 'p01', 16: 'p05' }, draconWinner: { 4: 'p02', 13: 'p10' } },
+    formats: { gross: true, net: true, nassau: true, stableford: false, olympic: false, callaway: false,
+      niadoraInd: true, niadoraTeam: false, roulette: false, teamGross: false, teamNet: false,
+      holeByHole: false, best2ball: false, vegas: false, match1v1: false, univMatch: false, customMatch: false },
+  }) },
 };
 
 /* ============ vm 読込と実行 ============ */
@@ -206,6 +220,14 @@ for (const [name, cs] of Object.entries(JSON.parse(__CASES))) {
       rows: uv.rows.map(r => ({ t: r.t.id, P: r.P, N: r.N, sel: r.sel, members: r.members,
         net: r.members.map(pid => uvNetA(g, pid)), gross: r.members.map(pid => uvGrossA(g, pid)),
         hdcp: r.members.map(pid => uvHdcpA(g, pid)), r4: r.r4, rank: r.rank })),
+    };
+  }
+  // ペリアオプション（§11.22）: どちらか ON のケースのみ peria スナップショットを追加（既存ケースの形は不変＝差分ゼロを維持）
+  if (g.periaDblPar || g.periaAllowNeg) {
+    globalThis.__RESULTS[name].peria = {
+      hdcp: Object.fromEntries(g.participants.map(pid => [pid, periaHdcp(g, pid)])),
+      net:  Object.fromEntries(g.participants.map(pid => [pid, netScore(g, pid)])),
+      nassau: Object.fromEntries(g.participants.map(pid => [pid, nassauTotalNet(g, pid)])),
     };
   }
 }`;
