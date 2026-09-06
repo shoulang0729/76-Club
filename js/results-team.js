@@ -158,10 +158,10 @@ function renderTeamNiadora(g){
   const hasHoles=niapinHolesOf(g).length||draconHolesOf(g).length;
   const holeCards=hasHoles? renderPrizeHero(g,true) : '';   // 対象ホールなしは併設カード・登録パネルとも省略
   const editPanel=hasHoles? `<details class="prize-edit mt10"${pzCfgOpen?' open':''} ontoggle="pzCfgToggle(this.open)"><summary>${t('prize.recTitle')}</summary><div class="in">${renderPrizes(g)}</div></details>` : '';
-  return `<div class="card"><h2 class="lbh"><span>${t('term.niadora')}</span></h2>
-    <div class="rl-standing">${blocks}</div>
-    <div class="muted mt6">${t('team.noteNiadora')}</div>
-    <div class="cardtools mt8">${tpAnnounceUI(g,'niadora')}</div></div>` + holeCards + editPanel;
+  // 2026-09-06 指示: 連携ボタンは見出しの右端へ（univ/custom と同型の <h2> 直下配置）。
+  // 注記「ニアピン＋ドラコン獲得本数（チーム合計）」は投影の縦スペース節約のため削除（i18n team.noteNiadora も撤去）
+  return `<div class="card"><h2>${t('term.niadora')}${tpAnnounceUI(g,'niadora')}</h2>
+    <div class="rl-standing">${blocks}</div></div>` + holeCards + editPanel;
 }
 
 /* ---- 大学対抗タブ（univMatch・docs/handoff/2026-08-30-univ-match.md §6.2・投影原則 §11.14・モック承認 2026-08-30）----
