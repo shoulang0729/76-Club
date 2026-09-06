@@ -21,18 +21,18 @@ function renderHome(){
       <div class="mt10"><button class="btn ${on?'gray':''} wide" ${on?'disabled':''} onclick="setChannel('${c}')">${t('ch.enter',{v:t('ch.'+c)})}</button></div>
     </div>`; };
 
+  /* 2026-09-06 指示: 「α版/β版について」カードは冗長のため廃止（ch.a.desc/ch.b.desc が各カード内で同じことを述べている）。
+     ch.common（両版で使える機能）は1行の muted として chwrap の下に残す。
+     「次回から表示しない」は見出し行の右端へ（.card h2 は flex＝margin-left:auto で右寄せ） */
   el.innerHTML = `
     <div class="card hometop">
-      <h2>${t('home.title')}</h2>
+      <h2>${t('home.title')}
+        <label class="tgl seentop"><input type="checkbox" ${seenTop()?'checked':''} onchange="setSeenTop(this.checked)"> ${t('home.skip')}</label></h2>
       <div class="muted">${t('home.lead')}</div>
       <ol class="homesteps">
         <li>${t('home.step1')}</li><li>${t('home.step2')}</li><li>${t('home.step3')}</li><li>${t('home.step4')}</li>
       </ol>
     </div>
-    <div class="card"><h2>${t('ch.title')}</h2>
-      <div class="rule">${t('ch.note')}</div>
-      <div class="muted mt6">${t('ch.common')}</div>
-    </div>
     <div class="chwrap">${chCard('a')}${chCard('b')}</div>
-    <label class="tgl seentop"><input type="checkbox" ${seenTop()?'checked':''} onchange="setSeenTop(this.checked)"> ${t('home.skip')}</label>`;
+    <div class="muted">${t('ch.common')}</div>`;
 }
