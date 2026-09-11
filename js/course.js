@@ -29,17 +29,19 @@ function renderCourse(){
 }
 function setPar(i,v){ curGame().par[i]=parseInt(v)||0; save(); renderCourse(); }
 function toggleHidden(i){ const g=curGame(); g.hidden[i]=!g.hidden[i]; save(); document.getElementById('hidCount').textContent=g.hidden.filter(Boolean).length; }
-/* 隠し12H＝前後半×パー帯で均等抽選: 各半分(1-9H/10-18H)から Par3×2・Par5×2・Par4×2 の計6ずつ。
+/* 隠し12H＝前後半×パー帯で層化抽選: 各半分(1-9H/10-18H)から Par3×1・Par5×1・Par4×4 の計6ずつ。
    帯分類は par===3→P3 / par===4→P4 / par>=5→P5（Par6はP5扱い）/ par<3→未設定U。
-   非標準コースは各帯 min(2,n) でクリップし、不足は同じ半分の P4残→P5残→P3残→U 順に無作為補充して必ず各半6
-   （2026-08-20-hidden12-balance.md §2。true は常にちょうど12個） */
+   非標準コースは各帯 min(quota,n) でクリップし、不足は同じ半分の P4残→P5残→P3残→U 順に無作為補充して必ず各半6。
+   シャッフルは Fisher–Yates（一様）。sort(()=>Math.random()-0.5) は非一様で Par4 帯内に偏りが出るため使わない
+   （2026-08-20-hidden12-balance.md rev.2 §R2。true は常にちょうど12個・標準par72 の隠しPar合計は48） */
 function pickHidden12(par){
-  const pick=(arr,n)=>arr.slice().sort(()=>Math.random()-0.5).slice(0,Math.max(0,n));
+  const shuf=a=>{ a=a.slice(); for(let i=a.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [a[i],a[j]]=[a[j],a[i]]; } return a; };
+  const pick=(arr,n)=>shuf(arr).slice(0,Math.max(0,n));
   const hidden=Array(18).fill(false);
   [0,9].forEach(s=>{
     const p3=[],p4=[],p5=[],u=[];
     for(let i=s;i<s+9;i++){ const p=par[i]; (p===3?p3:p===4?p4:p>=5?p5:u).push(i); }
-    const sel=[...pick(p3,Math.min(2,p3.length)), ...pick(p5,Math.min(2,p5.length)), ...pick(p4,Math.min(2,p4.length))];
+    const sel=[...pick(p3,Math.min(1,p3.length)), ...pick(p5,Math.min(1,p5.length)), ...pick(p4,Math.min(4,p4.length))];
     [p4,p5,p3,u].forEach(grp=>{ pick(grp,grp.length).forEach(i=>{ if(sel.length<6 && !sel.includes(i)) sel.push(i); }); });
     sel.forEach(i=>hidden[i]=true);
   });
