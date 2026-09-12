@@ -218,6 +218,19 @@ function vegasHoleWins(g){ const teams=g.teams.filter(T=>vegasPair(g,T));   // �
 function customPts(g,T){ const c=g&&g.custom; if(!c||!c.pts) return null;
   const v=c.pts[T.id]; if(v==null||v==='') return null;
   const n=Number(v); return isFinite(n)? n : null; }
+/* 「チーム戦の種目を1つ以上採用中か」＝チーム戦ニアドラ（§3.3.1）のゲート条件（フォーマット採用のみで判定）。
+   ★2026-09-12 #157: 同じ式を teamWinPoints（calc）と resGameTabs（results.js の 'nd' タブ表示条件）で
+   二重管理していて項がずれ、「タブは出ないのに勝ち点には算入される」不整合が起きた（#113 の追随漏れ）。
+   以後は両者ともこの1本を呼ぶこと（項を足すときはここだけを直す）。引数 F は chFormats(g) 済みの
+   フォーマット表＝α/βゲートは呼び出し側で適用済み（両側とも chFormats 経由で渡す）。
+   univMatch は従来どおり含めない（両側で一致していた既存挙動を維持・追加は別途 PM 判断）。
+   ルーレット項はここではフォーマット採用のみ見る。calc 側はこの項に「実際に決着ホールがある」という
+   データ条件（st.won.some(w=>w>0)）を差し替えて渡すので、本関数と calc の算入条件は等価ではない（意図的）。
+   ＝ルーレットON・未進行では「タブは出るが勝ち点には入らない」が、本数0でもカードは出す
+   （2026-08-20-results-regroup.md §4.3）のと同型で無害。 */
+function anyTeamEventFmt(F){
+  return !!(F.teamGross||F.teamNet||F.holeByHole||F.best2ball||F.vegas||F.match1v1||F.customMatch||F.roulette);
+}
 /* §3.1〜3.2 種目別勝ち点（＋2026-08-30-winpoints-reveal.md §3 の部分上書き＝発表後反映）。
    teams=順位対象チーム（メンバー1人以上かつ1H以上入力済み）。
    返り値 { teams, wins:number[], events:[{key,winners:int[],vals:(number|null)[],on:bool,w:int}] }（表示側 §6 と共用の正。w=種目別勝ち点の重み・§13.3）。
@@ -271,7 +284,10 @@ function teamWinPoints(g){
     if(uv.rows.length>=2) add('univMatch', teams.map(t=>{ const r=uv.rows.find(x=>x.t.id===t.id); return r?r.rank:null; }),'asc'); }
   // ニアドラ（§3.3.1）：F.niadoraTeam ゲート（バッチ95追加5・F.roulette と同型。OFFで種目不成立・データ保持）
   // ＋従来条件＝他のチーム種目が1つ以上採用中（=チーム戦をやっている）かつ チームに数えた本数合計≥1
-  const anyTeamEvent=F.teamGross||F.teamNet||F.holeByHole||F.best2ball||F.vegas||F.match1v1||F.customMatch||st.won.some(w=>w>0);
+  // ★2026-09-12 #157: フォーマット採用の判定は共有ヘルパー anyTeamEventFmt(F) に集約（results.js の 'nd' タブと共用）。
+  // ルーレット項だけは「採用中」ではなく「実際に決着ホールがある」データ条件に差し替えて渡す
+  // （＝従来の算入条件そのまま・計算不変。F.roulette OFF なら st.won は空配列なので false）
+  const anyTeamEvent=anyTeamEventFmt(Object.assign({},F,{roulette:st.won.some(w=>w>0)}));
   if(F.niadoraTeam && anyTeamEvent){ const nd=teams.map(t=>niadoraTeamCount(g,t));
     if(nd.reduce((a,b)=>a+b,0)>=1) add('niadora', nd,'desc'); }
   // 任意対決（§11.21）：幹事入力ポイントの最大が勝ち（同点は山分け）。全未入力/入力1チームは add の live<2 で不成立
