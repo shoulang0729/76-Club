@@ -60,15 +60,7 @@ function renderPlayers(){
               <button class="btn sm danger" onclick="delPlayer('${p.id}')">×</button></td>
         </tr>`).join('')}</table></div>` : `<div class="empty">${t('player.empty')}</div>`}
     </div>
-    ${gameCards}
-    <div class="card">
-      <h2>${t('backup.title')}</h2>
-      <div class="muted">${t('backup.note')}</div>
-      <div class="row">
-        <button class="btn sec" onclick="exportData()">${t('backup.export')}</button>
-        <label class="btn sec" style="cursor:pointer">${t('backup.import')}<input type="file" accept="application/json" style="display:none" onchange="importData(this)"></label>
-      </div>
-    </div>`;
+    ${gameCards}`;   // バックアップは state 丸ごと＝コンペ横断なので「コンペ設定」タブへ移設（#166③・renderBasic）
 }
 /* ---- 1 on 1 組合せ編集カード（§15.1・docs/handoff/2026-08-20-1on1-match.md）----
    §13.1 の編集UIを結果発表タブから移設（details 廃止＝通常カード・常時展開）。操作仕様は §13.1 のまま。

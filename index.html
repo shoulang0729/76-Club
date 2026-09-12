@@ -8,7 +8,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;600;700;800&family=Noto+Sans+SC:wght@400;600;700;800&family=Noto+Serif+JP:wght@600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="styles.css?v=180">
+<link rel="stylesheet" href="styles.css?v=182">
 </head>
 <body>
 <header>
@@ -19,10 +19,8 @@
     <h1>Powered by 上海銀杏会・76会・恩梯梯集団</h1>
     <button id="chBadge" class="chbadge" onclick="toggleChannel()" data-i18n-title="ch.switch">α版</button>
     <div class="row" style="gap:6px;flex-wrap:nowrap;margin-left:auto">
-      <select id="themeSel" onchange="setTheme(this.value)" data-i18n-title="theme.label" class="hdrsel">
-        <option value="light" data-i18n="theme.light">ライト</option>
-        <option value="dark" data-i18n="theme.dark">ダーク</option>
-      </select>
+      <!-- テーマ切替（#166②）: 2値なのでアイコン1個のトグル。中身の SVG は syncThemeBtn()（js/nav.js）が差し替える -->
+      <button id="themeSel" class="hdricon" onclick="toggleTheme()" data-i18n-title="theme.label" aria-pressed="false" title="テーマ" aria-label="テーマ"><svg class="ei" viewBox="0 0 24 24"><path d="M20.8 13.4A8.5 8.5 0 1110.6 3.2a6.6 6.6 0 0010.2 10.2z"/></svg></button>
       <select id="langSel" onchange="setLang(this.value)" aria-label="Language" class="hdrsel">
         <option value="ja">日本語</option>
         <option value="zh">中文</option>
@@ -39,8 +37,8 @@
   <nav id="homeSub" class="subnav">
     <button data-tab="home"    onclick="go('home')"    data-i18n="nav.top">ガイド</button>
     <button data-tab="basic"   onclick="go('basic')"   data-i18n="nav.basic">コンペ設定</button>
-    <button data-tab="course"  onclick="go('course')"  data-i18n="nav.course">コース</button>
-    <button data-tab="players" onclick="go('players')" data-i18n="nav.players">選手・チーム</button>
+    <button data-tab="course"  onclick="go('course')"  data-i18n="nav.course">コースマスタ</button>
+    <button data-tab="players" onclick="go('players')" data-i18n="nav.players">選手・チームマスタ</button>
     <button data-tab="score"   onclick="go('score')"   data-i18n="nav.score">スコア</button>
   </nav>
 </div>
@@ -55,22 +53,22 @@
 
 <div class="toast" id="toast"></div>
 
-<script src="js/state.js?v=180"></script>
-<script src="js/i18n.js?v=180"></script>
-<script src="js/nav.js?v=180"></script>
-<script src="js/home.js?v=180"></script>
-<script src="js/basic.js?v=180"></script>
-<script src="js/players.js?v=180"></script>
-<script src="js/game.js?v=180"></script>
-<script src="js/course.js?v=180"></script>
-<script src="js/score.js?v=180"></script>
-<script src="js/testdata.js?v=180"></script>
-<script src="js/calc.js?v=180"></script>
-<script src="js/results.js?v=180"></script>
-<script src="js/results-team.js?v=180"></script>
-<script src="js/results-m1.js?v=180"></script>
-<script src="js/roulette.js?v=180"></script>
-<script src="js/backup.js?v=180"></script>
-<script src="js/init.js?v=180"></script>
+<script src="js/state.js?v=182"></script>
+<script src="js/i18n.js?v=182"></script>
+<script src="js/nav.js?v=182"></script>
+<script src="js/home.js?v=182"></script>
+<script src="js/basic.js?v=182"></script>
+<script src="js/players.js?v=182"></script>
+<script src="js/game.js?v=182"></script>
+<script src="js/course.js?v=182"></script>
+<script src="js/score.js?v=182"></script>
+<script src="js/testdata.js?v=182"></script>
+<script src="js/calc.js?v=182"></script>
+<script src="js/results.js?v=182"></script>
+<script src="js/results-team.js?v=182"></script>
+<script src="js/results-m1.js?v=182"></script>
+<script src="js/roulette.js?v=182"></script>
+<script src="js/backup.js?v=182"></script>
+<script src="js/init.js?v=182"></script>
 </body>
 </html>

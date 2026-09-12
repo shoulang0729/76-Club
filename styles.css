@@ -148,6 +148,12 @@
   .fx1{flex:1}
   .tal{text-align:left}
   .hdrsel{background:var(--card);color:var(--ink);border:1px solid var(--line);border-radius:var(--r-pill);padding:8px 10px;font-weight:var(--w-bold);width:auto;min-height:40px}
+  /* ヘッダのアイコンボタン（#166② テーマ切替）: .hdrsel と同じ面・枠・丸み・実高40px＝ヘッダ高を変えない。
+     アイコンだけなので機能名は data-i18n-title（title/aria-label）で補う。キーボード focus も可視化する。 */
+  .hdricon{display:inline-flex;align-items:center;justify-content:center;background:var(--card);color:var(--ink);
+    border:1px solid var(--line);border-radius:var(--r-pill);width:40px;min-height:40px;padding:0;cursor:pointer;flex:0 0 auto}
+  .hdricon .ei{width:19px;height:19px}
+  .hdricon:focus-visible{outline:2px solid var(--pri);outline-offset:2px}
   .muted{color:var(--sub);font-size:var(--f-small)}
   .tag{font-size:var(--f-small);padding:1px 6px;border-radius:var(--r-sm);background:var(--surface-2);color:var(--sub);margin-left:4px;font-weight:var(--w-bold)}
   /* .tag の派生（2026-08-31 修正）: 以前は .tag より前に定義されており、同一詳細度の後勝ちで
