@@ -274,6 +274,51 @@ const CASES = {
       holeByHole: false, roulette: false, stableford: false, olympic: false, callaway: false,
       nassau: false, best2ball: false, vegas: false, match1v1: false, univMatch: false, customMatch: false },
   }) },
+  // M) チーム戦ニアドラ × 任意対決のみ（α・2026-09-12 #157 ケースE）: 他のチーム種目が customMatch だけの構成。
+  //    teamWinPoints の「他のチーム種目が1つ以上採用中」ゲート（anyTeamEventFmt）に customMatch が
+  //    含まれる＝niadora が events に載り勝ち点にも算入される、という従来からの計算挙動の固定。
+  //    （#157 の修正は resGameTabs 側の 'nd' タブ表示条件を同ヘルパーに寄せるもの＝本ケースの値は修正前後で不変）
+  //    T1=3本(p01×2,p02) / T2=2本(p05,p06) / T3=0本 → niadora winners=[0]
+  niadoraCustomOnly: { channel: 'a', game: baseGame({
+    teams: [
+      { id: 'T1', name: 'レッド', memberIds: ['p01', 'p02', 'p03', 'p04'] },
+      { id: 'T2', name: 'ブルー', memberIds: ['p05', 'p06', 'p07', 'p08'] },
+      { id: 'T3', name: 'グリーン', memberIds: ['p09', 'p10', 'p11', 'p12'] },
+    ],
+    participants: ALL.slice(),
+    scores: mkScores(ALL, (pi, h) => ((pi * 5 + h * 3 + (pi * h) % 4) % 6) - 2),
+    prizePool: 30000,
+    prizes: { niapinWinner: { 2: 'p01', 7: 'p05', 11: 'p01', 16: 'p02' }, draconWinner: { 4: 'p06' } },
+    custom: { name: 'ビンゴ大会', pts: { T1: 5, T2: 3 } },
+    announced: { niadora: true, customMatch: true },
+    formats: { gross: true, net: true, niadoraInd: true, niadoraTeam: true, customMatch: true,
+      teamGross: false, teamNet: false, holeByHole: false, roulette: false, stableford: false,
+      olympic: false, callaway: false, nassau: false, best2ball: false, vegas: false,
+      match1v1: false, univMatch: false },
+  }) },
+  // N) チーム戦ニアドラ × ルーレットのみ・進行あり（α・2026-09-12 #157 ケースF）: 他のチーム種目が roulette だけ。
+  //    calc 側のルーレット項は「採用中」ではなく「決着ホールがある」データ条件（st.won.some(w>0)）なので、
+  //    cur=4 で代表がそろった決着ホールを作って niadora が成立することを固定する（未進行なら不成立＝別挙動）。
+  //    #157 の修正でヘルパーへ切り出したのはフォーマット判定だけ＝本ケースの値も修正前後で不変。
+  niadoraRouletteOnly: { channel: 'a', game: baseGame({
+    teams: [
+      { id: 'T1', name: 'レッド', memberIds: ['p01', 'p02', 'p03', 'p04'] },
+      { id: 'T2', name: 'ブルー', memberIds: ['p05', 'p06', 'p07', 'p08'] },
+      { id: 'T3', name: 'グリーン', memberIds: ['p09', 'p10', 'p11', 'p12'] },
+    ],
+    participants: ALL.slice(),
+    scores: mkScores(ALL, (pi, h) => ((pi * 5 + h * 3 + (pi * h) % 4) % 6) - 2),
+    prizePool: 30000,
+    prizes: { niapinWinner: { 2: 'p01', 7: 'p05', 11: 'p01', 16: 'p02' }, draconWinner: { 4: 'p06' } },
+    roulette: { cur: 4, reps: {
+      0: { T1: 'p01', T2: 'p05', T3: 'p09' }, 1: { T1: 'p02', T2: 'p06', T3: 'p10' },
+      2: { T1: 'p03', T2: 'p07', T3: 'p11' }, 3: { T1: 'p04', T2: 'p08', T3: 'p12' } } },
+    announced: { niadora: true, roulette: true },
+    formats: { gross: true, net: true, niadoraInd: true, niadoraTeam: true, roulette: true,
+      teamGross: false, teamNet: false, holeByHole: false, customMatch: false, stableford: false,
+      olympic: false, callaway: false, nassau: false, best2ball: false, vegas: false,
+      match1v1: false, univMatch: false },
+  }) },
 };
 
 /* ============ vm 読込と実行 ============ */
