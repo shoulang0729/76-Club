@@ -94,6 +94,7 @@ net(pid)      = effGross(pid) − periaHdcp(pid)     # ← ネット個人戦。
 - 結果タブで各対象ホールの勝者を選択して記録。配点は**導出対象ホールの勝者のみ**加算（導出対象外ホールに残る勝者記録は保持するが集計・表示から無視＝パーを戻せば復活する非破壊・可逆挙動）。
 - ローカルルール注記：**女性はニアピン/ドラコンとも2打目を計測対象にできる**（計算ではなく運用注記として画面表示）。この判定に選手の性別（男/女）を使うため、選手マスターに性別が必須。
 - **★§11.15（2026-08-20・確定）追補**: 個人賞（1本あたり◯pt）は**不変のまま**、獲得本数のチーム合計を新種目「ニアドラ」としてチーム戦の勝ち点にも算入する（詳細 `docs/handoff/2026-08-20-team-points.md` §3.3.1）。
+- **★2026-09-12 追補（2セット運用・設計確定／実装は該当PRで反映）**: ダブルスタート（OUTスタート組／INスタート組）のコンペ向けに、各対象ホールの勝者枠を**2つ**持てる（`prizes.twoSets`・**既定 OFF ＝従来と完全に同一の表示・数値**）。ON のとき、個人配点は**両セットの勝者それぞれ**に `points.niapin`/`points.dracon` を加算し、チーム種目「ニアドラ」の本数も**両セット合算**で数える（**種目は1つのまま**＝`teamEventPts` にキーを追加しない）。セットの識別は番号 1/2 のみで、**誰がどちらの組かはアプリが持たない**。詳細・前後比較・受け入れ条件は `docs/handoff/2026-09-12-niadora-2sets.md` が正。
 
 ---
 
@@ -113,7 +114,9 @@ net(pid)      = effGross(pid) − periaHdcp(pid)     # ← ネット個人戦。
     "scores": { "xxx": [4,5,null,...] },   // length 18, null=未入力
     "prizes": {
       "niapinHoles":[2], "draconHoles":[4],   // ★2026-08-20 廃止フィールド（非参照・後方互換のため残置。削除しない）。対象ホールは par から導出（§3.6 改訂）
-      "niapinWinner": { "2":"xxx" }, "draconWinner": { "4":"yyy" }   // キー=ホールindex。導出対象外ホールのエントリは保持するが集計・表示から無視（§3.6 改訂）
+      "niapinWinner": { "2":"xxx" }, "draconWinner": { "4":"yyy" },   // キー=ホールindex。導出対象外ホールのエントリは保持するが集計・表示から無視（§3.6 改訂）
+      "twoSets": false,                                              // ★2026-09-12 2セット運用（OUT組/IN組で旗2本）。既定 false＝従来と完全に同一
+      "niapinWinner2": { "2":"zzz" }, "draconWinner2": { "4":"www" } // ★2026-09-12 セット2（IN組）の勝者。twoSets:false のときは非参照（残置・可逆）
     },
     "formats": { "gross":true,"net":true,"teamGross":true,"teamNet":true,
       "holeByHole":true,"stableford":true,"nassau":true,"olympic":true,
@@ -149,7 +152,7 @@ rooms/{roomCode}                      // 1コンペ=1ルーム
   players/{playerId}: { name, gender, claimedByUid|null }   // 参加者（=選手）
   teams/{teamId}:     { name, memberIds[] }
   scores/{playerId}:  { holes:[18], updatedBy, updatedAt }  // スコアはプレイヤー単位ドキュメント
-  prizes/meta:        { niapinHoles[], draconHoles[], niapinWinner{}, draconWinner{} }
+  prizes/meta:        { niapinHoles[], draconHoles[], niapinWinner{}, draconWinner{}, twoSets, niapinWinner2{}, draconWinner2{} }
 ```
 - **購読単位**: フロントは `rooms/{code}/players`, `/teams`, `/scores`, `config`, `prizes` を `onSnapshot` で購読 → 変更が来たら §3 の計算を再実行して結果を再描画。
 - 計算（§3）は**クライアント側**でそのまま実施（サーバー不要）。Firestore は素点と設定の共有だけを担う。
