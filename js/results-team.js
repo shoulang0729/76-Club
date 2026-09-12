@@ -143,11 +143,19 @@ function renderTeamNiadora(g){
   /* 2026-08-30 指示④: ヒーローの本数・NP/DC内訳は下部ホール別カードの「開封済み」ホールのみカウント（表示側フィルタ・
      開封状態=pzMode/pzExcept は個人戦と共有の揮発）。全ホール開封時は niadoraTeamCount(g,tm) と一致（計算側は不変）。
      勝ち点タグは全開封時のみ表示＝部分開封中のネタバレ防止（teamWinPoints・種目別勝ち点表は不変） */
+  /* ★2026-09-12 ニアドラ2セット（2026-09-12-niadora-2sets.md §8.3）: 本数は両セット（OUT組/IN組）合算＝
+     niadoraTeamCount（calc 側）と同じ走査。S===1（既定 twoSets:false）は従来と完全に同一の加算列。
+     マスクはホール単位のまま（§8.2）なので、全開封時 npOf+dcOf === niadoraTeamCount が S=1/S=2 の両方で成立する。 */
   const opened=h=>!pzMasked(h);
-  const npOf=T=>niapinHolesOf(g).filter(h=>{const pid=(g.prizes.niapinWinner||{})[h];return !!pid&&T.memberIds.includes(pid)&&opened(h);}).length;
-  const dcOf=T=>draconHolesOf(g).filter(h=>{const pid=(g.prizes.draconWinner||{})[h];return !!pid&&T.memberIds.includes(pid)&&opened(h);}).length;
-  const allOpen=[...niapinHolesOf(g).filter(h=>(g.prizes.niapinWinner||{})[h]),
-                 ...draconHolesOf(g).filter(h=>(g.prizes.draconWinner||{})[h])].every(opened);
+  const S=prizeSetCount(g);
+  const cnt=(kind,holes,T)=>holes.reduce((n,h)=>{ if(!opened(h)) return n;
+    let c=0; for(let s=1;s<=S;s++){ const pid=prizeWinnerOf(g,kind,h,s); if(pid&&T.memberIds.includes(pid))c++; }
+    return n+c; },0);
+  const npOf=T=>cnt('np',niapinHolesOf(g),T);
+  const dcOf=T=>cnt('dc',draconHolesOf(g),T);
+  const anyWinner=(kind,h)=>{ for(let s=1;s<=S;s++) if(prizeWinnerOf(g,kind,h,s)) return true; return false; };   // いずれかのセットに勝者がいるホール（§10-②）
+  const allOpen=[...niapinHolesOf(g).filter(h=>anyWinner('np',h)),
+                 ...draconHolesOf(g).filter(h=>anyWinner('dc',h))].every(opened);
   const rows=teams.map(tm=>{const np=npOf(tm),dc=dcOf(tm);return {tm,n:np+dc,np,dc};}).sort((a,b)=>b.n-a.n);   // 並び=現表示値の降順
   const blocks=rows.map(({tm,n,np,dc})=>{
     const col=tmColor(tm.name);
