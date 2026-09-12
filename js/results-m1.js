@@ -24,9 +24,10 @@ function m1Holes(k,op){ const c=m1Opened.get(k)||0;
    ガード時（emptyFmt / need2Teams / 組合せなし）は {head:'', body:空状態カード}＝空状態は固定しない。中身/挙動は §13〜§15 のまま不変 */
 function renderMatch1v1Parts(g){
   const F=chFormats(g);   // チャンネル共通（2026-08-30 α昇格・2026-08-30-m1-alpha.md）
-  if(!F.match1v1) return {head:'', body:`<div class="card"><h2>${t('term.match1v1')}</h2><div class="empty">${t('m1.emptyFmt')}</div></div>`};
+  // 空状態カードの <h2> は廃止＝タイトルはゲームタブ名（result.sub.match1v1）が兼ねる（heading-unify §3.2）
+  if(!F.match1v1) return {head:'', body:`<div class="card"><div class="empty">${t('m1.emptyFmt')}</div></div>`};
   const T=m1Teams(g);
-  if(T.length!==2) return {head:'', body:`<div class="card"><h2>${t('term.match1v1')}</h2><div class="empty">${t('m1.need2Teams')}</div></div>`};
+  if(T.length!==2) return {head:'', body:`<div class="card"><div class="empty">${t('m1.need2Teams')}</div></div>`};
   const m=g.match1v1||{pairs:[]};
   const raw=m.pairs||[];              // 登録済み全組（無効組も編集UIには出す）
   const v=m1Valid(g);                 // 現在の2チームと一致する保存済み組合せ（なければ null）
@@ -69,7 +70,11 @@ function renderMatch1v1Parts(g){
     <span class="seg"><button class="${one?'':'on'}" onclick="m1SetMode('all')">${t('m1.modeAll')}</button><button class="${one?'on':''}" onclick="m1SetMode('one')">${t('m1.modeOne')}</button></span>
     ${one?`<button class="btn gold sm" onclick="m1OpenNext()" ${allOpen?'disabled':''}>${t('m1.openNext')}</button>
       <button class="btn gray sm" onclick="m1OpenAllCards()">${t('m1.openAllCards')}</button>
-      <button class="btn gray sm" onclick="m1CoverAll()">${t('m1.coverAll')}</button>`:''}${tpAnnounceUI(g,'match1v1')}</div></div>`;   // 連携ボタン=操作バー右端（§11.2。開封演出 m1Opened は揮発のまま・連携だけがデータに残る）
+      <button class="btn gray sm" onclick="m1CoverAll()">${t('m1.coverAll')}</button>`:''}${tpAnnounceUI(g,'match1v1')}</div></div>`;
+  /* 連携ボタン=操作バー右端のまま（§11.2。開封演出 m1Opened は揮発のまま・連携だけがデータに残る）。
+     2026-09-12 の連携UI配置統一（heading-unify §5.3-A）でも 1 on 1 だけは現状維持＝サマリカードの下に
+     専用フッタ行を作ると sticky 固定領域が +33〜52px 増え、320×568 で可視領域が足りなくなるため
+     （results-regroup §8.3 の実測）。操作バーは sticky ブロックの最下段＝ブロック単位で見れば既に「右下」。 */
   // 対戦カード（1試合=1カード・登録リスト順）: hero=大型UP表示（§13.3）＋[一組ずつ: カード内開封バー §14.2]＋ホール表（値=adjHole・勝ち=rwin・ハーフ=rtie・未開封=空欄）
   const H=[...Array(18).keys()];
   const colg=`<colgroup><col class="cnm">${H.map(()=>'<col class="ch">').join('')}</colgroup>`;

@@ -277,6 +277,10 @@
   .reveal-bar .hole{font-weight:var(--w-bold);color:var(--prid);font-size:var(--f-title)}
   /* toggle chips + eye buttons */
   .cardtools{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin-bottom:7px}
+  /* カード末尾の共通フッタ行（heading-unify §4.1）: 左＝状態タグ／右端＝幹事操作（tpAnnounceUI の margin-left:auto）。
+     末尾に来たときは下マージンを削る（カード padding と二重にしない）。先頭のタグは .tag の左マージン4pxを打ち消す */
+  .card>.cardtools:last-child{margin-bottom:0}
+  .cardtools>.tag:first-child{margin-left:0}
   .tgl{display:inline-flex;align-items:center;gap:5px;border:1px solid var(--line);border-radius:var(--r-pill);padding:5px 11px;font-size:var(--f-small);cursor:pointer;background:var(--card);font-weight:var(--w-bold)}
   .tgl.on{background:var(--pri);color:var(--on-fill);border-color:var(--pri)}
   .tgl.off{background:var(--danger-bg);color:var(--red);border-color:var(--danger-line)}
@@ -302,7 +306,6 @@
   .rank-wrap .lb .nmc{font-size:var(--f-name);font-weight:var(--w-bold)}
   .lb td.nmc{text-align:left}
   .rank-wrap .lb b{font-variant-numeric:tabular-nums}
-  h2.lbh{display:flex;justify-content:space-between;align-items:baseline;gap:8px;white-space:nowrap;overflow:hidden;flex-wrap:wrap}
   /* スコア表の並べ替えスイッチ（§11.12 I）: 個人=グロス/ネット、チーム=+HBH */
   .scsw-wrap{display:inline-flex;align-items:center;gap:6px;margin-left:auto}
   .scsw-l{font-size:var(--f-small);font-weight:var(--w-med);color:var(--sub)}
@@ -312,13 +315,11 @@
   .scsw button+button{border-left:1px solid var(--line)}
   .scsw button.on{background:var(--pri);color:var(--on-fill)}
   @media(min-width:1024px){ .scsw button{min-height:44px;padding:8px 14px;font-size:13px} }
-  h2.lbh>span:first-child{flex:0 0 auto}
   /* 共通スコアカードの details 化（2026-08-30 指示⑤）: 操作行（並べ替え/合計値トグル）は summary 外の h2 だが
      .card 外なので余白・フォントだけ整える（下罫線なし・タイトルは summary 側） */
   /* スコア表の操作行（開封バー＋並び＋合計値）を1行に。狭幅は wrap で折り返し（2026-08-30 指示） */
   .sc-tgl .sc-ctl{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin:2px 0 6px;font-size:var(--f-body)}
   .sc-tgl .sc-ctl .reveal-bar{margin-top:0}
-  .lbnote{font-size:var(--f-small);font-weight:var(--w-bold);color:var(--sub);overflow:hidden;text-overflow:ellipsis;min-width:0;white-space:nowrap}
   /* score card (共通スコア表) */
   .sc2{table-layout:fixed;width:100%;font-size:12px;border-collapse:collapse}
   .sc2 col.cnm{width:64px}
