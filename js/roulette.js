@@ -224,10 +224,10 @@ function renderPrizes(g){
   const two=(kind,h)=>`<div class="pz2">${[1,2].map(s=>`<div class="pz2-row"><span class="pz-set">${prizeSetLabel(s)}</span><select onchange="setPrize('${prizeField(kind,s)}',${h},this.value)">${opts(prizeWinnerOf(g,kind,h,s))}</select></div>`).join('')}</div>`;
   const inputs=(kind,h)=> S===2? two(kind,h) : one(kind,h);
   // <h2> は廃止: このカードを包む <details> の <summary> が同じ prize.recTitle を出しており二重表示だった（heading-unify §3.2）
+  // #184: 「1ホールに旗2本」のトグルはコンペ設定タブへ移設（npdcSettingsSec・js/basic.js）。
+  //       ここは発表時に使う勝者の select だけを残す（個人戦・チーム戦の両ニアドラから設定が消える）
   let html=`<div class="card prizewin">
-    <div class="muted">${t('prize.recNote')}</div>
-    <label class="mt8" style="display:flex;gap:8px;align-items:center;font-size:13px"><input type="checkbox" ${S===2?'checked':''} onchange="setPrizeTwoSets(this.checked)"> ${t('prize.twoSets')}</label>
-    <div class="muted mt6">${t('prize.twoSetsNote')}</div>`;
+    <div class="muted">${t('prize.recNote')}</div>`;
   if(NP.length){ html+=`<h3>${t('term.niapin')}</h3>`;
     NP.forEach(h=>{ html+=`<div class="row between" style="margin:4px 0">
       <span class="pill e1">${h+1}H</span>
