@@ -79,7 +79,10 @@
   .subnav::-webkit-scrollbar{display:none}
   .subnav button{flex:1 0 auto;border:0;border-bottom:2px solid transparent;background:transparent;color:var(--sub);
     padding:0 2px;height:var(--h-tabrow);font-size:var(--f-body);font-weight:var(--w-bold);cursor:pointer;letter-spacing:.02em;white-space:nowrap}
-  .subnav button.on{color:var(--strong);border-bottom-color:var(--pri)}
+  /* 選択中サブタブは「画面の名前」として読ませる（2026-09-12-settings-consolidation.md §4.2）。
+     .subnav button は min-height ではなく固定 height(--h-tabrow) なので段高は font-size に非依存＝45/49px のまま。
+     値は結果発表の第2階層タブ #view-result .subtab4 button.on と同値（15px / ≥1024px で 17px）。 */
+  .subnav button.on{color:var(--strong);border-bottom-color:var(--pri);font-size:15px}
   @media(max-width:374px){ .subnav{gap:4px} .subnav button{font-size:12px} }
   /* トップ（ホーム）画面（§11.12 B） */
   /* ホームのα/β 2カラム（全幅で50:50・560px以下で縦積み。game-split §2 の CSS を無改変で採用） */
@@ -100,7 +103,8 @@
     header .gamename{font-size:17px}   /* 狭幅はコンペ情報をやや縮小＝1行＋ellipsis（§11.12 K） */
     header h1{display:none}            /* 狭幅は Powered by 表記を非表示＝コンペ情報の可読を優先（#63） */
     .hdrsel{padding:8px 6px} }
-  @media(min-width:1024px){ :root{--h-tabrow:48px} .mainnav button{font-size:15px} .subnav button{font-size:15px} .chbadge{min-height:40px} }
+  @media(min-width:1024px){ :root{--h-tabrow:48px} .mainnav button{font-size:15px} .subnav button{font-size:15px}
+    .subnav button.on{font-size:17px} .chbadge{min-height:40px} }
   main{padding:12px;max-width:960px;margin:0 auto}
   /* cards（小角丸・フラット §11.4／見出しはSerif＋ハイライン区切り・余白拡張 §11.8） */
   .card{background:var(--card);border:1px solid var(--line);border-radius:var(--r-sm);padding:18px 16px;margin-bottom:12px}
@@ -125,6 +129,20 @@
   button.btn:disabled{opacity:.4;cursor:default}
   .row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
   .row.between{justify-content:space-between}
+  /* 2カラムの入力行（大会情報カードの「日付／コース」・Issue #166①）。
+     原因: 汎用の .row(flex-wrap:wrap) ＋ .fx1(flex:1 → flex-basis:0) は列の希望幅を 0 と宣言しており、
+     実際の下限は min-width:auto ＝ <input type="date"> の固有幅（Chromium141 実測 156px @Noto Sans JP・
+     148px @fallback）だけで決まる。結果として約 380px 未満では日付列が固有幅 156px に張り付き、
+     コース列だけが一方的に潰れる（実測 375px→153px / 360px→138px / 320px→98px）。
+     固有幅を min-content として尊重しないエンジンでは
+     同じ配分で日付コントロールの中身が枠外へあふれ、隣の「コース」欄に重なる（#166① の報告）。
+     対策: ①列の希望幅を flex-basis で明示（0 をやめる）＋ min-width:0 で UA 固有幅への依存を断つ
+           → 2列に必要な 170px×2＋gap8 が取れない幅（≒406px 未満）では 1カラムへ折り返し、
+             取れる幅では常に厳密な 50:50（非対称な潰れが起きない）。
+           ②日付欄の必要幅を CSS の min-width で明示（10.5em＝15px 時 157.5px ≧ 実測固有幅 156px）
+           → UA の固有幅を min-content として尊重しないエンジンでも欄からあふれない。 */
+  .row.cols2>.fx1{flex:1 1 170px;min-width:0}
+  .row.cols2 input[type=date]{min-width:10.5em}
   /* 頻出inline styleのクラス化（§11.10④）: 余白/伸縮/整列ユーティリティ */
   .mt6{margin-top:6px}.mt8{margin-top:8px}.mt10{margin-top:10px}
   .fx1{flex:1}
@@ -198,6 +216,10 @@
   details>summary::before{content:"› ";color:var(--pri);font-weight:var(--w-bold)}
   details[open]>summary::before{content:"⌄ ";}
   details .in{padding:0 12px 12px;font-size:var(--f-body)}
+  /* 設定セクション（2026-09-12-settings-consolidation.md §3.2）: 折りたたみカードの summary を
+     カード見出し（.card h2）と同格の見た目にする。枠・余白・マーカーは既存 details 規則を流用＝新規は本行のみ。
+     子セレクタなので入れ子の素の <details>（幹事メニュー内の「データ点検」）には効かない＝階層が見た目で分かれる */
+  details.gsec>summary{font-family:"Noto Serif JP","Noto Serif",serif;font-size:var(--f-title);color:var(--strong)}
   .rule{background:var(--surface-2);border:1px solid var(--line);border-left:3px solid var(--acc);border-radius:var(--r-sm);padding:8px 10px;font-size:var(--f-small);color:var(--ink);margin:6px 0}
   .prizewin{background:var(--card);border:1px solid var(--line);border-top:3px solid var(--acc)}
   .payoutcard{background:var(--card);border:1px solid var(--line);border-top:3px solid var(--acc)}

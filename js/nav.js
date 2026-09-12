@@ -1,5 +1,5 @@
 /* ============================ TAB NAV ============================ */
-const views = { home:'view-home', basic:'view-basic', game:'view-game', course:'view-course', players:'view-players', score:'view-score', result:'view-result' };
+const views = { home:'view-home', basic:'view-basic', course:'view-course', players:'view-players', score:'view-score', result:'view-result' };
 let activeTab='home';   // 起動時はトップ（§11.12 B）。init.js で golfCompe_seenTop を見て上書き
 let revealHoles=0;             // 個人戦で開封済みのホール数(0-18)。既定=0（未開封＝発表前は何も見せない・#97）
 let rl={ spinning:false, spinTeams:[], timer:null, challengeFrom:null };  // ルーレットの実行時状態（非保存）
@@ -66,7 +66,6 @@ function render(){
   const cb=document.getElementById('chBadge'); if(cb){ cb.textContent=t('ch.'+CHANNEL); cb.classList.toggle('beta', CHANNEL==='b'); }
   if(activeTab==='home') renderHome();
   if(activeTab==='basic') renderBasic();
-  if(activeTab==='game') renderGame();
   if(activeTab==='course') renderCourse();
   if(activeTab==='players') renderPlayers();
   if(activeTab==='score') renderScore();
