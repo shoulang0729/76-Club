@@ -205,24 +205,36 @@ function leaderboard(title, pids, valFn, dir, fmt, note, key, hlMap, big){
 }
 
 function renderPrizes(g){
-  const P=g.prizes, NP=niapinHolesOf(g), DC=draconHolesOf(g);   // 対象ホールは par から導出（2026-08-20-npdc-par.md）
+  const NP=niapinHolesOf(g), DC=draconHolesOf(g);   // 対象ホールは par から導出（2026-08-20-npdc-par.md）
   if(!NP.length && !DC.length) return '';
   const parts=g.participants.filter(pid=>state.players.find(x=>x.id===pid));
   const opts=(sel)=>`<option value="">—</option>${parts.map(pid=>{const p=state.players.find(x=>x.id===pid);
     return `<option value="${pid}" ${sel===pid?'selected':''}>${esc(p.name)}</option>`}).join('')}`;
+  // ニアドラ2セット（2026-09-12-niadora-2sets.md §9）。S===1（既定）は従来と同一の1セレクト行、
+  // S===2 は OUT/IN の2セレクトを縦積み（375px で横スクロールなし・氏名を省略しない）
+  const S=prizeSetCount(g);
+  const one=(kind,h)=>`<select style="flex:1;max-width:60%" onchange="setPrize('${prizeField(kind,1)}',${h},this.value)">${opts(prizeWinnerOf(g,kind,h,1))}</select>`;
+  const two=(kind,h)=>`<div class="pz2">${[1,2].map(s=>`<div class="pz2-row"><span class="pz-set">${prizeSetLabel(s)}</span><select onchange="setPrize('${prizeField(kind,s)}',${h},this.value)">${opts(prizeWinnerOf(g,kind,h,s))}</select></div>`).join('')}</div>`;
+  const inputs=(kind,h)=> S===2? two(kind,h) : one(kind,h);
   let html=`<div class="card prizewin"><h2>${t('prize.recTitle')}</h2>
-    <div class="muted">${t('prize.recNote')}</div>`;
+    <div class="muted">${t('prize.recNote')}</div>
+    <label class="mt8" style="display:flex;gap:8px;align-items:center;font-size:13px"><input type="checkbox" ${S===2?'checked':''} onchange="setPrizeTwoSets(this.checked)"> ${t('prize.twoSets')}</label>
+    <div class="muted mt6">${t('prize.twoSetsNote')}</div>`;
   if(NP.length){ html+=`<h3>${t('term.niapin')}</h3>`;
     NP.forEach(h=>{ html+=`<div class="row between" style="margin:4px 0">
       <span class="pill e1">${h+1}H</span>
-      <select style="flex:1;max-width:60%" onchange="setPrize('niapinWinner',${h},this.value)">${opts(P.niapinWinner[h])}</select></div>`; }); }
+      ${inputs('np',h)}</div>`; }); }
   if(DC.length){ html+=`<h3>${t('term.dracon')}</h3>`;
     DC.forEach(h=>{ html+=`<div class="row between" style="margin:4px 0">
       <span class="pill f" style="background:var(--danger-bg);color:var(--red)">${h+1}H</span>
-      <select style="flex:1;max-width:60%" onchange="setPrize('draconWinner',${h},this.value)">${opts(P.draconWinner[h])}</select></div>`; }); }
+      ${inputs('dc',h)}</div>`; }); }
   html+=`</div>`; return html;
 }
-function setPrize(k,h,v){ curGame().prizes[k][h]=v; save(); renderResult(); }
+// k はフィールド名（'niapinWinner' | 'niapinWinner2' | 'draconWinner' | 'draconWinner2'）。シグネチャ不変（§3.5）。
+// 防御ガード: migrate 前の旧データ相当でも TypeError にしない（§3.3 の罠）
+function setPrize(k,h,v){ const P=curGame().prizes; if(!P[k])P[k]={}; P[k][h]=v; save(); renderResult(); }
+// 2セット運用の切替（§5・コンペごと・既定OFF。OFF にしてもセット2のデータは残置＝可逆）
+function setPrizeTwoSets(v){ curGame().prizes.twoSets=!!v; save(); renderResult(); }
 
 // チーム対抗の各結果を「個別カード」で返す。ゲームごとに master トグル＋チームごとの目隠しボタン（名前＋合計をまとめて隠す）
 // only（省略可・2026-08-20-results-regroup.md §5.2）: 指定時は当該フォーマットのカード1枚だけ返す。無指定は現行どおり全カード＝後方互換
