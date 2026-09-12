@@ -557,3 +557,49 @@
   }
   /* ライト/ダークはトークン値の差し替えのみ（:root / html[data-theme="dark"]）。
      旧テーマB差分と、投影(≥820px)の濃色ヘッダ復帰は廃止＝投影は部屋に合わせてライト/ダークを選ぶ（§11.8）。 */
+  /* ===== iPad 横向き投影の高密度モード（docs/handoff/2026-09-12-niadora-ipad-landscape.md §5・#159）=====
+     幅1024px以上かつ横長（4:3以上）のときだけ効く。スマホ/iPad縦(820×1180・1024×1366)/狭幅PCは一切非接触。
+     投影トークン --f-rl-* の"定義値"は変更しない。ここでは使用側で min(トークン, Ncqw) に包み、
+     列が狭いときだけ自動で縮むようにする（cqw の基準は .npdc-cell の container-type:inline-size）。
+     狙い: 2セット8ホール（OUT/IN 計16名）＋チーム勝敗カード＋開封チップ行を1画面に収める（§3.5） */
+  @media (min-width:1024px) and (min-aspect-ratio:4/3){
+    /* ① 列（§4.3）: 1セット=最大4列（勝者名 --f-rl-name を維持）／2セット=ホールを横一列 */
+    .npdc-hero{grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:8px}
+    .npdc-hero.two{grid-template-columns:repeat(auto-fit,minmax(112px,1fr))}
+    /* ② カード・セルの余白を詰める（#view-result .card は ID 詳細度なので同じ前置きが要る） */
+    #view-result .card.npdc-card{padding:10px;margin-bottom:8px}
+    .npdc-cell{padding:7px 6px}
+    /* ③ ホール番号は"識別子"。主役は勝者名（§11.14 原則1）なので 40px を上限にセル幅追従 */
+    .npdc-hole{font-size:min(40px,26cqw)}
+    /* ④ 区分（ニアピン/ドラコン）をホール番号と同じ行に収める（現状は折返して 52px/セル を食っていた）。
+          ja/zh は1行に収まる。en（Nearest the Pin / Longest Drive）は折返すが .npdc-top の
+          flex-wrap を残しているので崩れない（§8-⑤） */
+    .npdc-top{column-gap:6px;row-gap:0}
+    .npdc-kind{font-size:min(var(--f-name),14cqw)}
+    /* ⑤ 勝者名＝主役。--f-rl-name を上限にセル幅追従（狭い列でも溢れない） */
+    .npdc-name{font-size:min(var(--f-rl-name),30cqw);margin-top:0}
+    .npdc-name.empty{font-size:min(var(--f-title),12cqw)}
+    /* ⑥ 区分ラベル OUT/IN を勝者名と同じ行へ（別行を食わない＝1行あたり -23px）。
+          チーム名だけ flex-basis:100% で次の行へ回す＝マークアップは変えずに実現する。
+          チーム名は投影で読めるサイズへ拡大（13px → 最大 22px・ユーザー要望③）。
+          .npdc-row{min-height:44px} のタップ領域は維持（§10） */
+    .npdc-row{display:flex;flex-wrap:wrap;align-items:baseline;justify-content:center;column-gap:6px}
+    .npdc-set{flex:0 0 auto;font-size:min(var(--f-body),12cqw)}
+    /* ★設計 §5.2-⑥ は flex:0 1 auto だが、flex-basis:auto だと勝者名の flex 基礎サイズ＝max-content に
+       なり、行に載らない（＝実測 setSameLine 0/16 で OUT/IN が別行のまま）。基礎サイズ 0 にして
+       残り幅へ伸ばすことで「OUT/IN は勝者名と同じ行」という設計の意図どおりになる（名前は箱の中で折返す） */
+    .npdc-name{flex:1 1 0;min-width:0}
+    .npdc-team{flex:1 0 100%;font-size:min(var(--f-val),16cqw);margin-top:1px}
+    .npdc-row+.npdc-row{margin-top:5px;padding-top:5px}
+    /* ⑦ チーム勝敗ヒーロー（§5.3）: .tp-nd の縦積みを横並びに戻し、
+          連携UI（.cardtools）を同じ行の右端へ同居させる。.tp-nd / .tp-ovh はチーム総合・大学対抗でも
+          使うので、必ず .nd-hero スコープ内だけに効かせる（他タブ非接触）。
+          ★実測: 設計 §3.2 は 269.6px→98px を見込むが、日本語チーム名（例「チームレッド」6文字＝44px で 264px）
+          ×3チームでは .rl-standing（既存 flex-wrap:wrap）が折返し、1024px 実測 249.4→231.8px・
+          1366px 実測 262→176px にとどまる（§8-⑥ の折返し許容の範囲。1行化は未達＝#159 報告参照） */
+    #view-result .card.nd-hero{display:flex;align-items:center;gap:12px;padding:10px;margin-bottom:8px}
+    .card.nd-hero .rl-standing{flex:1 1 auto;margin-top:0}
+    .card.nd-hero .tp-nd{flex-direction:row;align-items:baseline;gap:6px}
+    .card.nd-hero .tp-nd-sub,.card.nd-hero .tp-nd-tagrow{margin-top:0}
+    .card.nd-hero>.cardtools{flex:0 0 auto;margin-top:0;margin-bottom:0}
+  }
