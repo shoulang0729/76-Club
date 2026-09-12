@@ -223,13 +223,15 @@ function customPts(g,T){ const c=g&&g.custom; if(!c||!c.pts) return null;
    二重管理していて項がずれ、「タブは出ないのに勝ち点には算入される」不整合が起きた（#113 の追随漏れ）。
    以後は両者ともこの1本を呼ぶこと（項を足すときはここだけを直す）。引数 F は chFormats(g) 済みの
    フォーマット表＝α/βゲートは呼び出し側で適用済み（両側とも chFormats 経由で渡す）。
-   univMatch は従来どおり含めない（両側で一致していた既存挙動を維持・追加は別途 PM 判断）。
+   ★2026-09-12 ユーザー確定（「大学対抗を採用し、ニアドラをチーム種目としてやることもある」）により
+   univMatch を項に追加（8→9項）。大学対抗も正規のチーム種目なので、それ単独採用でも
+   「チーム戦をやっている」＝チーム戦ニアドラ成立、が正。#157 調査で両側とも足し忘れと判明（挙動変更）。
    ルーレット項はここではフォーマット採用のみ見る。calc 側はこの項に「実際に決着ホールがある」という
    データ条件（st.won.some(w=>w>0)）を差し替えて渡すので、本関数と calc の算入条件は等価ではない（意図的）。
    ＝ルーレットON・未進行では「タブは出るが勝ち点には入らない」が、本数0でもカードは出す
    （2026-08-20-results-regroup.md §4.3）のと同型で無害。 */
 function anyTeamEventFmt(F){
-  return !!(F.teamGross||F.teamNet||F.holeByHole||F.best2ball||F.vegas||F.match1v1||F.customMatch||F.roulette);
+  return !!(F.teamGross||F.teamNet||F.holeByHole||F.best2ball||F.vegas||F.match1v1||F.customMatch||F.roulette||F.univMatch);
 }
 /* §3.1〜3.2 種目別勝ち点（＋2026-08-30-winpoints-reveal.md §3 の部分上書き＝発表後反映）。
    teams=順位対象チーム（メンバー1人以上かつ1H以上入力済み）。
@@ -285,6 +287,7 @@ function teamWinPoints(g){
   // ニアドラ（§3.3.1）：F.niadoraTeam ゲート（バッチ95追加5・F.roulette と同型。OFFで種目不成立・データ保持）
   // ＋従来条件＝他のチーム種目が1つ以上採用中（=チーム戦をやっている）かつ チームに数えた本数合計≥1
   // ★2026-09-12 #157: フォーマット採用の判定は共有ヘルパー anyTeamEventFmt(F) に集約（results.js の 'nd' タブと共用）。
+  // ★2026-09-12 ユーザー確定: そのヘルパーに univMatch を追加（大学対抗のみ採用でもニアドラが成立するようになった＝挙動変更）。
   // ルーレット項だけは「採用中」ではなく「実際に決着ホールがある」データ条件に差し替えて渡す
   // （＝従来の算入条件そのまま・計算不変。F.roulette OFF なら st.won は空配列なので false）
   const anyTeamEvent=anyTeamEventFmt(Object.assign({},F,{roulette:st.won.some(w=>w>0)}));

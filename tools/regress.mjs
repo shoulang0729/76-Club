@@ -319,6 +319,29 @@ const CASES = {
       olympic: false, callaway: false, nassau: false, best2ball: false, vegas: false,
       match1v1: false, univMatch: false },
   }) },
+  // O) チーム戦ニアドラ × 大学対抗のみ（α・2026-09-12 ユーザー確定）: 他のチーム種目は全 OFF で univMatch だけ ON。
+  //    ユーザー確定「大学対抗を採用し、ニアドラをチーム種目としてやることもある」に基づき anyTeamEventFmt へ
+  //    univMatch を追加した（8→9項）ことで、この構成で niadora が events に載り勝ち点にも算入される、を固定する。
+  //    （追加前は niadora が不成立＝events に無く wins も univMatch ぶんのみ、が旧挙動＝本ケースが唯一の変化点）
+  //    チーム構成・スコアは niadoraCustomOnly と同一（差分の出どころを formats/univ に限定）。
+  //    T1=3本(p01×2,p02) / T2=2本(p05,p06) / T3=0本 → niadora winners=[0]
+  niadoraUnivOnly: { channel: 'a', game: baseGame({
+    teams: [
+      { id: 'T1', name: 'レッド', memberIds: ['p01', 'p02', 'p03', 'p04'] },
+      { id: 'T2', name: 'ブルー', memberIds: ['p05', 'p06', 'p07', 'p08'] },
+      { id: 'T3', name: 'グリーン', memberIds: ['p09', 'p10', 'p11', 'p12'] },
+    ],
+    participants: ALL.slice(),
+    scores: mkScores(ALL, (pi, h) => ((pi * 5 + h * 3 + (pi * h) % 4) % 6) - 2),
+    prizePool: 30000,
+    prizes: { niapinWinner: { 2: 'p01', 7: 'p05', 11: 'p01', 16: 'p02' }, draconWinner: { 4: 'p06' } },
+    univ: { every: false },
+    announced: { niadora: true, univMatch: true },
+    formats: { gross: true, net: true, niadoraInd: true, niadoraTeam: true, univMatch: true,
+      teamGross: false, teamNet: false, holeByHole: false, roulette: false, customMatch: false,
+      stableford: false, olympic: false, callaway: false, nassau: false, best2ball: false,
+      vegas: false, match1v1: false },
+  }) },
 };
 
 /* ============ vm 読込と実行 ============ */
