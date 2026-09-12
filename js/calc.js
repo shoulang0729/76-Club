@@ -296,7 +296,10 @@ function computePoints(g){
   // prizes（対象ホールは par から導出・対象外ホールの勝者エントリは無視＝+0pt。2026-08-20-npdc-par.md §4）
   // 2セット運用（prizes.twoSets）では両セットの勝者にそれぞれ同額を加算（2026-09-12-niadora-2sets.md §7.1）。
   // twoSets:false（既定）は S===1 ＝従来と完全に同一
-  { const S=prizeSetCount(g);
+  // ★2026-09-12 #152: F.niadoraInd ゲート（他の個人種目の awardInd(F.xxx,…) と同型）。
+  //   OFF＝個人戦ニアドラを集計しない＝NP/DC の個人配点も付けない（resGameTabs の prize タブ条件と一致）。
+  //   g.prizes のデータ自体は保持（チーム種目ニアドラは F.niadoraTeam ゲートで独立に集計される）
+  if(F.niadoraInd){ const S=prizeSetCount(g);
     for(let s=1;s<=S;s++){
       niapinHolesOf(g).forEach(h=>{ const pid=prizeWinnerOf(g,'np',h,s); if(pid&&pts[pid]!=null)pts[pid]+=(P.niapin||0); });
       draconHolesOf(g).forEach(h=>{ const pid=prizeWinnerOf(g,'dc',h,s); if(pid&&pts[pid]!=null)pts[pid]+=(P.dracon||0); });
