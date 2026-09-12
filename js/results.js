@@ -223,13 +223,13 @@ function renderScorecard(g, parts, teams, uvSel){
   let body='', note='';
   if(teams && teams.length){
     const colorOf=name=>tmColor(name);
-    const tAt=(t,i)=>{let s=0,c=0;t.memberIds.forEach(pid=>{const v=adjHole(g,pid,i);if(v!=null){s+=v;c++;}});return c?s:null;};
+    const tAt=(t,i)=>{let s=0,c=0;teamMembers(g,t).forEach(pid=>{const v=adjHole(g,pid,i);if(v!=null){s+=v;c++;}});return c?s:null;};
     const winAt=[]; for(let i=0;i<18;i++){const tot=teams.map(t=>tAt(t,i));const val=tot.filter(v=>v!=null);winAt.push(val.length?tot.map((v,ti)=>v===Math.min(...val)?ti:-1).filter(x=>x>=0):[]);}
     const won=teams.map((_,ti)=>{let w=0;winAt.forEach(ws=>{if(ws.includes(ti))w+=1/ws.length;});return w;});
     /* §11.12 I: チームは選択指標で並べ替え（グロス/ネット=合計の昇順・HBH=取得ホール数の降順）。
        winAt は元の teams インデックス基準なので、並べ替えは表示順（ti を保持）だけで行う。 */
-    const tGrossOf=T=>T.memberIds.reduce((a,pid)=>a+effGross(g,pid),0);
-    const tNetOf=T=>Math.round(T.memberIds.reduce((a,pid)=>a+netScore(g,pid),0)*10)/10;
+    const tGrossOf=T=>teamMembers(g,T).reduce((a,pid)=>a+effGross(g,pid),0);
+    const tNetOf=T=>Math.round(teamMembers(g,T).reduce((a,pid)=>a+netScore(g,pid),0)*10)/10;
     const order=teams.map((tm,ti)=>({tm,ti}));
     order.sort((a,b)=> scSortTeam==='hbh' ? won[b.ti]-won[a.ti]
       : scSortTeam==='gross' ? tGrossOf(a.tm)-tGrossOf(b.tm) : tNetOf(a.tm)-tNetOf(b.tm));
@@ -237,14 +237,14 @@ function renderScorecard(g, parts, teams, uvSel){
       const uvT=uvSel&&uvSel.team[tm.id];   // 大学対抗タブのみ: チーム行に 対象n/参加P（既存キー univ.selOf 流用）
       body+=`<tr><td class="nm" colspan="24" style="background:${col};color:var(--bg);font-weight:var(--w-bold);text-align:left">${esc(tm.name)}${uvT?`<span class="uv-scn">${t('univ.selOf',{n:uvT.n,p:uvT.p})}</span>`:''}</td></tr>`;
       // メンバーは個人スコア順（グロス=エブリ後グロス／ネット・HBH=ネット）
-      sortPids(tm.memberIds.filter(pid=>state.players.find(x=>x.id===pid)), scSortTeam==='gross'?'gross':'net')
+      sortPids(teamMembers(g,tm), scSortTeam==='gross'?'gross':'net')
         .forEach(pid=>{ body+=pRow(pid); });
       const tCell=(i)=>{ if(!show.totals) return '<td><span class="mask">·</span></td>';   // 合計値OFFなら値も色も隠す
-        const s=tm.memberIds.reduce((a,pid)=>a+(adjHole(g,pid,i)||0),0); return `<td class="${winAt[i].includes(ti)?'winc':''}">${s||''}</td>`;};
-      const tGross=tm.memberIds.reduce((a,pid)=>a+effGross(g,pid),0);
-      const tNet=Math.round(tm.memberIds.reduce((a,pid)=>a+netScore(g,pid),0)*10)/10;
-      const tOut=tm.memberIds.reduce((a,pid)=>a+sum(adjArr(g,pid),0,9),0);
-      const tIn=tm.memberIds.reduce((a,pid)=>a+sum(adjArr(g,pid),9,18),0);
+        const s=teamMembers(g,tm).reduce((a,pid)=>a+(adjHole(g,pid,i)||0),0); return `<td class="${winAt[i].includes(ti)?'winc':''}">${s||''}</td>`;};
+      const tGross=teamMembers(g,tm).reduce((a,pid)=>a+effGross(g,pid),0);
+      const tNet=Math.round(teamMembers(g,tm).reduce((a,pid)=>a+netScore(g,pid),0)*10)/10;
+      const tOut=teamMembers(g,tm).reduce((a,pid)=>a+sum(adjArr(g,pid),0,9),0);
+      const tIn=teamMembers(g,tm).reduce((a,pid)=>a+sum(adjArr(g,pid),9,18),0);
       body+=`<tr class="parr tsum"><td class="nm" style="color:${col};font-weight:var(--w-bold)">${t('col.total')}</td>${F9.map(i=>tCell(i)).join('')}<td class="sub">${MT(tOut||'')}</td>${B9.map(i=>tCell(i)).join('')}<td class="sub">${MT(tIn||'')}</td><td class="tot">${MT(tGross||'')}</td><td class="tot">-</td><td class="netc">${MT(tNet||'')}</td></tr>`;
     });
     note=t('sc.noteTeam');

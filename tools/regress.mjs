@@ -210,6 +210,47 @@ const CASES = {
       holeByHole: false, roulette: false, stableford: false, olympic: false, callaway: false,
       nassau: false, best2ball: false, vegas: false, match1v1: false, univMatch: false, customMatch: false },
   }) },
+  // J) ゴーストメンバー（α・2026-09-12-nonparticipant-ghost.md §8.2）: team3 構成そのまま＋p04 を
+  //    participants から外して memberIds に残す＝ゴースト。teamGross/teamNet/holeByHole/niadora/チーム配点が
+  //    p04 を数えないこと、記録済みルーレット代表（h=3 の T1=p04）は遡及フィルタしない＝roulette vals 不変、を検出する。
+  ghostMember: { channel: 'a', game: baseGame({
+    teams: [
+      { id: 'T1', name: 'レッド', memberIds: ['p01', 'p02', 'p03', 'p04'] },
+      { id: 'T2', name: 'ブルー', memberIds: ['p05', 'p06', 'p07', 'p08'] },
+      { id: 'T3', name: 'グリーン', memberIds: ['p09', 'p10', 'p11', 'p12'] },
+    ],
+    participants: ALL.filter(p => p !== 'p04'),                       // ★p04 は memberIds に残したまま＝ゴースト
+    scores: mkScores(ALL, (pi, h) => ((pi * 5 + h * 3 + (pi * h) % 4) % 6) - 2),   // ★p04 のスコアも残す
+    prizePool: 30000,
+    prizes: { niapinWinner: { 2: 'p04', 7: 'p05', 11: 'p09', 16: 'p02' }, draconWinner: { 4: 'p04' } },
+    points: { teamEventPts: { teamGross: 2, niadora: 3 } },
+    roulette: { cur: 4, reps: {
+      0: { T1: 'p01', T2: 'p05', T3: 'p09' }, 1: { T1: 'p02', T2: 'p06', T3: 'p10' },
+      2: { T1: 'p03', T2: 'p07' }, 3: { T1: 'p04', T2: 'p08', T3: 'p12' } } },   // ★h=3 の T1 代表がゴースト（記録済み＝遡及しない）
+    announced: { teamGross: true, holeByHole: true, niadora: true },
+    kanjiBadge: true,
+    kanjiRanks: { r1: { enabled: true, dir: 'down' }, r2: { enabled: true, dir: 'down' }, booby: { enabled: true, dir: 'up' } },
+    formats: { gross: true, net: true, teamGross: true, teamNet: true, holeByHole: true, roulette: true,
+      niadoraInd: true, niadoraTeam: true, stableford: false, olympic: false, callaway: false,
+      nassau: false, best2ball: false, vegas: false, match1v1: false },
+  }) },
+  // K) ゴースト（β・2026-09-12-nonparticipant-ghost.md §8.2）: p03（T1 の最良ネット）を participants から外して
+  //    memberIds に残す。best2ball がゴーストのネットを採用しないこと、元々 participants で絞っていた
+  //    vegas（vegasPair）/ univMatch（uvMembers）の値が前後不変であること（＝正しい関数を壊していない）を検出する。
+  ghostBest2: { channel: 'b', game: baseGame({
+    teams: [
+      { id: 'T1', name: 'レッド', memberIds: ['p01', 'p02', 'p03'] },
+      { id: 'T2', name: 'ブルー', memberIds: ['p05', 'p06'] },
+    ],
+    participants: ['p01', 'p02', 'p05', 'p06'],                       // ★p03 がゴースト
+    scores: mkScores(['p01', 'p02', 'p03', 'p05', 'p06'], (pi, h) => ((pi * 3 + h * 2) % 5) - 2),
+    prizePool: 5000,
+    announced: { teamGross: true, teamNet: true, best2ball: true, vegas: true, univMatch: true },
+    univ: { every: false },
+    formats: { gross: true, net: true, teamGross: true, teamNet: true, best2ball: true, vegas: true,
+      univMatch: true, holeByHole: true, roulette: false, niadoraInd: false, niadoraTeam: false,
+      stableford: false, olympic: false, callaway: false, nassau: false, match1v1: false },
+  }) },
 };
 
 /* ============ vm 読込と実行 ============ */

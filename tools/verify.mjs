@@ -107,7 +107,7 @@ try {
 console.log('■ 計算回帰');
 try {
   const grab = (n) => { const m = combined.match(new RegExp('function ' + n + '\\b[\\s\\S]*?\\n}', 'm')); if (!m) throw new Error('missing ' + n); return m[0]; };
-  const need = ['parTotal','gross','periaHdcp','enteredCount','everyStrokes','womenEvery','effGross','evPer','adjArr','adjHole','netScore','vegasPair','vAdj','vegasBase','vegasBirdie','vegasHoleNet'];
+  const need = ['parTotal','gross','periaHdcp','enteredCount','everyStrokes','womenEvery','effGross','evPer','adjArr','adjHole','netScore','teamMembers','vegasPair','vAdj','vegasBase','vegasBirdie','vegasHoleNet'];
   const sb = { state: { players: [] }, Math, console };
   let src = 'function sum(a,s,e){let x=0;for(let i=s;i<e;i++)x+=(a[i]?Number(a[i]):0);return x;}\n';
   need.forEach(n => src += grab(n) + '\n');

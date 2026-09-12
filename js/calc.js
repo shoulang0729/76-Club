@@ -73,27 +73,34 @@ function ranked(pids, valFn, dir){
   return rows.map((r,i)=>{ if(i>0){ const p=rows[i-1]; const eq=(r.v===p.v)&&(tieBreak(p.pid,r.pid)===0); rank = eq? rank : i+1; } return {pid:r.pid,v:r.v,rank}; });
 }
 function teamRanked(g, valFn, dir){
-  const teams=g.teams.filter(t=>t.memberIds.length);
+  const teams=teamsOf(g);
   const rows=teams.map(t=>({t,v:valFn(t)})).filter(r=>r.v!=null);
   rows.sort((a,b)=> dir==='asc'? a.v-b.v : b.v-a.v);
   let rank=0,prev=null;
   return rows.map((r,i)=>{ if(prev===null||r.v!==prev){rank=i+1;prev=r.v;} return {t:r.t,v:r.v,rank}; });
 }
+/* ★2026-09-12 ゴースト対策の共通 helper（docs/handoff/2026-09-12-nonparticipant-ghost.md §6.1・正本 §3.5 追補）:
+   memberIds は participants の部分集合であることを保証しない（参加者から一時的に外しても所属は残る＝可逆運用）。
+   チーム集計・表示は必ず teamMembers(g,T)＝T.memberIds ∩ g.participants かつ選手マスターに実在、で絞る。
+   teamsOf(g)＝参加メンバーが1人以上のチーム（参加者ゼロのチームは対抗の対象にしない＝vegasStandings/m1Teams と同型）。 */
+function teamMembers(g,T){ return T.memberIds.filter(pid=>g.participants.includes(pid)&&state.players.find(x=>x.id===pid)); }
+function teamsOf(g){ return g.teams.filter(t=>teamMembers(g,t).length); }
 function holesWon(g){
-  const teams=g.teams.filter(t=>t.memberIds.length); const won=teams.map(()=>0);
+  const teams=teamsOf(g); const won=teams.map(()=>0);
   for(let h=0;h<18;h++){
-    const tot=teams.map(t=>{ let s=0,cnt=0; t.memberIds.forEach(pid=>{const v=adjHole(g,pid,h); if(v!=null){s+=v;cnt++;}}); return cnt?s:null; });
+    const tot=teams.map(t=>{ let s=0,cnt=0; teamMembers(g,t).forEach(pid=>{const v=adjHole(g,pid,h); if(v!=null){s+=v;cnt++;}}); return cnt?s:null; });
     const valid=tot.filter(v=>v!=null); if(!valid.length)continue;
     const min=Math.min(...valid); const winners=tot.map((v,i)=>v===min?i:-1).filter(i=>i>=0);
     winners.forEach(i=>won[i]+=1/winners.length);
   }
   return {teams,won};
 }
-function best2(g,t){ const ns=t.memberIds.map(pid=>netScore(g,pid)).sort((a,b)=>a-b); return Math.round((ns[0]+(ns[1]||ns[0]))*10)/10; }
+function best2(g,t){ const m=teamMembers(g,t); if(!m.length)return null;
+  const ns=m.map(pid=>netScore(g,pid)).sort((a,b)=>a-b); return Math.round((ns[0]+(ns[1]||ns[0]))*10)/10; }
 
 /* ---- ラスベガス（Vegas・§11.11）: 2人組の2桁合体・フリップ・点差累積。独立集計＝payout非干渉 ---- */
 /* 数字は「エブリ適用後×ダブルパー上限」、フリップ発動のバーディ判定は「生スコア」（各々既存慣例に準拠） */
-function vegasPair(g,T){ const m=T.memberIds.filter(pid=>g.participants.includes(pid)); return m.length===2?m:null; }
+function vegasPair(g,T){ const m=teamMembers(g,T); return m.length===2?m:null; }
 function vAdj(g,pid,i){ const v=adjHole(g,pid,i); if(v==null)return null;
   return (g.vegas&&g.vegas.cap==='none') ? v : Math.min(v, 2*g.par[i]); }
 function vegasBase(g,T,i){ const m=vegasPair(g,T); if(!m)return null;
@@ -126,7 +133,7 @@ function m1Result(g,pidA,pidB){ let upA=0,upB=0,half=0;
     if(w==='A')upA++; else if(w==='B')upB++; else if(w==='H')half++; }
   return { upA, upB, half, played:upA+upB+half, diff:upA-upB }; }   // diff>0=A勝ち/<0=B勝ち/0=AS。タイブレークなし
 /* §4.1 前提: 「参加中かつ選手マスターに実在するメンバー」が1人以上のチーム。ちょうど2チームで抽選可 */
-function m1MemberIds(g,T){ return T.memberIds.filter(pid=>g.participants.includes(pid)&&state.players.find(x=>x.id===pid)); }
+function m1MemberIds(g,T){ return teamMembers(g,T); }
 function m1Teams(g){ return g.teams.filter(T=>m1MemberIds(g,T).length); }
 /* §4.3 有効性チェック: 保存済み teamA/teamB が現在の2チームと一致し、pair の両 pid が該当チームの参加メンバーである試合のみ有効 */
 function m1Valid(g){ const m=g.match1v1; if(!m||!m.teamA||!m.teamB||!(m.pairs||[]).length) return null;
@@ -160,9 +167,7 @@ function uvHdcpA(g,pid){
 // ネット＝グロス−HDCP（数学的に小数第1位で確定。0.1丸めは浮動小数ノイズ除去のみ＝値は不変）
 function uvNetA(g,pid){ return Math.round((uvGrossA(g,pid)-uvHdcpA(g,pid))*10)/10; }
 // §4.2 集計母数: ①参加中 ②選手マスターに実在 ③1H以上入力済み（teamWinPoints の entered と同型・§12 既定事項3）
-function uvMembers(g,T){ return T.memberIds.filter(pid=> g.participants.includes(pid)
-  && state.players.find(x=>x.id===pid)
-  && (g.scores[pid]||[]).some(v=>v!=null&&v!=='')); }
+function uvMembers(g,T){ return teamMembers(g,T).filter(pid=> (g.scores[pid]||[]).some(v=>v!=null&&v!=='')); }
 /* §4.2/§4.3 学校成績: 対象者=ネット昇順N名（同ネットはグロス→memberIds 登録順＝安定ソート）。
    r4=[対象平均ネット, 対象平均グロス, 全員平均ネット, 全員平均グロス]（比較用に小数第4位丸め・辞書式昇順）。
    Q4 切替ポイント: 規定の③④が「合計」と判明したら avg(...)→Σ(...) の1行変更で対応（§4.3）。 */
@@ -191,10 +196,10 @@ function uvStanding(g){
    チーム未所属の勝者はどのチームにも数えない（個人配点は従来どおり別途付く）。 */
 /* ★2026-09-12 2セット運用（prizes.twoSets）では OUT組/IN組の旗を合算して数える（種目は「ニアドラ」1つのまま
    ＝2026-09-12-niadora-2sets.md §2/§6.1）。twoSets:false（既定）は prizeSetCount(g)===1 ＝従来と完全に同一の走査。 */
-function niadoraTeamCount(g,T){ let n=0; const S=prizeSetCount(g);
+function niadoraTeamCount(g,T){ let n=0; const S=prizeSetCount(g), mem=teamMembers(g,T);
   for(let s=1;s<=S;s++){
-    niapinHolesOf(g).forEach(h=>{ const pid=prizeWinnerOf(g,'np',h,s); if(pid&&T.memberIds.includes(pid))n++; });
-    draconHolesOf(g).forEach(h=>{ const pid=prizeWinnerOf(g,'dc',h,s); if(pid&&T.memberIds.includes(pid))n++; });
+    niapinHolesOf(g).forEach(h=>{ const pid=prizeWinnerOf(g,'np',h,s); if(pid&&mem.includes(pid))n++; });
+    draconHolesOf(g).forEach(h=>{ const pid=prizeWinnerOf(g,'dc',h,s); if(pid&&mem.includes(pid))n++; });
   }
   return n;
 }
@@ -220,7 +225,7 @@ function customPts(g,T){ const c=g&&g.custom; if(!c||!c.pts) return null;
    rlStandings/holesWon/vegasHoleWins は独自に g.teams をフィルタするため index 前提にせず team.id で突合する。 */
 function teamWinPoints(g){
   const entered=pid=>(g.scores[pid]||[]).some(v=>v!=null&&v!=='');
-  const teams=g.teams.filter(t=>t.memberIds.length&&t.memberIds.some(entered));
+  const teams=g.teams.filter(t=>{ const m=teamMembers(g,t); return m.length&&m.some(entered); });
   const wins=teams.map(()=>0), events=[];
   if(teams.length<2) return {teams,wins,events};   // 成立条件（共通）：対象チーム2以上
   const F=chFormats(g);   // αではβ種目（best2ball/vegas）を懸けない（§11.12 C）
@@ -244,8 +249,8 @@ function teamWinPoints(g){
     events.push({key,winners,vals,on,w});   // 未確定種目も events には載せる（総合タブの「未確定」行用・D6）。w は表示用（×w 併記・山分け表記）
   };
   const byId=(list,fn)=>teams.map(t=>{ const j=list.findIndex(x=>x.id===t.id); return j>=0?fn(j):null; });
-  if(F.teamGross) add('teamGross', teams.map(t=>t.memberIds.reduce((a,pid)=>a+effGross(g,pid),0)),'asc');
-  if(F.teamNet) add('teamNet', teams.map(t=>Math.round(t.memberIds.reduce((a,pid)=>a+netScore(g,pid),0)*10)/10),'asc');
+  if(F.teamGross) add('teamGross', teams.map(t=>teamMembers(g,t).reduce((a,pid)=>a+effGross(g,pid),0)),'asc');
+  if(F.teamNet) add('teamNet', teams.map(t=>Math.round(teamMembers(g,t).reduce((a,pid)=>a+netScore(g,pid),0)*10)/10),'asc');
   if(F.holeByHole){ const hw=holesWon(g); if(hw.won.some(w=>w>0)) add('holeByHole', byId(hw.teams,j=>hw.won[j]),'desc'); }
   if(F.best2ball) add('best2ball', teams.map(t=>best2(g,t)),'asc');
   // ルーレット対抗：F.roulette ゲート（要件D・OFFなら評価せず種目不成立）。ONなら進行前（cur=0）から成立＝
@@ -311,7 +316,7 @@ function computePoints(g){
       let rank=0,prev=null;
       rows.forEach((r,i)=>{ if(prev===null||r.v!==prev){rank=i+1;prev=r.v;}
         const p=(P.teamRankPts||[])[rank-1]||0;
-        r.t.memberIds.forEach(pid=>{ if(pts[pid]!=null)pts[pid]+=p; }); });
+        teamMembers(g,r.t).forEach(pid=>{ if(pts[pid]!=null)pts[pid]+=p; }); });
     }
   }
   return pts;
