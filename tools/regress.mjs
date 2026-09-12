@@ -251,6 +251,29 @@ const CASES = {
       univMatch: true, holeByHole: true, roulette: false, niadoraInd: false, niadoraTeam: false,
       stableford: false, olympic: false, callaway: false, nassau: false, match1v1: false },
   }) },
+  // L) ニアドラ個人 OFF ＋ NP/DC 勝者登録済み（α・2026-09-12 #152）: formats.niadoraInd=false なのに
+  //    computePoints へ NP/DC の個人配点が加算されていたバグの回帰止め。チーム構成・スコアは team3 と同一で
+  //    差分の出どころを formats/prizes に限定する。
+  //    ・computePoints は gross/net とチーム配分のみ＝NP/DC ぶん（P.niapin/P.dracon）が一切乗らないこと
+  //      （バグがあれば p01/p02/p05/p09 に +2、p06 に +2 が乗って必ず落ちる）
+  //    ・一方 niadoraTeam=true なのでチーム種目「ニアドラ」は従来どおり成立し本数を数える
+  //      （T1=2本(p01,p02) / T2=2本(p05,p06) / T3=1本(p09)）＝個人トグルとチームトグルが独立であることの固定
+  niadoraIndOff: { channel: 'a', game: baseGame({
+    teams: [
+      { id: 'T1', name: 'レッド', memberIds: ['p01', 'p02', 'p03', 'p04'] },
+      { id: 'T2', name: 'ブルー', memberIds: ['p05', 'p06', 'p07', 'p08'] },
+      { id: 'T3', name: 'グリーン', memberIds: ['p09', 'p10', 'p11', 'p12'] },
+    ],
+    participants: ALL.slice(),
+    scores: mkScores(ALL, (pi, h) => ((pi * 5 + h * 3 + (pi * h) % 4) % 6) - 2),
+    prizePool: 30000,
+    prizes: { niapinWinner: { 2: 'p01', 7: 'p05', 11: 'p09', 16: 'p02' }, draconWinner: { 4: 'p06' } },
+    announced: { teamGross: true, niadora: true },
+    // teamGross は teamWinPoints の anyTeamEvent ゲートを満たすために ON（niadora2Sets と同型）
+    formats: { gross: true, net: true, niadoraInd: false, niadoraTeam: true, teamGross: true, teamNet: false,
+      holeByHole: false, roulette: false, stableford: false, olympic: false, callaway: false,
+      nassau: false, best2ball: false, vegas: false, match1v1: false, univMatch: false, customMatch: false },
+  }) },
 };
 
 /* ============ vm 読込と実行 ============ */
