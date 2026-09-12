@@ -1,4 +1,20 @@
-/* ============================ BASIC SETUP（どのコンペか・2026-08-20-game-split.md） ============================ */
+/* ============================ BASIC SETUP（コンペ設定・2026-08-20-game-split.md ＋ 2026-09-12-settings-consolidation.md） ============================
+   2026-09-12: 旧「ゲーム設定」タブを本タブへ統合（設計 §3.2）。描画順は
+     S1 ゲーム（コンペ）→ S2 大会情報 → S3〜S10 gameSettingsHtml(g) → S11 幹事メニュー。 */
+
+/* 設定セクションの開閉（2026-09-12-settings-consolidation.md §3.4）。
+   揮発＝localStorage 非保存（§11.14 原則4・保存キーは5つのまま）。
+   renderBasic() の再描画（setFmt / setKanjiBadge / setKanjiRank / setUniv）をまたいで
+   開いたままにするためだけの表示状態。リロードすると全閉に戻る。 */
+let gsOpen = {};                                 // 'peria'|'every'|'kanji'|'roulette'|'vegas'|'univ'|'pts'|'host' → true=開
+function gsToggle(k, open){ gsOpen[k] = open; }   // ontoggle から呼ぶだけ（★再描画しない＝無限ループ防止・§12-3）
+/* 折りたたみセクションの共通ヘルパ（gameSettingsHtml / hostMenuCard が使う）。
+   見た目は既存の details 規則＋ details.gsec>summary（styles.css）のみ。
+   <summary> は動的 HTML なので data-i18n ではなく t() で埋める（§12-6）。 */
+function gsSec(k, titleHtml, inner, extraCls=''){
+  return `<details class="gsec${extraCls?' '+extraCls:''}"${gsOpen[k]?' open':''} ontoggle="gsToggle('${k}',this.open)">
+  <summary>${titleHtml}</summary><div class="in">${inner}</div></details>`;
+}
 function renderBasic(){
   const el=document.getElementById('view-basic');
   let html = `<div class="card"><h2>${t('game.title')}</h2>
@@ -13,9 +29,10 @@ function renderBasic(){
   const g=curGame();
   if(!g){ el.innerHTML=html+`<div class="empty">${t('game.emptyCreate')}</div>`+hostMenuCard(); return; }
 
+  // S2 大会情報。日付/コースの2カラムは .row.cols2（#166① の重なり修正・styles.css 参照）
   html += `<div class="card"><h2>${t('game.basic')}</h2>
     <label class="fl">${t('game.compeName')}</label><input value="${esc(g.name)}" onchange="setG('name',this.value)">
-    <div class="row"><div class="fx1"><label class="fl">${t('game.date')}</label><input type="date" value="${g.date}" onchange="setG('date',this.value)"></div>
+    <div class="row cols2"><div class="fx1"><label class="fl">${t('game.date')}</label><input type="date" value="${g.date}" onchange="setG('date',this.value)"></div>
     <div class="fx1"><label class="fl">${t('game.course')}</label><input value="${esc(g.course)}" placeholder="${t('game.coursePh')}" onchange="setG('course',this.value)"></div></div>
     <div class="row">
       <button class="btn danger sm" onclick="deleteGame()">${t('game.deleteBtn')}</button>
@@ -23,23 +40,23 @@ function renderBasic(){
     </div>
   </div>`;
 
-  html += hostMenuCard();
+  html += gameSettingsHtml(g);   // S3〜S10（旧「ゲーム設定」タブの8カード・js/game.js）
+  html += hostMenuCard();        // S11
   el.innerHTML=html;
 }
 // 幹事メニュー（動作確認用・目立たせない。Phase2で幹事のみ表示に制限予定）
 function hostMenuCard(){
   // テストデータのパターン選択（2026-08-31-testdata-patterns.md §7）。選択は揮発変数 sdPat（localStorage 非保存）
   const sp=SD_PATTERNS.find(x=>x.key===sdPat)||SD_PATTERNS[0];
-  return `<details><summary>${t('host.summary')}</summary><div class="in">
-    <div class="muted" style="margin-bottom:8px">${t('host.note')}</div>
+  // ★外側（幹事メニュー）にだけ .gsec を付ける。内側の auditCard() は素の <details> のまま（設計 §12-2）
+  return gsSec('host', t('host.summary'), `<div class="muted" style="margin-bottom:8px">${t('host.note')}</div>
     <label class="fl">${t('host.seedPattern')}</label>
     <select onchange="sdSetPat(this.value)">${SD_PATTERNS.map(x=>
       `<option value="${x.key}" ${x.key===sp.key?'selected':''}>${esc(t(x.label))}</option>`).join('')}</select>
     <div class="muted" id="sdDesc" style="margin:6px 0 8px">${esc(t(sp.desc))}</div>
     <button class="btn gold sm" onclick="seedTestData()">${t('host.seedBtn')}</button>
     <div class="muted">${t('host.seedNote')}</div>
-    ${auditCard()}
-  </div></details>`;
+    ${auditCard()}`);
 }
 
 /* ============================ データ点検（#171 PR2）============================
