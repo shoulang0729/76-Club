@@ -401,6 +401,16 @@
      プレー中は各チームカードの直上・カード幅中央に取得Hを1つずつ、カード直下にボタン行（.rl-act）を表示 */
   .rl-col{flex:1 1 150px;min-width:140px;display:flex;flex-direction:column;gap:4px}
   .rl-col>.rl-st{justify-content:center}
+  /* カード上部（チーム名＋取得H）の表現仕様（ユーザー承認 2026-09-12・案D）:
+     チーム名を上・取得Hを下の縦積み中央揃えにし、チーム名は「…」で省略せず列幅に収まるまで縮小する。
+     横並び（ベースライン揃え）だとチーム名が折返したとき数字だけ1行目に残り、カードごとに上部の形が変わっていた。
+     ★container-type は .rl-col ではなく .rl-st に付ける: .rl-col に付けると size containment で
+     subgrid が無効化され（computed が subgrid → 具体px）、名前が折返したときカード上端が揃わなくなる（#165① の保証が壊れる）。
+     .rl-st に付ければ cqw は列幅（グリッド項目として stretch するため）を指し、subgrid はそのまま生きる。 */
+  .rl-col>.rl-st{container-type:inline-size;flex-direction:column;align-items:center;gap:0;text-align:center}
+  .rl-col>.rl-st .rl-st-team{font-size:min(var(--f-rl-name),13cqw);line-height:1.15;max-width:100%}
+  .rl-col>.rl-st .rl-st-h{font-size:min(var(--f-rl-score),30cqw);line-height:1}
+  .rl-col>.rl-st .rl-st-h small{font-size:min(var(--f-rl-name),13cqw)}
   /* #165①②: チーム列をグリッド化し、上段(チーム名＋取得H)/カード/ボタン行の3段を全チーム共通の行に載せる（subgrid）。
      → チーム名が何行に折り返してもカード(.rl-panel)の上端・下端・高さが揃う。余白が出る側の上段は下寄せ（align-self:end＝
      最終行のベースラインが取得Hの数字と並ぶ）。列幅の下限は flex-basis と同値＝折返し位置は従来を踏襲。
