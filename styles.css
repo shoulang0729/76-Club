@@ -250,6 +250,11 @@
   .npdc-name.empty{color:var(--sub);font-size:var(--f-title);font-weight:var(--w-med);cursor:default}
   /* 勝者の所属チーム併記（チーム戦ニアドラタブのみ・#87 指示⑤）: 勝者名の下の小ラベル・チームカラー */
   .npdc-team{font-size:13px;font-weight:var(--w-bold);line-height:1.2;margin-top:2px;overflow-wrap:anywhere}
+  /* ニアドラ2セット・登録UI（2026-09-12-niadora-2sets.md §9.2）: 375px で2セレクトを縦積み（横スクロールなし） */
+  .pz2{display:flex;flex-direction:column;gap:4px;flex:1;min-width:0}
+  .pz2-row{display:flex;align-items:center;gap:8px}
+  .pz2-row select{flex:1;min-width:0}
+  .pz-set{flex:0 0 34px;font-size:13px;font-weight:var(--w-bold);letter-spacing:.06em;color:var(--sub)}
   @media(min-width:768px){
     .npdc-hero{grid-template-columns:repeat(4,1fr)}
     #view-result .subtab-games button{font-size:14px;padding:0 14px}

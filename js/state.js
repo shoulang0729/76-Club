@@ -36,7 +36,12 @@ function migrate(s){
     { const d=defaultPoints().teamEventPts, w=g.points.teamEventPts;
       for(const k in d) if(w[k]===undefined) w[k]=d[k]; }
     if(g.prizePool===undefined) g.prizePool=0;
-    if(!g.prizes) g.prizes={ niapinHoles:[], draconHoles:[], niapinWinner:{}, draconWinner:{} };
+    if(!g.prizes) g.prizes={ niapinHoles:[], draconHoles:[], niapinWinner:{}, draconWinner:{}, twoSets:false, niapinWinner2:{}, draconWinner2:{} };
+    // ニアドラ2セット（2026-09-12-niadora-2sets.md §3.3）。既定OFF＝従来と完全に同一挙動。
+    // 読み出しは ||{} で守れるが setPrize() が prizes[k][h]=v と直接代入するため backfill は必須
+    if(g.prizes.twoSets===undefined) g.prizes.twoSets=false;
+    if(!g.prizes.niapinWinner2) g.prizes.niapinWinner2={};
+    if(!g.prizes.draconWinner2) g.prizes.draconWinner2={};
     if(!g.roulette) g.roulette=newRoulette();
     else { const r=newRoulette(); for(const k in r) if(g.roulette[k]===undefined) g.roulette[k]=r[k]; }
     if(g.formats && g.formats.vegas===undefined) g.formats.vegas=false;   // ラスベガス（§11.11）
@@ -82,6 +87,13 @@ function curGame(){ return state.games.find(g=>g.id===state.currentGameId)||null
 function niapinHolesOf(g){ return g.par.map((p,i)=>p===3?i:-1).filter(i=>i>=0); }
 function draconHolesOf(g){ return g.par.map((p,i)=>p===5?i:-1).filter(i=>i>=0); }
 
+/* ニアドラ2セット（2026-09-12-niadora-2sets.md §3.4）。s=1|2。twoSets:false のときセット2は存在しない扱い。
+   NP/DC の勝者参照は必ずこの helper 経由にする（将来のセット表現変更をここ1箇所に閉じるため）。 */
+function prizeSetCount(g){ return (g.prizes && g.prizes.twoSets) ? 2 : 1; }
+function prizeField(kind,s){ return (kind==='np'?'niapinWinner':'draconWinner') + (s===2?'2':''); }
+function prizeWinnerOf(g,kind,h,s){ return ((g.prizes||{})[prizeField(kind,s)]||{})[h] || ''; }
+function prizeSetLabel(s){ return s===2?'IN':'OUT'; }   // リテラル（§4.2・i18n キーを作らない）
+
 function newGame(){
   return {
     id:uid(), name:"新しいコンペ", date:new Date().toISOString().slice(0,10), course:"",
@@ -95,7 +107,8 @@ function newGame(){
     teams:[],
     participants:[],
     scores:{},
-    prizes:{ niapinHoles:[], draconHoles:[], niapinWinner:{}, draconWinner:{} },
+    prizes:{ niapinHoles:[], draconHoles:[], niapinWinner:{}, draconWinner:{},
+      twoSets:false, niapinWinner2:{}, draconWinner2:{} },   // twoSets＝1ホール旗2本（OUT組/IN組）・既定OFF（§3.2 / 2026-09-12-niadora-2sets.md）
     points:defaultPoints(), prizePool:0, roulette:newRoulette(),
     vegas:{ flip:true, cap:'doublePar' },   // ラスベガス設定（§11.11）
     univ:{ every:false },   // 大学対抗設定（エブリ適用オプション・既定OFF＝規定準拠。§11.20）

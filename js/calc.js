@@ -189,9 +189,13 @@ function uvStanding(g){
    変わるのは「値→配点」の変換のみ：各成立種目の総合1位に勝ち点1（同点は山分け）→勝ち点合計の総合順位で配分。 */
 /* §3.3.1 ニアドラ本数（NP＋DC獲得本数のチーム合計）。対象ホールはパー導出のみ（npdc-par §4 と同じ非破壊規則）。
    チーム未所属の勝者はどのチームにも数えない（個人配点は従来どおり別途付く）。 */
-function niadoraTeamCount(g,T){ let n=0;
-  niapinHolesOf(g).forEach(h=>{ const pid=(g.prizes.niapinWinner||{})[h]; if(pid&&T.memberIds.includes(pid))n++; });
-  draconHolesOf(g).forEach(h=>{ const pid=(g.prizes.draconWinner||{})[h]; if(pid&&T.memberIds.includes(pid))n++; });
+/* ★2026-09-12 2セット運用（prizes.twoSets）では OUT組/IN組の旗を合算して数える（種目は「ニアドラ」1つのまま
+   ＝2026-09-12-niadora-2sets.md §2/§6.1）。twoSets:false（既定）は prizeSetCount(g)===1 ＝従来と完全に同一の走査。 */
+function niadoraTeamCount(g,T){ let n=0; const S=prizeSetCount(g);
+  for(let s=1;s<=S;s++){
+    niapinHolesOf(g).forEach(h=>{ const pid=prizeWinnerOf(g,'np',h,s); if(pid&&T.memberIds.includes(pid))n++; });
+    draconHolesOf(g).forEach(h=>{ const pid=prizeWinnerOf(g,'dc',h,s); if(pid&&T.memberIds.includes(pid))n++; });
+  }
   return n;
 }
 /* §3.3.2 ベガス勝ちホール数：vegasStandings と同じ総当たりで vegasHoleNet の符号のみ数える。
@@ -285,8 +289,13 @@ function computePoints(g){
   awardInd(F.callaway, ranked(parts,pid=>callawayNet(g,pid),'asc'), P.callaway);   // callawayNetは18H完了時のみ値
   awardInd(F.nassau, ranked(parts,iv(pid=>nassauTotalNet(g,pid)),'asc'), P.nassauTotal);
   // prizes（対象ホールは par から導出・対象外ホールの勝者エントリは無視＝+0pt。2026-08-20-npdc-par.md §4）
-  niapinHolesOf(g).forEach(h=>{ const pid=(g.prizes.niapinWinner||{})[h]; if(pid&&pts[pid]!=null)pts[pid]+=(P.niapin||0); });
-  draconHolesOf(g).forEach(h=>{ const pid=(g.prizes.draconWinner||{})[h]; if(pid&&pts[pid]!=null)pts[pid]+=(P.dracon||0); });
+  // 2セット運用（prizes.twoSets）では両セットの勝者にそれぞれ同額を加算（2026-09-12-niadora-2sets.md §7.1）。
+  // twoSets:false（既定）は S===1 ＝従来と完全に同一
+  { const S=prizeSetCount(g);
+    for(let s=1;s<=S;s++){
+      niapinHolesOf(g).forEach(h=>{ const pid=prizeWinnerOf(g,'np',h,s); if(pid&&pts[pid]!=null)pts[pid]+=(P.niapin||0); });
+      draconHolesOf(g).forEach(h=>{ const pid=prizeWinnerOf(g,'dc',h,s); if(pid&&pts[pid]!=null)pts[pid]+=(P.dracon||0); });
+    } }
   // 1 on 1 マッチプレー（§11.13 §6）：勝者+m1win/引分両者+m1draw。個人にのみ加算（チーム全員加算はしない）
   if(F.match1v1 && g.match1v1 && (g.match1v1.pairs||[]).length){
     m1ValidPairs(g).forEach(([a,b])=>{ const r=m1Result(g,a,b); if(!r.played)return;   // 有効試合のみ・未プレーは配点なし
