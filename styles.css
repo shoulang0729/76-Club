@@ -373,6 +373,15 @@
      プレー中は各チームカードの直上・カード幅中央に取得Hを1つずつ、カード直下にボタン行（.rl-act）を表示 */
   .rl-col{flex:1 1 150px;min-width:140px;display:flex;flex-direction:column;gap:4px}
   .rl-col>.rl-st{justify-content:center}
+  /* #165①②: チーム列をグリッド化し、上段(チーム名＋取得H)/カード/ボタン行の3段を全チーム共通の行に載せる（subgrid）。
+     → チーム名が何行に折り返してもカード(.rl-panel)の上端・下端・高さが揃う。余白が出る側の上段は下寄せ（align-self:end＝
+     最終行のベースラインが取得Hの数字と並ぶ）。列幅の下限は flex-basis と同値＝折返し位置は従来を踏襲。
+     subgrid 非対応環境は @supports で従来の flex 折返しのまま（機能色・文字併記も含め表示内容は不変） */
+  @supports(grid-template-rows:subgrid){
+    .rl-panels{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr))}
+    .rl-col{display:grid;grid-template-rows:subgrid;grid-row:span 3}   /* 行間は .rl-col の gap:4px がそのまま効く */
+    .rl-col>.rl-st{align-self:end}
+  }
   /* 取得Hスタンディング行（18H終了後・カード外・中央・取得H降順。2026-08-20-roulette-standings.md／§11.14） */
   .rl-standing{display:flex;justify-content:center;align-items:baseline;flex-wrap:wrap;
     column-gap:clamp(14px,4vw,40px);row-gap:2px;text-align:center;margin-top:12px}
@@ -398,7 +407,8 @@
   .rl-scorebig{font-size:var(--f-rl-score);font-weight:var(--w-bold);color:var(--strong);line-height:1;min-height:46px;font-variant-numeric:tabular-nums}   /* 数字は濃色インク（x.xH と同じ扱い・2026-08-30 Sレーン③）。勝敗はカード塗り/枠/WIN で示す */
   .rl-ev{font-size:var(--f-small);color:var(--win);font-weight:var(--w-bold);min-height:16px;margin-top:2px}
   .rl-act{min-height:40px;display:flex;gap:6px;justify-content:center;align-items:center;flex-wrap:wrap;margin-top:2px}   /* カード外・直下（指示①）。中央寄せはカード幅基準（.rl-col が stretch） */
-  .rl-act .btn{padding:7px 10px;font-size:var(--f-small)}
+  .rl-act .btn.sm{padding:7px 10px;font-size:var(--f-body)}   /* #165③: チェンジ/チャレンジ（ラベル＋残数）を投影で読めるよう拡大（実効11px→--f-body。≥820px で更に拡大）。
+     .sm まで含めた3クラス指定＝ button.btn.sm（0,2,1）に勝たせるため（旧 .rl-act .btn は 0,2,0 で負けており padding/font ともに不適用だった） */
   .rl-ctrl{margin-top:4px}
   .rl-info{text-align:center;font-weight:var(--w-bold);font-size:var(--f-name);line-height:1.3;min-height:calc(var(--f-name)*1.3);margin-bottom:4px}
   .rl-main{font-size:var(--f-val);padding:16px}
@@ -472,6 +482,8 @@
     .rlwrap{max-width:900px;margin:0 auto}
     .rl-nmrow{min-height:50px} .rl-scorebig{min-height:66px}
     .rl-col{flex:1 1 200px} .rl-panel{padding:20px 14px} .rl-main{font-size:24px;padding:20px}
+    .rl-act .btn.sm{font-size:var(--f-name)}   /* #165③ 投影スケール */
+    @supports(grid-template-rows:subgrid){ .rl-panels{grid-template-columns:repeat(auto-fit,minmax(200px,1fr))} }   /* #165① 列幅下限＝上の flex-basis と同値 */
     .sc2.rlsc{font-size:15px}
   }
   /* 9:16 大画面投影：結果タブ全体を大きく見やすく */
@@ -519,11 +531,12 @@
     /* ルーレットのiPad中間スケール＋タッチ44pt（§11.9）: --f-rl-*は上の:rootで再定義 */
     .rlwrap{max-width:1100px}
     .rl-col{flex:1 1 220px}
+    @supports(grid-template-rows:subgrid){ .rl-panels{grid-template-columns:repeat(auto-fit,minmax(220px,1fr))} }   /* #165① 列幅下限＝上の flex-basis と同値 */
     .rl-panel{padding:22px 16px}
     .rl-nmrow{min-height:54px}
     .rl-scorebig{min-height:72px}
     .rl-main{min-height:56px;font-size:25px;padding:16px}
-    .rl-act .btn{min-height:44px;padding:9px 14px;font-size:13px}
+    .rl-act .btn.sm{min-height:44px;padding:9px 14px;font-size:var(--f-name)}   /* #165③ 実効13px→--f-name(17px) */
     .sc2.rlsc{font-size:16px}
     .rlsc td.nm,.rlsc th.nm{width:88px}
   }
