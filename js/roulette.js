@@ -1,5 +1,5 @@
 /* ============================ ルーレット対抗 ============================ */
-function rTeams(g){ return g.teams.filter(t=>t.memberIds.length); }
+function rTeams(g){ return teamsOf(g); }
 function rColor(name){ return tmColor(name); }
 function rColorBg(name){ return rColor(name).replace(')','-bg)'); }   // 'var(--tm-red)'→'var(--tm-red-bg)'（勝ちカードの淡色塗り。2026-08-20-roulette-standings.md §9.2）
 // エブリ支給（各ホール）：エブリワン=−1・エブリツー=−2（ゲームでエブリ適用ON時）。ルーレットの1ホール勝負に反映
@@ -7,7 +7,7 @@ function rlEvery(g,pid){ if(!g.womenEvery.enabled)return 0; const p=state.player
 function rlRaw(g,pid,h){ const v=(g.scores[pid]||[])[h]; return (v!=null&&v!=='')?Number(v):null; }
 function rlHoleScore(g,pid,h){ const v=rlRaw(g,pid,h); return v==null?null:v-rlEvery(g,pid); }  // 比較に使う実質スコア
 function rlDraw(g, teamId, excludePid){
-  const t=g.teams.find(x=>x.id===teamId); const members=t.memberIds.slice();
+  const t=g.teams.find(x=>x.id===teamId); const members=teamMembers(g,t);
   let cand=members.filter(m=>!(g.roulette.pool[teamId]||[]).includes(m));
   if(excludePid) cand=cand.filter(m=>m!==excludePid);
   if(cand.length===0){ g.roulette.pool[teamId]=[]; cand=members.filter(m=>m!==excludePid); if(!cand.length)cand=members.slice(); }
@@ -15,8 +15,9 @@ function rlDraw(g, teamId, excludePid){
 }
 function rlTick(){ const g=curGame(); if(!g)return; const h=g.roulette.cur;
   const pick=Object.assign({}, g.roulette.reps[h]||{});   // 非回転チームは確定代表で比較（#6）
-  rl.spinTeams.forEach(tid=>{ const t=g.teams.find(x=>x.id===tid); if(!t||!t.memberIds.length)return;
-    const pid=t.memberIds[Math.floor(Math.random()*t.memberIds.length)]; pick[tid]=pid;
+  rl.spinTeams.forEach(tid=>{ const t=g.teams.find(x=>x.id===tid); if(!t)return;
+    const m=teamMembers(g,t); if(!m.length)return;
+    const pid=m[Math.floor(Math.random()*m.length)]; pick[tid]=pid;
     const p=state.players.find(x=>x.id===pid);
     const el=document.getElementById('rl-name-'+tid);
     if(el) el.textContent=p?p.name:'';
@@ -98,7 +99,7 @@ function rlScorecard(g){
   const ordered=teams.map((tm,ti)=>({tm,v:wonOf[ti]||0})).sort((a,b)=>b.v-a.v).map(o=>o.tm);
   ordered.forEach(t=>{ const col=rColor(t.name);
     body+=`<tr><td class="nm" colspan="19" style="background:${col};color:var(--bg);text-align:left;font-weight:var(--w-bold)">${esc(t.name)}</td></tr>`;
-    const mem=t.memberIds.filter(pid=>state.players.find(x=>x.id===pid));
+    const mem=teamMembers(g,t);
     const byNet=ranked(mem, pid=>enteredCount(g,pid)?netScore(g,pid):null, 'asc').map(o=>o.pid);
     byNet.concat(mem.filter(pid=>!byNet.includes(pid))).forEach(pid=>{ const p=state.players.find(x=>x.id===pid); if(!p)return; const av=adjArr(g,pid); const mm=mark[pid]||{};
       body+=`<tr><td class="nm">${esc(p.name)}</td>${cols.map(i=>`<td class="${i===h?'cur':''} ${g.hidden[i]?'hh':''} ${mm[i]||''}">${av[i]??''}</td>`).join('')}</tr>`; }); });
@@ -173,7 +174,7 @@ function renderRouletteParts(g){
   else mainBtn=`<button class="btn wide rl-main" ${rlCanAdvance(g)?'':'disabled'} onclick="rlNextHole()">${t('rl.confirmNext')}</button>`;
   const devMenu=`<details class="rl-dev"><summary>${t('rl.dev')}</summary><div class="in">
     ${teams.map(tm=>`<div class="row between" style="margin:3px 0"><span style="color:${rColor(tm.name)};font-weight:var(--w-bold);min-width:64px">${esc(tm.name)}</span>
-      <select style="flex:1;max-width:52%" onchange="rlForceRep('${tm.id}',this.value)"><option value="">${t('rl.pickRep')}</option>${tm.memberIds.map(pid=>{const p=state.players.find(x=>x.id===pid);return `<option value="${pid}" ${reps[tm.id]===pid?'selected':''}>${esc(p&&p.name)}</option>`}).join('')}</select></div>`).join('')}
+      <select style="flex:1;max-width:52%" onchange="rlForceRep('${tm.id}',this.value)"><option value="">${t('rl.pickRep')}</option>${teamMembers(g,tm).map(pid=>{const p=state.players.find(x=>x.id===pid);return `<option value="${pid}" ${reps[tm.id]===pid?'selected':''}>${esc(p&&p.name)}</option>`}).join('')}</select></div>`).join('')}
     <hr>${teams.map(tm=>`<div class="row between" style="margin:2px 0"><span style="color:${rColor(tm.name)};min-width:64px">${esc(tm.name)}</span><span><button class="btn gray sm" onclick="rlRefund('${tm.id}','change')">${t('rl.refundChange',{n:R.remChange[tm.id]||0})}</button> <button class="btn gray sm" onclick="rlRefund('${tm.id}','challenge')">${t('rl.refundChallenge',{n:R.remChallenge[tm.id]||0})}</button></span></div>`).join('')}
   </div></details>`;
   const head=`<div class="rlwrap">
@@ -239,9 +240,9 @@ function setPrizeTwoSets(v){ curGame().prizes.twoSets=!!v; save(); renderResult(
 // チーム対抗の各結果を「個別カード」で返す。ゲームごとに master トグル＋チームごとの目隠しボタン（名前＋合計をまとめて隠す）
 // only（省略可・2026-08-20-results-regroup.md §5.2）: 指定時は当該フォーマットのカード1枚だけ返す。無指定は現行どおり全カード＝後方互換
 function renderTeams(g, only){
-  const F=chFormats(g); const teams=g.teams.filter(t=>t.memberIds.length);   // αではβゲームのカードを出さない（§11.12 C）
-  const teamGross=t=>t.memberIds.reduce((a,pid)=>a+effGross(g,pid),0);
-  const teamNet=t=>Math.round(t.memberIds.reduce((a,pid)=>a+netScore(g,pid),0)*10)/10;
+  const F=chFormats(g); const teams=teamsOf(g);   // αではβゲームのカードを出さない（§11.12 C）
+  const teamGross=t=>teamMembers(g,t).reduce((a,pid)=>a+effGross(g,pid),0);
+  const teamNet=t=>Math.round(teamMembers(g,t).reduce((a,pid)=>a+netScore(g,pid),0)*10)/10;
   // master トグルは表の下（結果が先・操作が後＝追加指示⑪・§11.14 幹事操作は控えめ配置）
   const card=(key,title,valFn,dir,note)=>{ const rows=teams.map(t=>({t,v:valFn(t)})).sort((a,b)=> dir==='desc'? b.v-a.v : a.v-b.v);
     const on = tgMode[key]==='show';

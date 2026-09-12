@@ -3,7 +3,7 @@
    'm1'/'roulette' は renderResult 側で renderMatch1v1Parts / renderRouletteParts を直接使う（sticky 同居 D15・roulette-standings §5）。
    総合=①チーム総合カード＋②種目別勝ち点表の2つのみ（スコア表なし・winpoints-reveal 要件A）、nd=ニアドラ・ヒーローカード（team-points §6.2①③・配置=regroup §6） */
 function renderTeamGame(g, g0, parts, key){
-  const teams=g.teams.filter(t=>t.memberIds.length);
+  const teams=teamsOf(g);
   if(!teams.length)
     return `<div class="card"><h2>${t('team.title')}</h2><div class="empty">${t('team.emptyTeams')}</div></div>`;
   const sc=()=>renderScorecard(g, g.participants, teams);
@@ -136,7 +136,7 @@ function renderTeamOverall(g){
    formats.niadoraInd OFF で個人戦ニアドラタブが消えても登録場所を確保。個人戦側と同一パネル（renderPrizes 流用＝同じ g.prizes を読み書き・
    どちらで登録しても両方に反映）。開閉状態 pzCfgOpen も個人戦側と共有（手動トグルのみ・再描画で維持・localStorage 非保存） */
 function renderTeamNiadora(g){
-  const teams=g.teams.filter(t=>t.memberIds.length);
+  const teams=teamsOf(g);
   const {teams:wt,events}=teamWinPoints(g);
   const ev=events.find(e=>e.key==='niadora');
   const winIds=ev?ev.winners.map(i=>wt[i].id):[];
@@ -149,7 +149,7 @@ function renderTeamNiadora(g){
   const opened=h=>!pzMasked(h);
   const S=prizeSetCount(g);
   const cnt=(kind,holes,T)=>holes.reduce((n,h)=>{ if(!opened(h)) return n;
-    let c=0; for(let s=1;s<=S;s++){ const pid=prizeWinnerOf(g,kind,h,s); if(pid&&T.memberIds.includes(pid))c++; }
+    let c=0; const mem=teamMembers(g,T); for(let s=1;s<=S;s++){ const pid=prizeWinnerOf(g,kind,h,s); if(pid&&mem.includes(pid))c++; }
     return n+c; },0);
   const npOf=T=>cnt('np',niapinHolesOf(g),T);
   const dcOf=T=>cnt('dc',draconHolesOf(g),T);
@@ -247,7 +247,7 @@ function setCustomPts(tid,v){ const g=curGame(); if(!g)return;
   else { const n=Number(s); if(!isFinite(n))return; c.pts[tid]=Math.round(n*10)/10; }
   save(); renderResult(); }
 function renderTeamCustom(g){
-  const teams=g.teams.filter(t=>t.memberIds.length);   // スコア未入力チームも出す（幹事が入力漏れに気づける・§6.2-1）
+  const teams=teamsOf(g);   // スコア未入力チームも出す（幹事が入力漏れに気づける・§6.2-1）
   const C=g.custom||{name:'',pts:{}}, P=C.pts||{};
   const val=T=>{ const v=P[T.id]; if(v==null||v==='')return null; const n=Number(v); return isFinite(n)?n:null; };
   const {teams:wt,events}=teamWinPoints(g);

@@ -455,6 +455,7 @@ const allOpen=[...niapinHolesOf(g).filter(h=>anyWinner('np',h)),
 - `pzMode` / `pzExcept` / `togglePzAll()` / `togglePzCell(h)` — **すべて変更なし**（キーはホール index のまま）。
 - localStorage 非保存のまま（表示状態の分離原則）。
 - 「セット別に開封したい」要望が将来出たら `pzExcept` のキーを `` `${h}:${s}` `` へ拡張する。そのとき `allOpen` の定義も旗単位に直す必要がある（§15-C として軽く記録）。
+- **★2026-09-12 追記（本節は上書きされた）**: ユーザー要望「オープンは個別にしたい」により、上記の将来パスを**即日実施**することになった。開封は**旗単位（OUT組/IN組を別タップ）**が正。設計は `docs/handoff/2026-09-12-niadora-reveal-per-set.md` が正本（`pzExcept` キー＝`` `${h}:${s}` ``・`pzMasked(h,s)`/`togglePzCell(h,s)` の第2引数省略可・不変条件は同書 §7.2 で旗集合 F(g) 上に再定義）。**`js/calc.js` は非接触**＝§6/§7 の計算仕様は本追記の影響を受けない。
 
 ---
 
@@ -622,3 +623,4 @@ const allOpen=[...niapinHolesOf(g).filter(h=>anyWinner('np',h)),
 
 - **既定案: ホール単位のまま**（§8.2・タップ1回で旗2本を同時発表）。表示側と計算側の一致証明が最も単純になる。
 - セット別開封が欲しい場合は `pzExcept` のキーを `` `${h}:${s}` `` に拡張し、`allOpen` を旗単位に再定義する（§8.4）。別Issue で。
+- **★2026-09-12 解決（既定案は採用されなかった）**: ユーザー判断で**セット別開封**に決定。設計は `docs/handoff/2026-09-12-niadora-reveal-per-set.md`（別Issue・`js/results.js` / `js/results-team.js` / `styles.css` のみ変更。§3 計算・§4 データモデル・i18n・localStorage は非接触）。本書 §8.2/§8.4 の「開封粒度＝ホール単位」の記述は**同書に上書きされている**。
