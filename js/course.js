@@ -15,19 +15,46 @@ function renderCourse(){
       <button class="btn gray sm" onclick="clearHidden()">${t('btn.clear')}</button></div>
     ${(scNarrow()? [[0,9],[9,18]] : [[0,18]]).map(([s,e])=>courseGrid(g,s,e)).join('')}</div>`;
 
-  /* NPDC は par から自動導出（Par3=NP / Par5=DC）の読み取り専用一覧。setPar→renderCourse で即時追従（2026-08-20-npdc-par.md §6） */
+  /* NPDC は par から自動導出（Par3=NP / Par5=DC）＋ prizes.npdcOverride による手動上書き
+     （2026-08-20-npdc-par.md §6 / 2026-09-12-npdc-manual-holes.md §9）。setPar・setNpdc→renderCourse で即時追従。
+     手動で指定したホールには ＊ を付け、1件以上あるときだけ凡例行を出す。廃止フィールドは読まない */
   const NP=niapinHolesOf(g), DC=draconHolesOf(g);
+  const mk=h=>`${h+1}H${npdcManual(g,h)?'＊':''}`;
+  const anyMan=g.par.some((p,h)=>npdcManual(g,h));
+  const npAuto=h=>{ const p=g.par[h]; return p===3?t('term.niapin'):p===5?t('term.dracon'):'—'; };
+  const npCur=h=>npdcManual(g,h)?npdcOv(g)[h]:'auto';   // 列挙外の値は 'auto' 扱い（npdcKindOf の防御と同じ）
+  const npOpt=(h,v,label)=>`<option value="${v}"${npCur(h)===v?' selected':''}>${label}</option>`;
+  const npRows=g.par.map((p,h)=>`<div class="pz2-row"><span class="pz-set">${h+1}H</span>`
+    +`<select onchange="setNpdc(${h},this.value)">`
+    +npOpt(h,'auto',t('npdc.optAuto',{x:npAuto(h)}))+npOpt(h,'np',t('term.niapin'))
+    +npOpt(h,'dc',t('term.dracon'))+npOpt(h,'none',t('npdc.optOff'))
+    +`</select></div>`).join('');
   html += `<div class="card"><h2>${t('game.npdcCard')}</h2>
     <div class="muted">${t('game.npdcNote')}</div>
     ${(NP.length||DC.length)?`
-    <div class="mt6"><span class="pill e1">${t('term.niapin')}</span> ${NP.length?NP.map(h=>`${h+1}H`).join('・'):'—'}</div>
-    <div class="mt6"><span class="pill f" style="background:var(--danger-bg);color:var(--red)">${t('term.dracon')}</span> ${DC.length?DC.map(h=>`${h+1}H`).join('・'):'—'}</div>`
+    <div class="mt6"><span class="pill e1">${t('term.niapin')}</span> ${NP.length?NP.map(mk).join('・'):'—'}</div>
+    <div class="mt6"><span class="pill f" style="background:var(--danger-bg);color:var(--red)">${t('term.dracon')}</span> ${DC.length?DC.map(mk).join('・'):'—'}</div>`
     :`<div class="empty">${t('game.npdcNone')}</div>`}
+    ${anyMan?`<div class="muted mt6">${t('npdc.manualMark')}</div>`:''}
+    <details class="mt8" ${npdcEditOpen?'open':''} ontoggle="npdcEditToggle(this.open)"><summary>${t('npdc.editTitle')}</summary><div class="in">
+      <div class="muted">${t('npdc.editNote')}</div>
+      <div class="pz2 mt6">${npRows}</div>
+      <div class="mt8"><button class="btn gray sm" onclick="resetNpdc()">${t('npdc.resetAuto')}</button></div>
+    </div></details>
     <div class="muted mt6">${t('game.npdcLocal')}</div></div>`;
 
   el.innerHTML=html;
 }
 function setPar(i,v){ curGame().par[i]=parseInt(v)||0; save(); renderCourse(); }
+/* NPDC 対象ホールの手動上書き（2026-09-12-npdc-manual-holes.md §9.3）。
+   <details> の開閉は揮発変数で保持する（renderCourse が innerHTML を作り直すため。clibOpen と同型・localStorage 非保存） */
+let npdcEditOpen=false;
+function npdcEditToggle(open){ npdcEditOpen=!!open; }
+function setNpdc(h,v){ const P=curGame().prizes;
+  if(!P.npdcOverride) P.npdcOverride={};                  // 防御（migrate 前相当のデータでも落ちない）
+  if(v==='auto') delete P.npdcOverride[h]; else P.npdcOverride[h]=v;   // 自動＝キーを削除（§4.1）
+  save(); renderCourse(); }
+function resetNpdc(){ curGame().prizes.npdcOverride={}; save(); renderCourse(); }   // 上書きを全破棄＝2026-08-20 と同じ状態
 function toggleHidden(i){ const g=curGame(); g.hidden[i]=!g.hidden[i]; save(); document.getElementById('hidCount').textContent=g.hidden.filter(Boolean).length; }
 /* 隠し12H＝前後半×パー帯で層化抽選: 各半分(1-9H/10-18H)から Par3×1・Par5×1・Par4×4 の計6ずつ。
    帯分類は par===3→P3 / par===4→P4 / par>=5→P5（Par6はP5扱い）/ par<3→未設定U。

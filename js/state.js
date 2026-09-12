@@ -42,6 +42,9 @@ function migrate(s){
     if(g.prizes.twoSets===undefined) g.prizes.twoSets=false;
     if(!g.prizes.niapinWinner2) g.prizes.niapinWinner2={};
     if(!g.prizes.draconWinner2) g.prizes.draconWinner2={};
+    // NPDC 対象ホールの手動上書き（2026-09-12-npdc-manual-holes.md §4）。既定 {} ＝ par 自動導出のみ＝従来と完全に同一。
+    // 読み出しは ||{} で守れるが setNpdc() が P.npdcOverride[h]=v と直接代入するため backfill は必須（twoSets 系と同じ理由）
+    if(!g.prizes.npdcOverride || typeof g.prizes.npdcOverride!=='object') g.prizes.npdcOverride={};
     if(!g.roulette) g.roulette=newRoulette();
     else { const r=newRoulette(); for(const k in r) if(g.roulette[k]===undefined) g.roulette[k]=r[k]; }
     if(g.formats && g.formats.vegas===undefined) g.formats.vegas=false;   // ラスベガス（§11.11）
@@ -82,10 +85,21 @@ function toast(m){ const t=document.getElementById('toast'); t.textContent=m; t.
   clearTimeout(t._t); t._t=setTimeout(()=>t.classList.remove('show'),1600); }
 function curGame(){ return state.games.find(g=>g.id===state.currentGameId)||null; }
 
-/* NPDC 対象ホールはパーから導出（Par3=ニアピン / Par5=ドラコン・2026-08-20-npdc-par.md）。
-   g.prizes.niapinHoles/draconHoles は廃止フィールド（後方互換のため残置・非参照） */
-function niapinHolesOf(g){ return g.par.map((p,i)=>p===3?i:-1).filter(i=>i>=0); }
-function draconHolesOf(g){ return g.par.map((p,i)=>p===5?i:-1).filter(i=>i>=0); }
+/* NPDC 対象ホールは par から自動導出（Par3=ニアピン / Par5=ドラコン・2026-08-20-npdc-par.md）し、
+   prizes.npdcOverride のあるホールだけ手動で上書きする（2026-09-12-npdc-manual-holes.md §5）。
+   値は 'np'|'dc'|'none' の3種のみ。キー不在＝自動＝従来と完全に同一（列挙外の値も自動として扱う＝防御）。
+   g.prizes.niapinHoles/draconHoles は廃止フィールド（後方互換のため残置・**本機能でも非参照**） */
+function npdcOv(g){ const v=(g.prizes||{}).npdcOverride; return (v&&typeof v==='object')?v:{}; }
+function npdcManual(g,h){ const v=npdcOv(g)[h]; return v==='np'||v==='dc'||v==='none'; }   // 手動指定されているか
+function npdcKindOf(g,h){                      // '' | 'np' | 'dc'（1ホールにつき必ず1値＝NP/DC は排他）
+  const v=npdcOv(g)[h];
+  if(v==='np'||v==='dc') return v;
+  if(v==='none') return '';
+  const p=g.par[h];
+  return p===3?'np':p===5?'dc':'';
+}
+function niapinHolesOf(g){ return g.par.map((p,i)=>npdcKindOf(g,i)==='np'?i:-1).filter(i=>i>=0); }
+function draconHolesOf(g){ return g.par.map((p,i)=>npdcKindOf(g,i)==='dc'?i:-1).filter(i=>i>=0); }
 
 /* ニアドラ2セット（2026-09-12-niadora-2sets.md §3.4）。s=1|2。twoSets:false のときセット2は存在しない扱い。
    NP/DC の勝者参照は必ずこの helper 経由にする（将来のセット表現変更をここ1箇所に閉じるため）。 */
@@ -108,7 +122,8 @@ function newGame(){
     participants:[],
     scores:{},
     prizes:{ niapinHoles:[], draconHoles:[], niapinWinner:{}, draconWinner:{},
-      twoSets:false, niapinWinner2:{}, draconWinner2:{} },   // twoSets＝1ホール旗2本（OUT組/IN組）・既定OFF（§3.2 / 2026-09-12-niadora-2sets.md）
+      twoSets:false, niapinWinner2:{}, draconWinner2:{},   // twoSets＝1ホール旗2本（OUT組/IN組）・既定OFF（§3.2 / 2026-09-12-niadora-2sets.md）
+      npdcOverride:{} },   // 対象ホールの手動上書き（既定 {}＝par 自動導出のみ・2026-09-12-npdc-manual-holes.md §4）
     points:defaultPoints(), prizePool:0, roulette:newRoulette(),
     vegas:{ flip:true, cap:'doublePar' },   // ラスベガス設定（§11.11）
     univ:{ every:false },   // 大学対抗設定（エブリ適用オプション・既定OFF＝規定準拠。§11.20）
