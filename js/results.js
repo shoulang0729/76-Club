@@ -151,22 +151,38 @@ function renderIndGame(g, parts, key){
    伏せ演出の master トグルは結果が先に読めるようカード群の下（幹事操作は控えめ配置 §11.14）。
    withTeam=true（チーム戦ニアドラタブ・#87 指示⑤）: 勝者の所属チーム名をチームカラーで併記（未所属は表記なし）。
    伏せ状態 pzMode/pzExcept は個人戦と共有＝どちらのタブで開封しても両方に反映。省略時（個人戦）の出力は従来と同一 */
+/* ★2026-09-12 ニアドラ2セット（2026-09-12-niadora-2sets.md §8.2）: prizes.twoSets ON では
+   セル数を増やさず（1ホール=1セル）セル内を OUT 行 / IN 行の2行にする。セットの区別は文字（OUT/IN）＋
+   行間の罫線のみ＝色に依存しない（機能色 np=青枠 / dc=赤枠 は「区分」の意味に予約済み・§8.1-2）。
+   勝者名のフォント（--f-rl-name）は下げない＝投影で後方席から読める大きさを維持（§11.14）。
+   開封（マスク）粒度はホール単位のまま＝タップ1回で旗2本を同時発表（pzMasked/togglePzCell は不変・§8.4）。
+   S===1（既定 twoSets:false）は従来と完全に同一の DOM 文字列を返す（§14.2-6） */
 function renderPrizeHero(g, withTeam){
   const NP=niapinHolesOf(g), DC=draconHolesOf(g);
   const cells=[...NP.map(h=>({h,kind:'np'})),...DC.map(h=>({h,kind:'dc'}))].sort((a,b)=>a.h-b.h);
   const on = pzMode==='show';
   const tools=`<div class="cardtools mt8"><span class="tgl ${on?'on':'off'}" onclick="togglePzAll()">${on?t('ns.allShow'):t('ns.allHide')}</span></div>`;
+  const S=prizeSetCount(g);
   const cell=({h,kind})=>{
-    const pid = kind==='np' ? g.prizes.niapinWinner[h] : g.prizes.draconWinner[h];
-    const p = pid ? state.players.find(x=>x.id===pid) : null;
+    const plOf=s=>{ const pid=prizeWinnerOf(g,kind,h,s); return pid ? state.players.find(x=>x.id===pid) : null; };
     const top=`<div class="npdc-top"><span class="npdc-hole">${h+1}<small>H</small></span><span class="npdc-kind">${kind==='np'?t('term.niapin'):t('term.dracon')}</span></div>`;
-    if(!p) return `<div class="npdc-cell ${kind}" style="cursor:default">${top}<div class="npdc-name empty">—</div></div>`;   // 未登録: 伏せ対象外・タップ無効
-    const m=pzMasked(h);
-    const nm = m ? '<span class="mask">？？？</span>' : esc(p.name);
-    let tmRow='';
-    if(withTeam && !m){ const T=(g.teams||[]).find(T=>T.memberIds.includes(p.id));   // 伏せ中はチーム名も出さない（正体が漏れるため）
-      if(T) tmRow=`<div class="npdc-team" style="color:${tmColor(T.name)}">${esc(T.name)}</div>`; }
-    return `<div class="npdc-cell ${kind}" onclick="togglePzCell(${h})">${top}<div class="npdc-name">${nm}</div>${tmRow}</div>`; };
+    const noWinner=`<div class="npdc-cell ${kind}" style="cursor:default">${top}<div class="npdc-name empty">—</div></div>`;   // 未登録: 伏せ対象外・タップ無効
+    const body=(p,m)=>{                                  // 勝者名（伏せ中は ？？？）＋チーム名の行
+      const nm = m ? '<span class="mask">？？？</span>' : esc(p.name);
+      let tmRow='';
+      if(withTeam && !m){ const T=(g.teams||[]).find(T=>T.memberIds.includes(p.id));   // 伏せ中はチーム名も出さない（正体が漏れるため）
+        if(T) tmRow=`<div class="npdc-team" style="color:${tmColor(T.name)}">${esc(T.name)}</div>`; }
+      return `<div class="npdc-name">${nm}</div>${tmRow}`; };
+    if(S===1){                                           // 既定（1セット）: 従来どおり
+      const p=plOf(1);
+      if(!p) return noWinner;
+      return `<div class="npdc-cell ${kind}" onclick="togglePzCell(${h})">${top}${body(p,pzMasked(h))}</div>`; }
+    const ps=[plOf(1),plOf(2)];                          // 2セット: OUT / IN の2行
+    if(!ps[0]&&!ps[1]) return noWinner;                  // 両セットとも未登録＝従来の空セルと同じ扱い
+    const m=pzMasked(h);                                 // 伏せは両セット同時（ホール単位）
+    const rows=ps.map((p,i)=>`<div class="npdc-row"><div class="npdc-set">${prizeSetLabel(i+1)}</div>${
+      p ? body(p,m) : '<div class="npdc-name empty">—</div>'}</div>`).join('');   // 片側だけ未登録は — （§10-②）
+    return `<div class="npdc-cell ${kind}" onclick="togglePzCell(${h})">${top}${rows}</div>`; };
   return `<div class="card"><div class="npdc-hero">${cells.map(cell).join('')}</div>${tools}</div>`;
 }
 

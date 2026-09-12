@@ -185,6 +185,31 @@ const CASES = {
       niadoraInd: true, niadoraTeam: false, roulette: false, teamGross: false, teamNet: false,
       holeByHole: false, best2ball: false, vegas: false, match1v1: false, univMatch: false, customMatch: false },
   }) },
+  // I) ニアドラ2セット運用（α・2026-09-12-niadora-2sets.md §6.4⑤）: prizes.twoSets=true。
+  //    チーム構成・スコアは team3 と同一にし、差分の出どころを prizes だけに限定する。
+  //    セット1(OUT組)=niapinWinner/draconWinner・セット2(IN組)=niapinWinner2/draconWinner2 を合算 →
+  //    T1: OUT 3本(p03/p01/p02)＋IN 2本(p03/p02)=5 ／ T2: OUT 2本(p08/p05)＋IN 3本(p08/p05/p05)=5 ／
+  //    T3: OUT 1本(p10)＋IN 1本(p10)=2 → niadora は T1/T2 の同数タイ＝山分け（§6.2 と同型）。
+  //    17H(index16) NP は p05 が両セット制覇（§10-①）＝個人配点に 2×P.niapin が付くことを検出する。
+  //    重み・連携は既定のまま（teamEventPts 全1・announced.niadora=true）
+  niadora2Sets: { channel: 'a', game: baseGame({
+    teams: [
+      { id: 'T1', name: 'レッド', memberIds: ['p01', 'p02', 'p03', 'p04'] },
+      { id: 'T2', name: 'ブルー', memberIds: ['p05', 'p06', 'p07', 'p08'] },
+      { id: 'T3', name: 'グリーン', memberIds: ['p09', 'p10', 'p11', 'p12'] },
+    ],
+    participants: ALL.slice(),
+    scores: mkScores(ALL, (pi, h) => ((pi * 5 + h * 3 + (pi * h) % 4) % 6) - 2),
+    prizePool: 30000,
+    prizes: { twoSets: true,
+      niapinWinner:  { 2: 'p03', 7: 'p08', 11: 'p01', 16: 'p05' }, draconWinner:  { 4: 'p02', 13: 'p10' },
+      niapinWinner2: { 2: 'p08', 7: 'p03', 11: 'p05', 16: 'p05' }, draconWinner2: { 4: 'p10', 13: 'p02' } },
+    announced: { teamGross: true, niadora: true },
+    // teamGross は「他のチーム種目が1つ以上採用中」ゲート（teamWinPoints の anyTeamEvent）を満たすために ON
+    formats: { gross: true, net: true, niadoraInd: true, niadoraTeam: true, teamGross: true, teamNet: false,
+      holeByHole: false, roulette: false, stableford: false, olympic: false, callaway: false,
+      nassau: false, best2ball: false, vegas: false, match1v1: false, univMatch: false, customMatch: false },
+  }) },
 };
 
 /* ============ vm 読込と実行 ============ */
