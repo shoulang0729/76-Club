@@ -216,7 +216,9 @@
   .result-sticky{position:sticky;top:calc(var(--hdr-h,50px) + var(--h-tabrow) + 1px);z-index:15;background:var(--bg);padding:0 0 8px;margin:-12px 0 10px;box-shadow:0 8px 8px -8px rgba(0,0,0,.15)}
   .subtab4{display:flex;gap:6px;align-items:center;border-bottom:1px solid var(--line)}
   .subtab4 button{flex:1;border:0;border-bottom:2px solid transparent;background:var(--card);color:var(--sub);padding:0 2px;min-height:var(--h-tabrow);border-radius:0;font-size:var(--f-body);font-weight:var(--w-bold);cursor:pointer;letter-spacing:.02em}
-  .subtab4 button.on{color:var(--strong);border-bottom-color:var(--pri)}
+  /* 選択中タブが見出しを兼ねる（heading-unify §8.2）。<820px は 13px→15px。
+     行高は min-height:var(--h-tabrow)（44/48px）が支配するので font-size を上げても段差は出ない（§8.3） */
+  .subtab4 button.on{color:var(--strong);border-bottom-color:var(--pri);font-size:15px}
   /* 結果発表 下段ゲームタブ（横スクロールチップ・2026-08-20 results-regroup §8.2。段高=--h-tabrow で上段と一致。
      overflow-x はこの子要素にだけ付ける＝.result-sticky/main に付けると sticky が無効化される（§8.1） */
   .subtab-games{display:flex;gap:6px;overflow-x:auto;padding:6px 2px 2px;scrollbar-width:none}
@@ -225,7 +227,9 @@
     display:inline-flex;align-items:center;border:1px solid var(--line);background:var(--card);
     color:var(--sub);border-radius:var(--r-pill);padding:0 12px;font-size:var(--f-small);
     font-weight:var(--w-bold);cursor:pointer;letter-spacing:.02em}
-  .subtab-games button.on{background:var(--pri);color:var(--on-fill);border-color:var(--pri)}
+  /* 選択中タブが見出しを兼ねる（heading-unify §8.2）。<768px は 11px→15px＝旧 .card h2 と同値。
+     行内は横スクロール（.subtab-games{overflow-x:auto}）なのでページ全体の横スクロールは発生しない（§8.4） */
+  .subtab-games button.on{background:var(--pri);color:var(--on-fill);border-color:var(--pri);font-size:15px}
   /* 1 on 1 タブ: サマリ＋操作バーカードを .result-sticky に同居（§8.3 D15）。カード下マージンで sticky 底に隙間が出ないよう詰める */
   .result-sticky .card{margin-bottom:0}
   .result-sticky .card+.card{margin-top:6px}
@@ -271,6 +275,7 @@
   @media(min-width:768px){
     .npdc-hero{grid-template-columns:repeat(4,1fr)}
     #view-result .subtab-games button{font-size:14px;padding:0 14px}
+    #view-result .subtab-games button.on{font-size:19px}   /* 旧 #view-result .card h2 = 19px と同値＝見出しの視覚的重みを引き継ぐ（heading-unify §8.2） */
   }
   /* reveal bar */
   .reveal-bar{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:6px;background:var(--surface-2);border:1px solid var(--line);border-radius:var(--r-sm);padding:7px 9px}
@@ -476,6 +481,7 @@
     #view-result .card{padding:16px}
     #view-result .card h2{font-size:19px}
     #view-result .subtab4 button{font-size:15px;padding:0 4px}   /* 縦paddingなし＝行高は min-height:--h-tabrow が正（#87 指示⑧） */
+    #view-result .subtab4 button.on{font-size:17px}   /* 第2見出し。19px にしないのは flex:1 の3等分で en が折り返すため（heading-unify §8.2/§8.4） */
     #view-result .lb{font-size:15px}
     #view-result .lb.big{font-size:19px}
     #view-result .lb.big b{font-size:26px}

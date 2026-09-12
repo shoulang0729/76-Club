@@ -119,7 +119,9 @@ function renderRouletteParts(g){
   const {won,pending}=rlStandings(g);
   const wonH=ti=>Math.round((won[ti]||0)*10)/10;   // 0Hから常時表示（引分は0.5刻み）
 
-  /* 18H終了後（#31）：抽選は終わっているのでカードは描かず、リセット head → スタンディング行（取得H降順）のみ。
+  /* 18H終了後（#31）：抽選は終わっているのでカードは描かず、スタンディング行（取得H降順）→ 操作行（リセット＋連携）のみ。
+     ★2026-09-12（heading-unify §5.3-B）: 行順を rl-head → standRow から standRow → rl-head へ入れ替えた＝
+     結果が先・幹事操作が後（投影原則 §11.14-3）。連携UIは自動的に「チーム合計（取得H）の右下」に来る＝追加高さ0。
      取得H降順（同点=登録順・Array#sort は安定）。won/wonH は既存のまま再利用＝計算不変。数値は濃色インク（--strong・CSS側） */
   if(R.cur>=18){
     const standRow=`<div class="rl-standing">${
@@ -130,7 +132,7 @@ function renderRouletteParts(g){
     /* 連携ボタン（2026-08-30 ユーザー確定・自動確定廃止）: 18H終了後も進行中と同じ tpAnnounceUI を
        リセットの右（右端）に設置＝未連携なら「結果を連携する」・連携済みなら取り消し可（他種目と同じ可逆動作） */
     return {head:`<div class="rlwrap">
-      <div class="card rl-play"><div class="rl-head"><button class="btn gray sm" style="margin-left:auto" onclick="rlReset()">${t('btn.reset')}</button>${tpAnnounceUI(g,'roulette',true)}</div>${standRow}</div></div>`,
+      <div class="card rl-play">${standRow}<div class="rl-head"><button class="btn gray sm" style="margin-left:auto" onclick="rlReset()">${t('btn.reset')}</button>${tpAnnounceUI(g,'roulette',true)}</div></div></div>`,
       body:`<div class="rlwrap">${rlScorecard(g)}</div>`};
   }
 
