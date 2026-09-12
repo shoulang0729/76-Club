@@ -336,7 +336,9 @@ if (!fs.existsSync(EXPECTED)) {
 const expected = JSON.parse(fs.readFileSync(EXPECTED, 'utf8'));
 const diffs = [];
 const walk = (path, a, b) => {
-  if (diffs.length >= 20) return;
+  // 打ち切り無しで全ケースを最後まで比較する（表示件数の制限は :358 の slice 側だけで行う）。
+  // かつて `if (diffs.length >= 20) return;` を置いていたが、diffs が全ケース共通のため
+  // 先行ケースで 20 件たまると以降のケースが比較されず「差分が増えなかった＝一致」と誤判定された。
   if (a === b) return;
   const ta = a === null ? 'null' : typeof a, tb = b === null ? 'null' : typeof b;
   if (ta !== 'object' || tb !== 'object') { diffs.push(`${path}: 期待 ${JSON.stringify(a)} ≠ 実際 ${JSON.stringify(b)}`); return; }
@@ -355,6 +357,6 @@ for (const name of Object.keys(CASES)) {
   else { console.log(`  ❌ ${name} 差分あり`); fails++; }
 }
 for (const name of Object.keys(expected)) if (!(name in actual)) { console.log(`  ❌ ${name} 期待値のみに存在（ケース削除?）`); fails++; }
-if (diffs.length) console.log(diffs.slice(0, 20).map(d => '    ' + d).join('\n') + (diffs.length >= 20 ? '\n    …' : ''));
+if (diffs.length) console.log(diffs.slice(0, 20).map(d => '    ' + d).join('\n') + (diffs.length > 20 ? `\n    …ほか ${diffs.length - 20} 件` : ''));
 console.log(fails ? `\n❌ 計算回帰 NG（${fails}ケース）— 意図した仕様変更なら設計書更新後に --update` : '\n✅ 計算回帰 全PASS');
 process.exit(fails ? 1 : 0);
