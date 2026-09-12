@@ -57,7 +57,7 @@ function resGameTabs(grp,g){ const F=chFormats(g); const T=[];
     if(F.nassau)     T.push(['nas',   t('pts.nassauTotal')]);
   } else if(grp==='team'){
     T.push(['overall', t('result.sub.overall')]);                // 常時（空状態は §5.2）
-    // ★2026-09-12 #157: 'nd' タブの表示条件は calc.js の共有ヘルパーを呼ぶ（teamWinPoints と同じ8項の集合）。
+    // ★2026-09-12 #157: 'nd' タブの表示条件は calc.js の共有ヘルパーを呼ぶ（teamWinPoints と同じ集合＝項数はヘルパー側が正）。
     // 以前はここで式を二重管理していて customMatch/roulette が抜け、タブが出ないのに勝ち点だけ入っていた
     const anyTeam=anyTeamEventFmt(F);
     if(F.niadoraTeam && anyTeam && typeof niadoraTeamCount==='function')   // ニアドラチームトグル連動（バッチ95追加5）＋チーム戦ニアドラ従来条件（team-points §3.1・regroup §4.3）
