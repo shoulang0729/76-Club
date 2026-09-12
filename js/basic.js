@@ -6,7 +6,7 @@
    揮発＝localStorage 非保存（§11.14 原則4・保存キーは5つのまま）。
    renderBasic() の再描画（setFmt / setKanjiBadge / setKanjiRank / setUniv）をまたいで
    開いたままにするためだけの表示状態。リロードすると全閉に戻る。 */
-let gsOpen = {};                                 // 'peria'|'every'|'kanji'|'roulette'|'vegas'|'univ'|'pts'|'host' → true=開
+let gsOpen = {};                                 // 'peria'|'every'|'kanji'|'roulette'|'vegas'|'univ'|'pts'|'npdc'|'host' → true=開
 function gsToggle(k, open){ gsOpen[k] = open; }   // ontoggle から呼ぶだけ（★再描画しない＝無限ループ防止・§12-3）
 /* 折りたたみセクションの共通ヘルパ（gameSettingsHtml / hostMenuCard が使う）。
    見た目は既存の details 規則＋ details.gsec>summary（styles.css）のみ。
@@ -41,9 +41,35 @@ function renderBasic(){
   </div>`;
 
   html += gameSettingsHtml(g);   // S3〜S10（旧「ゲーム設定」タブの8カード・js/game.js）
+  html += npdcSettingsSec(g);    // S10b ニアピン／ドラコン設定（#184）
   html += backupCard();          // S11 バックアップ（#166③・js/backup.js）。幹事メニューより前＝動作確認用パネルを最下段に残す
   html += hostMenuCard();        // S12
   el.innerHTML=html;
+}
+/* ============================ S10b ニアピン／ドラコン設定（#184）============================
+   「そのコンペをどう運営するか」の設定をコンペ設定タブへ集約した。移したのは UI の置き場所だけで、
+   保存先（g.prizes.twoSets / g.prizes.npdcOverride）・既定値・migrate・ハンドラは一切変えていない。
+     - 旗2本トグル: 旧「結果発表 → ニアドラ → 個人賞」パネルの先頭（setPrizeTwoSets・js/roulette.js）
+     - 対象ホールの手動上書き: 旧「コース」タブの NPDC カード内 <details>（setNpdc / resetNpdc・js/course.js）
+   対象ホールの一覧（ピル）と ＊ 凡例はコースタブに残す＝par 表のすぐ隣で確認できるようにする（#184）。
+   開閉は gsSec の gsOpen に乗せる（揮発・localStorage 非保存）＝setFmt 等の再描画をまたいで開いたまま。
+   対象ホールの導出は必ず niapinHolesOf/draconHolesOf・npdcOv/npdcManual 経由（自前で par を見ない）。 */
+function npdcSettingsSec(g){
+  const npAuto=h=>{ const p=g.par[h]; return p===3?t('term.niapin'):p===5?t('term.dracon'):'—'; };
+  const npCur=h=>npdcManual(g,h)?npdcOv(g)[h]:'auto';   // 列挙外の値は 'auto' 扱い（npdcKindOf の防御と同じ）
+  const npOpt=(h,v,label)=>`<option value="${v}"${npCur(h)===v?' selected':''}>${label}</option>`;
+  const npRows=g.par.map((p,h)=>`<div class="pz2-row"><span class="pz-set">${h+1}H</span>`
+    +`<select onchange="setNpdc(${h},this.value)">`
+    +npOpt(h,'auto',t('npdc.optAuto',{x:npAuto(h)}))+npOpt(h,'np',t('term.niapin'))
+    +npOpt(h,'dc',t('term.dracon'))+npOpt(h,'none',t('npdc.optOff'))
+    +`</select></div>`).join('');
+  return gsSec('npdc', t('game.npdcCard'), `
+    <label style="display:flex;gap:8px;align-items:center;font-size:13px"><input type="checkbox" ${prizeSetCount(g)===2?'checked':''} onchange="setPrizeTwoSets(this.checked)"> ${t('prize.twoSets')}</label>
+    <div class="muted mt6">${t('prize.twoSetsNote')}</div>
+    <h3>${t('npdc.editTitle')}</h3>
+    <div class="muted">${t('npdc.editNote')}</div>
+    <div class="pz2 mt6">${npRows}</div>
+    <div class="mt8"><button class="btn gray sm" onclick="resetNpdc()">${t('npdc.resetAuto')}</button></div>`);
 }
 // 幹事メニュー（動作確認用・目立たせない。Phase2で幹事のみ表示に制限予定）
 function hostMenuCard(){
