@@ -14,9 +14,9 @@ ja: {
   'ch.a.desc':'検証済みの安定版。定番のゲームだけを扱います。','ch.b.desc':'新機能テスト中の版。α版のゲームに加えて、試験中のゲームも選べます。',
   'ch.common':'賞金ポイント配分・次回幹事・表彰式リビール・目隠し・多言語・ライト/ダークは、どちらの版でも使えます。',
   'ch.enter':'{v}に切り替える','ch.switch':'α版 / β版の切替','ch.switched':'{v}に切り替えました','ch.betaOnly':'β版のゲーム',
-  'nav.top':'ガイド','nav.basic':'コンペ設定','nav.course':'コース','nav.players':'選手・チーム','nav.score':'スコア','nav.result':'結果発表',
+  'nav.top':'ガイド','nav.basic':'コンペ設定','nav.course':'コースマスタ','nav.players':'選手・チームマスタ','nav.score':'スコア','nav.result':'結果発表',
   'msg.needGame':'先に「コンペ設定」画面でゲームを作成・選択してください',
-  'theme.label':'テーマ','theme.light':'ライト','theme.dark':'ダーク',
+  'theme.label':'テーマ',
   'tab.game':'ゲーム','tab.players':'選手・チーム','tab.score':'入力','tab.result':'結果',
   'hdr.noGame':'— ゲーム未選択 —',
   'player.master':'選手マスター','player.phName':'名前','player.male':'男性','player.female':'女性','player.m':'男','player.f':'女',
@@ -231,9 +231,9 @@ zh: {
   'ch.a.desc':'已验证的稳定版，只包含常规游戏。','ch.b.desc':'新功能测试版。除 α版 的游戏外，还可选择试验中的游戏。',
   'ch.common':'奖金积分分配・下届干事・颁奖揭晓・遮挡・多语言・浅色/深色在两个版本中都可使用。',
   'ch.enter':'切换到{v}','ch.switch':'α版 / β版 切换','ch.switched':'已切换到{v}','ch.betaOnly':'β版的游戏',
-  'nav.top':'指南','nav.basic':'比赛设置','nav.course':'球场','nav.players':'选手・队伍','nav.score':'记分','nav.result':'结果',
+  'nav.top':'指南','nav.basic':'比赛设置','nav.course':'球场管理','nav.players':'选手・队伍管理','nav.score':'记分','nav.result':'结果',
   'msg.needGame':'请先在「比赛设置」页新建或选择比赛',
-  'theme.label':'主题','theme.light':'浅色','theme.dark':'深色',
+  'theme.label':'主题',
   'tab.game':'比赛','tab.players':'选手・队伍','tab.score':'记分','tab.result':'结果',
   'hdr.noGame':'— 未选择比赛 —',
   'player.master':'选手名册','player.phName':'名字','player.male':'男','player.female':'女','player.m':'男','player.f':'女',
@@ -445,9 +445,9 @@ en: {
   'ch.a.desc':'The verified, stable edition. Standard games only.','ch.b.desc':'The edition with new features under test. Adds experimental games on top of the α ones.',
   'ch.common':'Prize-point payouts, next organizer, ceremony reveal, masking, languages and light/dark work in both editions.',
   'ch.enter':'Switch to {v}','ch.switch':'Switch α / β edition','ch.switched':'Switched to {v}','ch.betaOnly':'β-edition game',
-  'nav.top':'Guide','nav.basic':'Setup','nav.course':'Course','nav.players':'Players & Teams','nav.score':'Scores','nav.result':'Results',
+  'nav.top':'Guide','nav.basic':'Setup','nav.course':'Course Master','nav.players':'Player & Team Master','nav.score':'Scores','nav.result':'Results',
   'msg.needGame':'Create or select a game on the Setup screen first',
-  'theme.label':'Theme','theme.light':'Light','theme.dark':'Dark',
+  'theme.label':'Theme',
   'tab.game':'Game','tab.players':'Players & Teams','tab.score':'Scores','tab.result':'Results',
   'hdr.noGame':'— No game selected —',
   'player.master':'Player Roster','player.phName':'Name','player.male':'Male','player.female':'Female','player.m':'M','player.f':'F',
@@ -656,7 +656,9 @@ function setTheme(th){ if(!THEMES.includes(th))return; THEME=th; localStorage.se
   // dark のみ属性を付け、light は属性を外す（:root のトークン値がそのまま効く）。純CSS＝render()不要で即反転
   if(th==='dark') document.documentElement.setAttribute('data-theme','dark');
   else document.documentElement.removeAttribute('data-theme');
-  const sel=document.getElementById('themeSel'); if(sel) sel.value=th; }   // セレクタ初期値・旧値リセット時の同期
+  syncThemeBtn(); }   // アイコン（#themeSel・js/nav.js）の同期＝旧 <select> の value 同期の置き換え
+/* #166②: ヘッダのテーマ切替はアイコン1個のトグル（2値なので select を廃止）。値集合は light/dark のまま */
+function toggleTheme(){ setTheme(THEME==='dark'?'light':'dark'); }
 function t(key, params){
   let s = (I18N[LANG] && I18N[LANG][key]) ?? (I18N.ja[key] ?? key);   // 未定義はjaフォールバック→キー
   if(params) for(const k in params) s = s.split('{'+k+'}').join(params[k]);

@@ -27,7 +27,7 @@ function renderBasic(){
     </div></div>`;
 
   const g=curGame();
-  if(!g){ el.innerHTML=html+`<div class="empty">${t('game.emptyCreate')}</div>`+hostMenuCard(); return; }
+  if(!g){ el.innerHTML=html+`<div class="empty">${t('game.emptyCreate')}</div>`+backupCard()+hostMenuCard(); return; }   // ゲーム未選択でも読み込み(import)できるようにバックアップは出す（#166③）
 
   // S2 大会情報。日付/コースの2カラムは .row.cols2（#166① の重なり修正・styles.css 参照）
   html += `<div class="card"><h2>${t('game.basic')}</h2>
@@ -41,7 +41,8 @@ function renderBasic(){
   </div>`;
 
   html += gameSettingsHtml(g);   // S3〜S10（旧「ゲーム設定」タブの8カード・js/game.js）
-  html += hostMenuCard();        // S11
+  html += backupCard();          // S11 バックアップ（#166③・js/backup.js）。幹事メニューより前＝動作確認用パネルを最下段に残す
+  html += hostMenuCard();        // S12
   el.innerHTML=html;
 }
 // 幹事メニュー（動作確認用・目立たせない。Phase2で幹事のみ表示に制限予定）

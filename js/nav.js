@@ -77,6 +77,15 @@ const everyLabel=k=> k==='none'?t('every.s.none'):k==='every1'?'E1(−18)':'E2(�
 // 最小の線アイコン（目のオン/オフ）と丸数字の順位バッジ
 const EYE='<svg class="ei" viewBox="0 0 24 24"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7z"/><circle cx="12" cy="12" r="3"/></svg>';
 const EYEOFF='<svg class="ei" viewBox="0 0 24 24"><path d="M3 3l18 18M10.6 10.6a3 3 0 004.2 4.2M9.9 5.2A9.7 9.7 0 0112 5c6.5 0 10 7 10 7a17 17 0 01-3.2 3.9M6.1 6.1A17 17 0 002 12s3.5 7 10 7a9.7 9.7 0 003.2-.5"/></svg>';
+/* テーマ切替アイコン（#166②・インラインSVGで環境差を出さない）。
+   表示するのは「押すと切り替わる先」＝ライト時は月（→ダークへ）/ダーク時は太陽（→ライトへ）。
+   ボタンは id="themeSel" を維持（init.js の `.value=THEME` と setTheme 側の取得先がそのまま動く・load-bearing）。
+   ツールチップ/aria-label は index.html の data-i18n-title="theme.label"（applyStaticI18n が3言語で維持）。 */
+const SUN='<svg class="ei" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4.2"/><path d="M12 2.6v2.4M12 19v2.4M4.9 4.9l1.7 1.7M17.4 17.4l1.7 1.7M2.6 12h2.4M19 12h2.4M4.9 19.1l1.7-1.7M17.4 6.6l1.7-1.7"/></svg>';
+const MOON='<svg class="ei" viewBox="0 0 24 24"><path d="M20.8 13.4A8.5 8.5 0 1110.6 3.2a6.6 6.6 0 0010.2 10.2z"/></svg>';
+function syncThemeBtn(){ const b=document.getElementById('themeSel'); if(!b)return;
+  b.innerHTML = THEME==='dark' ? SUN : MOON;
+  b.setAttribute('aria-pressed', THEME==='dark' ? 'true' : 'false'); }
 const posBadge=(rank,first)=>`<span class="rankno${first?' r1':''}">${rank}</span>`;
 /* チーム識別色（§11.8 トークン＝light/dark 自動反転・2026-08-30-team-colors.md §4）。設定色(team.color)優先・未設定/不正値は名前導出。
    返り値は 'var(--tm-<key>)' 固定形式（roulette.js rColorBg の '-bg)' 置換が依存・load-bearing）。塗りに使う場合の文字色は var(--bg) */
