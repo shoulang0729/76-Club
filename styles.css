@@ -252,8 +252,15 @@
   .npdc-team{font-size:13px;font-weight:var(--w-bold);line-height:1.2;margin-top:2px;overflow-wrap:anywhere}
   /* ニアドラ2セット・ヒーロー（2026-09-12-niadora-2sets.md §8.2）: 1ホール=1セルのままセル内を2行に。
      セットの区別は文字（OUT/IN）＋行間の罫線のみ＝色に依存しない（勝者名は --f-rl-name のまま） */
-  .npdc-set{font-size:13px;font-weight:var(--w-bold);letter-spacing:.08em;color:var(--sub);line-height:1.2}
+  /* ★2026-09-12 セット別開封（2026-09-12-niadora-reveal-per-set.md §8.3）: 片側だけ開封中は OUT/IN のラベルが
+     「どちらの旗が未開封か」の意味を担うため、投影で読める大きさへ（13px 固定 → --f-title=15px/16px@1024 とスケール） */
+  .npdc-set{font-size:var(--f-title);font-weight:var(--w-bold);letter-spacing:.08em;color:var(--sub);line-height:1.2}
   .npdc-row+.npdc-row{margin-top:6px;padding-top:6px;border-top:1px solid var(--line)}
+  /* 2セット時はセル全体ではなく行が唯一のタップ対象（§5.2）。押せない領域に pointer カーソルを出さない。
+     行の実高は 375px で 56px 以上（.npdc-set 18px ＋ .npdc-name 38.5px）＝44px 目安を満たすため追加 padding は不要（§5.3） */
+  .npdc-cell.split{cursor:default}
+  .npdc-row{cursor:pointer}
+  .npdc-row:has(.npdc-name.empty){cursor:default}   /* 未登録（—）の行はタップ無効（onclick も付けていない・§9-①） */
   /* ニアドラ2セット・登録UI（2026-09-12-niadora-2sets.md §9.2）: 375px で2セレクトを縦積み（横スクロールなし） */
   .pz2{display:flex;flex-direction:column;gap:4px;flex:1;min-width:0}
   .pz2-row{display:flex;align-items:center;gap:8px}

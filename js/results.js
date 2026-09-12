@@ -2,15 +2,40 @@
 /* 2階層タブの表示状態（2026-08-20-results-regroup.md §4.1・揮発＝再読込で個人戦＞ニアドラに戻る。localStorage 非保存） */
 let resGrp='ind';                             // 'ind' | 'team' | 'pts'
 let resGame={ ind:'prize', team:'overall' };  // グループ別の選択中ゲームタブ（セッション内は記憶）
-/* ニアドラヒーローの伏せ演出（§5.1.1 D18・nsMode/nsExcept と同型の揮発状態。キー=ホールindex・NP/DC は対象ホールが素で排他） */
+/* ニアドラヒーローの伏せ演出（§5.1.1 D18・nsMode/nsExcept と同型の揮発状態。NP/DC は対象ホールが素で排他）
+   ★2026-09-12 セット別開封（2026-09-12-niadora-reveal-per-set.md §3）: キーは「旗1本」＝`${h}:${s}` 文字列に統一
+   （S=1 でも "2:1"。混在キー空間を作らない＝同一セッション中に twoSets を ON⇄OFF しても幽霊マスクが出ない・§9-③） */
 let pzMode='show'; let pzExcept=new Set();
 /* 2026-08-30 指示⑤: 共通スコアカード（renderScorecard）の開閉。ルーレットの rlScOpen と同型の揮発状態
    （localStorage 非保存・再描画をまたいで維持）。表ごとに独立: 'ind'=個人戦・'team'=チーム別。既定=閉（#97） */
 let scOpen={ind:false,team:false};
 function scOpenToggle(k,open){ scOpen[k]=open; }
-function pzMasked(h){ return (pzMode==='hide') !== pzExcept.has(h); }
-function togglePzAll(){ pzMode = pzMode==='show'?'hide':'show'; pzExcept.clear(); renderResult(); }
-function togglePzCell(h){ if(pzExcept.has(h)) pzExcept.delete(h); else pzExcept.add(h); renderResult(); }
+/* 旗キー（§3.2）。s 省略時=1＝1セット運用（従来の「1ホール=旗1本」）。kind を含めないのは
+   NP 対象ホール(Par3)と DC 対象ホール(Par5)が素で排他だから（上の既存前提）。 */
+function pzKey(h,s){ return h+':'+(s||1); }
+/* pzExcept は「伏せるリスト」でも「開けるリスト」でもなく、pzMode が決める基準状態からの反転集合（XOR 差分・§3.1/§3.3）。
+   したがって pzMode==='show' では except∈伏せる対象、pzMode==='hide' では except∈開ける対象として振る舞う。 */
+function pzMasked(h,s){ return (pzMode==='hide') !== pzExcept.has(pzKey(h,s)); }
+/* 旗 (h,s) の伏せ状態を m に**設定**する（トグルではない・§3.3）。一括操作は必ずこれを経由すること
+   （pzExcept.add を直書きすると pzMode==='hide' のとき意味が反転して逆に動く）。
+   masked = (pzMode==='hide') XOR except.has(k)  ⇒  except.has(k) = (pzMode==='hide') XOR m */
+function pzSetMasked(h,s,m){ const k=pzKey(h,s);
+  if((pzMode==='hide')!==m) pzExcept.add(k); else pzExcept.delete(k); }
+function togglePzAll(){ pzMode = pzMode==='show'?'hide':'show'; pzExcept.clear(); renderResult(); }   // ★無改造（§6.1）
+/* 旗1本の開閉。関数名は togglePzCell のまま（改名すると S=1 の inline onclick 文字列が変わる・§4.3）。
+   実際の単位は「セル」ではなく「旗1本」になった点に注意（S=1 では両者が一致する） */
+function togglePzCell(h,s){ const k=pzKey(h,s); if(pzExcept.has(k)) pzExcept.delete(k); else pzExcept.add(k); renderResult(); }
+/* セット一括開封（§6.2/§6.3）。対象＝そのセットの「勝者が登録済みの旗」すべて。
+   1本でも伏せがあれば全開、全部開いていれば全伏せ（＝開封方向を優先。演出は「開ける」が主） */
+function pzFlags(g,s){ const out=[];
+  [['np',niapinHolesOf(g)],['dc',draconHolesOf(g)]].forEach(([kind,hs])=>hs.forEach(h=>{
+    for(let ss=1;ss<=prizeSetCount(g);ss++){ if(s&&ss!==s) continue;
+      if(prizeWinnerOf(g,kind,h,ss)) out.push([h,ss]); } }));
+  return out; }
+function togglePzSet(s){ const g=curGame(); if(!g||prizeSetCount(g)<s) return;   // 防御: OFF 時に呼ばれても無害
+  const F=pzFlags(g,s); if(!F.length) return;
+  const toOpen=F.some(([h,ss])=>pzMasked(h,ss));                  // 1本でも伏せ → 全開ける
+  F.forEach(([h,ss])=>pzSetMasked(h,ss,!toOpen)); renderResult(); }
 function setResGrp(grp){ if(!(grp==='team'&&resGame.team==='roulette')) rlStopTimer(); resGrp=grp; renderResult(); }
 function setResGame(k){ if(k!=='roulette') rlStopTimer();
   resGame[resGrp]=k;
@@ -155,14 +180,23 @@ function renderIndGame(g, parts, key){
    セル数を増やさず（1ホール=1セル）セル内を OUT 行 / IN 行の2行にする。セットの区別は文字（OUT/IN）＋
    行間の罫線のみ＝色に依存しない（機能色 np=青枠 / dc=赤枠 は「区分」の意味に予約済み・§8.1-2）。
    勝者名のフォント（--f-rl-name）は下げない＝投影で後方席から読める大きさを維持（§11.14）。
-   開封（マスク）粒度はホール単位のまま＝タップ1回で旗2本を同時発表（pzMasked/togglePzCell は不変・§8.4）。
    S===1（既定 twoSets:false）は従来と完全に同一の DOM 文字列を返す（§14.2-6） */
+/* ★2026-09-12 セット別開封（2026-09-12-niadora-reveal-per-set.md §5/§6）: 開封（マスク）粒度は
+   ホール単位 → 旗単位 (h,s) へ。2セット時は行が唯一のタップ対象になり、セル全体の onclick は外れる。
+   tools バーには twoSets:true のときだけ「OUT/IN 全表示（全非表示）」の一括チップが最大2個増える。 */
 function renderPrizeHero(g, withTeam){
   const NP=niapinHolesOf(g), DC=draconHolesOf(g);
   const cells=[...NP.map(h=>({h,kind:'np'})),...DC.map(h=>({h,kind:'dc'}))].sort((a,b)=>a.h-b.h);
-  const on = pzMode==='show';
-  const tools=`<div class="cardtools mt8"><span class="tgl ${on?'on':'off'}" onclick="togglePzAll()">${on?t('ns.allShow'):t('ns.allHide')}</span></div>`;
   const S=prizeSetCount(g);
+  const on = pzMode==='show';
+  /* master チップ（状態ラベル・on/off 色つき）。S===2 のときだけセット一括チップを2個追加（§6.4）。
+     ラベルは OUT/IN のリテラル＋既存 i18n（ns.allShow/ns.allHide）の連結＝新規キー0。意味は「押したら起きること」。
+     勝者が0本のセットのチップは出さない（押せないボタンを置かない・§9-⑧）。S===1 は master 1個のまま＝main と DOM 一致（§4.3） */
+  let chips=`<span class="tgl ${on?'on':'off'}" onclick="togglePzAll()">${on?t('ns.allShow'):t('ns.allHide')}</span>`;
+  if(S===2) chips += [1,2].map(s=>{ const F=pzFlags(g,s); if(!F.length) return '';
+    const anyMasked=F.some(([h,ss])=>pzMasked(h,ss));
+    return `<span class="tgl" onclick="togglePzSet(${s})">${prizeSetLabel(s)} ${anyMasked?t('ns.allShow'):t('ns.allHide')}</span>`; }).join('');
+  const tools=`<div class="cardtools mt8">${chips}</div>`;
   const cell=({h,kind})=>{
     const plOf=s=>{ const pid=prizeWinnerOf(g,kind,h,s); return pid ? state.players.find(x=>x.id===pid) : null; };
     const top=`<div class="npdc-top"><span class="npdc-hole">${h+1}<small>H</small></span><span class="npdc-kind">${kind==='np'?t('term.niapin'):t('term.dracon')}</span></div>`;
@@ -179,10 +213,14 @@ function renderPrizeHero(g, withTeam){
       return `<div class="npdc-cell ${kind}" onclick="togglePzCell(${h})">${top}${body(p,pzMasked(h))}</div>`; }
     const ps=[plOf(1),plOf(2)];                          // 2セット: OUT / IN の2行
     if(!ps[0]&&!ps[1]) return noWinner;                  // 両セットとも未登録＝従来の空セルと同じ扱い
-    const m=pzMasked(h);                                 // 伏せは両セット同時（ホール単位）
-    const rows=ps.map((p,i)=>`<div class="npdc-row"><div class="npdc-set">${prizeSetLabel(i+1)}</div>${
-      p ? body(p,m) : '<div class="npdc-name empty">—</div>'}</div>`).join('');   // 片側だけ未登録は — （§10-②）
-    return `<div class="npdc-cell ${kind}" onclick="togglePzCell(${h})">${top}${rows}</div>`; };
+    /* ★2026-09-12 セット別開封（reveal-per-set §5.2）: 伏せは旗単位。タップ対象は行（.npdc-row）だけで、
+       セル全体・ホール番号は no-op（誤タップで両方開く＝取り返しのつかないネタバレを防ぐ）。
+       未登録（—）の行は onclick を付けない＝タップ無効（§9-①） */
+    const rows=ps.map((p,i)=>{ const s=i+1;
+      const inner=`<div class="npdc-set">${prizeSetLabel(s)}</div>${p ? body(p,pzMasked(h,s)) : '<div class="npdc-name empty">—</div>'}`;
+      return p ? `<div class="npdc-row" onclick="togglePzCell(${h},${s})">${inner}</div>`
+               : `<div class="npdc-row">${inner}</div>`; }).join('');
+    return `<div class="npdc-cell ${kind} split">${top}${rows}</div>`; };
   return `<div class="card"><div class="npdc-hero">${cells.map(cell).join('')}</div>${tools}</div>`;
 }
 
