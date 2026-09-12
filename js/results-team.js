@@ -183,7 +183,7 @@ function renderTeamNiadora(g){
      2026-09-06 指示「連携ボタンは見出しの右端へ」は本設計で上書き済み（見出し <h2> 自体を廃止＝
      タイトルはゲームタブ名「ニアドラ」が兼ねる）。右寄せは tpAnnounceUI の margin-left:auto が担う。
      注記「ニアピン＋ドラコン獲得本数（チーム合計）」は投影の縦スペース節約のため削除（i18n team.noteNiadora も撤去） */
-  return `<div class="card">
+  return `<div class="card nd-hero">
     <div class="rl-standing">${blocks}</div>
     <div class="cardtools mt8">${tpAnnounceUI(g,'niadora')}</div></div>` + holeCards + editPanel;
 }

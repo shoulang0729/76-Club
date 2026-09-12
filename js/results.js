@@ -233,7 +233,10 @@ function renderPrizeHero(g, withTeam){
       const inner=`<div class="npdc-set">${prizeSetLabel(s)}</div>${body(plOf(s),pzMasked(h,s))}`;
       return `<div class="npdc-row" onclick="togglePzCell(${h},${s})">${inner}</div>`; }).join('');
     return `<div class="npdc-cell ${kind} split">${top}${rows}</div>`; };
-  return `<div class="card"><div class="npdc-hero">${cells.map(cell).join('')}</div>${tools}</div>`;
+  /* ★2026-09-12 #159（ipad-landscape §6.1）: 高密度モード（@media min-width:1024 and min-aspect-ratio:4/3）の
+     CSS フック。.npdc-card=カード余白の圧縮対象／.two=2セット（セル1つが約2倍高いので列の最小幅を変える）。
+     class が増えるだけでロジック・onclick・セル数・行数・テキストは不変 */
+  return `<div class="card npdc-card"><div class="npdc-hero${S===2?' two':''}">${cells.map(cell).join('')}</div>${tools}</div>`;
 }
 
 // 左パネル：全18ホール＋OUT/IN小計＋Gross/HDCP/Net を合体した1枚のスコアカード（横スクロールなし）
