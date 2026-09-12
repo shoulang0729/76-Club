@@ -96,7 +96,9 @@ function renderResult(){
   const g=viewGame(g0);   // 開封済みホールのみ反映
   let body, stickyHead='';
   if(resGrp==='pts') body=renderStanding(g, parts);
-  else if(resGrp==='ind') body=renderIndGame(g, parts, resGame.ind);
+  // #169: 個人戦フォーマットが全 OFF（β専用ON＋α切替を含む）だとタブ0件＝上のフォールバックが効かず resGame.ind が初期値 'prize' のまま残る。
+  //        中身を描くと「どのタブも選ばれていないのにニアドラ勝者名が見えている」状態になるので、空状態に差し替える（tabs>=1 の挙動は不変）。
+  else if(resGrp==='ind') body = tabs.length? renderIndGame(g, parts, resGame.ind) : `<div class="empty">${t('result.noIndGame')}</div>`;
   else if(resGame.team==='m1'){ const P=renderMatch1v1Parts(g0);   // 生ゲームを渡す（マスクはモード別に内部で・§14.1）。head=サマリ＋操作バー（sticky 同居・D15）
     stickyHead=P.head; body=P.body; }
   else if(resGame.team==='roulette'){ const P=renderRouletteParts(g0);   // g0（生・実スコアで動作）。head=抽選カード一式（sticky 同居・roulette-standings §5）
