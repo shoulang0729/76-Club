@@ -146,16 +146,23 @@ function renderTeamNiadora(g){
   /* ★2026-09-12 ニアドラ2セット（2026-09-12-niadora-2sets.md §8.3）: 本数は両セット（OUT組/IN組）合算＝
      niadoraTeamCount（calc 側）と同じ走査。S===1（既定 twoSets:false）は従来と完全に同一の加算列。
      マスクはホール単位のまま（§8.2）なので、全開封時 npOf+dcOf === niadoraTeamCount が S=1/S=2 の両方で成立する。 */
-  const opened=h=>!pzMasked(h);
+  /* ★2026-09-12 セット別開封（2026-09-12-niadora-reveal-per-set.md §7）: 開封は旗単位 (h,s)。
+     不変条件は旗集合 F(g)={(kind,h,s)|勝者あり} の上で再定義される（§7.2）:
+       計算側 niadoraTeamCount = F の（開封フィルタなし）合計 / 表示側 = F を opened(h,s) で絞った合計 /
+       allOpen = F 上で opened が恒真 ⇒ allOpen のとき両者は同一の加算列＝値が一致（S=1/S=2 とも）。
+     S===1（既定 twoSets:false）は opened(h,1)===従来の opened(h) で、加算列・順序とも従来と完全に同一。 */
+  const opened=(h,s)=>!pzMasked(h,s);
   const S=prizeSetCount(g);
-  const cnt=(kind,holes,T)=>holes.reduce((n,h)=>{ if(!opened(h)) return n;
-    let c=0; const mem=teamMembers(g,T); for(let s=1;s<=S;s++){ const pid=prizeWinnerOf(g,kind,h,s); if(pid&&mem.includes(pid))c++; }
+  const cnt=(kind,holes,T)=>holes.reduce((n,h)=>{
+    let c=0; const mem=teamMembers(g,T);
+    for(let s=1;s<=S;s++){ const pid=prizeWinnerOf(g,kind,h,s); if(pid&&mem.includes(pid)&&opened(h,s))c++; }   // ★ゲートを for の中へ
     return n+c; },0);
   const npOf=T=>cnt('np',niapinHolesOf(g),T);
   const dcOf=T=>cnt('dc',draconHolesOf(g),T);
-  const anyWinner=(kind,h)=>{ for(let s=1;s<=S;s++) if(prizeWinnerOf(g,kind,h,s)) return true; return false; };   // いずれかのセットに勝者がいるホール（§10-②）
-  const allOpen=[...niapinHolesOf(g).filter(h=>anyWinner('np',h)),
-                 ...draconHolesOf(g).filter(h=>anyWinner('dc',h))].every(opened);
+  /* 勝者が登録済みの旗 (h,s) の列挙（両セット未登録のホールは入らない＝§10-②）。
+     allOpen は「全ての旗が開封済み」＝OUT と IN の両方が出揃うまで false（§7.3・片側開封からの推測でのネタバレ防止） */
+  const flags=(kind,holes)=>{ const out=[]; holes.forEach(h=>{ for(let s=1;s<=S;s++) if(prizeWinnerOf(g,kind,h,s)) out.push([h,s]); }); return out; };
+  const allOpen=[...flags('np',niapinHolesOf(g)),...flags('dc',draconHolesOf(g))].every(([h,s])=>opened(h,s));
   const rows=teams.map(tm=>{const np=npOf(tm),dc=dcOf(tm);return {tm,n:np+dc,np,dc};}).sort((a,b)=>b.n-a.n);   // 並び=現表示値の降順
   const blocks=rows.map(({tm,n,np,dc})=>{
     const col=tmColor(tm.name);
