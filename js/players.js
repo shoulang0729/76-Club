@@ -129,10 +129,48 @@ function editPlayer(id){ const p=state.players.find(x=>x.id===id);
   save(); renderPlayers(); }
 function setPlayerEvery(id,v){ state.players.find(p=>p.id===id).everyType=v; save(); }
 function setPlayerKanji(id,v){ state.players.find(p=>p.id===id).kanjiExempt=v; save(); }
-function delPlayer(id){ if(!confirm(t('confirm.delete')))return;
+/* ---- 選手削除（#171）----
+   選手IDを保持するフィールドは participants / scores / teams.memberIds だけではない。
+   roulette.reps・roulette.pool・prizes.*Winner*・match1v1.pairs は teamMembers() の実在絞り込み（#151）を
+   通らない「直接参照」なので、掃除しないと削除済みIDが残り、ルーレット代表が null 扱いでホールごと
+   捨てられる等、過去コンペの結果が静かに変わる。掃除は全 state.games に対して行う。
+   prizes は「値を空文字」ではなくキーごと削除（results.js の body(p,m) が未登録＝「該当なし（—）」、
+   pzFlags は勝者の有無によらず対象ホールの全旗を出す（#156）ので、空文字とキー無しは表示上も等価）。
+   各フィールドは未定義・null がありうる（古いデータ・match1v1 未使用のコンペ等）ので必ずガードする。 */
+const PRIZE_WINNER_FIELDS=['niapinWinner','draconWinner','niapinWinner2','draconWinner2'];   // 2セット運用（#146）の2セット目も含む
+// 削除で消える記録の件数（確認ダイアログ用）: ルーレット代表ホール数 / 受賞件数 / 1on1 試合数
+function delPlayerRefs(id){ let rep=0, prize=0, m1=0;
+  state.games.forEach(g=>{
+    const R=g.roulette;
+    if(R&&R.reps) for(const h in R.reps){ const rp=R.reps[h];
+      if(rp&&Object.keys(rp).some(tid=>rp[tid]===id)) rep++; }
+    PRIZE_WINNER_FIELDS.forEach(f=>{ const w=g.prizes&&g.prizes[f]; if(!w)return;
+      for(const h in w) if(w[h]===id) prize++; });
+    const pairs=g.match1v1&&g.match1v1.pairs;
+    if(Array.isArray(pairs)) m1+=pairs.filter(p=>Array.isArray(p)&&p.includes(id)).length;
+  });
+  return {rep,prize,m1}; }
+// 確認ダイアログの文面: 参照0件なら従来どおり confirm.delete のみ（余計な文言を出さない）
+function delPlayerMsg(id){ const r=delPlayerRefs(id); const parts=[];
+  if(r.rep)   parts.push(t('confirm.delRefRep',{n:r.rep}));
+  if(r.prize) parts.push(t('confirm.delRefPrize',{n:r.prize}));
+  if(r.m1)    parts.push(t('confirm.delRefM1',{n:r.m1}));
+  return parts.length? t('confirm.delPlayerRefs',{v:parts.join(' / ')}) : t('confirm.delete'); }
+function delPlayer(id){ if(!confirm(delPlayerMsg(id)))return;
   state.players=state.players.filter(p=>p.id!==id);
   state.games.forEach(g=>{ g.participants=g.participants.filter(x=>x!==id); delete g.scores[id];
-    g.teams.forEach(t=>t.memberIds=t.memberIds.filter(x=>x!==id)); });
+    g.teams.forEach(t=>t.memberIds=t.memberIds.filter(x=>x!==id));
+    const R=g.roulette;
+    if(R&&R.reps) for(const h in R.reps){ const rp=R.reps[h]; if(!rp)continue;
+      for(const tid in rp) if(rp[tid]===id) delete rp[tid];
+      if(!Object.keys(rp).length) delete R.reps[h]; }        // 空になったホールごと削除
+    if(R&&R.pool) for(const tid in R.pool){ const q=R.pool[tid];
+      if(Array.isArray(q)) R.pool[tid]=q.filter(x=>x!==id); }
+    PRIZE_WINNER_FIELDS.forEach(f=>{ const w=g.prizes&&g.prizes[f]; if(!w)return;
+      for(const h in w) if(w[h]===id) delete w[h]; });
+    const m=g.match1v1;
+    if(m&&Array.isArray(m.pairs)) m.pairs=m.pairs.filter(p=>!(Array.isArray(p)&&p.includes(id)));
+  });
   save(); renderPlayers(); }
 /* 参加者・チーム対抗（js/game.js から移動・§11.12 N） */
 function toggleParticipant(pid){ const g=curGame(); const i=g.participants.indexOf(pid);

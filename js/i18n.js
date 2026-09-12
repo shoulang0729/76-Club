@@ -191,6 +191,9 @@ ja: {
   'toast.testCreated':'テストデータを作成しました（{v}）','toast.useChange':'チェンジを使い切ってください','toast.exported':'書き出しました','toast.imported':'読み込み完了','toast.badFile':'ファイルが不正です',
   'confirm.name':'名前','confirm.delete':'削除しますか？','confirm.deleteGame':'このゲームを削除しますか？','confirm.clearScores':'全員のスコアをクリアしますか？',
   'confirm.seedTest':'「{v}」のテストデータを新しいゲームとして作成します。よろしいですか？','confirm.rlReset':'ルーレットを最初からやり直しますか？',
+  /* 選手削除の影響提示（#171）: この選手を参照している記録の件数を出してから消す */
+  'confirm.delPlayerRefs':'この選手はコンペの記録にも含まれています（{v}）。削除するとこれらの記録も消え、結果が変わる場合があります。削除しますか？',
+  'confirm.delRefRep':'ルーレット代表 {n}ホール','confirm.delRefPrize':'ニアピン/ドラコン受賞 {n}件','confirm.delRefM1':'1 on 1 {n}試合',
 },
 zh: {
   'sc.sort':'排序','sc.hbh':'逐洞',
@@ -382,6 +385,8 @@ zh: {
   'toast.testCreated':'已生成测试数据（{v}）','toast.useChange':'请先用完换人次数','toast.exported':'已导出','toast.imported':'导入完成','toast.badFile':'文件无效',
   'confirm.name':'名字','confirm.delete':'确定删除吗？','confirm.deleteGame':'确定删除此比赛吗？','confirm.clearScores':'确定清空所有成绩吗？',
   'confirm.seedTest':'将创建「{v}」的测试数据作为新比赛，确定吗？','confirm.rlReset':'确定从头重新开始轮盘吗？',
+  'confirm.delPlayerRefs':'该选手也包含在比赛记录中（{v}）。删除后这些记录也会一并消失，成绩可能因此改变。确定删除吗？',
+  'confirm.delRefRep':'轮盘代表 {n}洞','confirm.delRefPrize':'近洞/远洞获奖 {n}项','confirm.delRefM1':'1 on 1 {n}场',
 },
 en: {
   'sc.sort':'Sort','sc.hbh':'Hole-by-hole',
@@ -573,6 +578,8 @@ en: {
   'toast.testCreated':'Test data created ({v})','toast.useChange':'Use up all Changes first','toast.exported':'Exported','toast.imported':'Import complete','toast.badFile':'Invalid file',
   'confirm.name':'Name','confirm.delete':'Delete?','confirm.deleteGame':'Delete this game?','confirm.clearScores':'Clear all scores?',
   'confirm.seedTest':'Create test data "{v}" as a new game?','confirm.rlReset':'Restart roulette from the start?',
+  'confirm.delPlayerRefs':'This player also appears in competition records ({v}). Deleting removes those records and may change past results. Delete?',
+  'confirm.delRefRep':'roulette rep on {n} hole(s)','confirm.delRefPrize':'{n} nearpin/dracon award(s)','confirm.delRefM1':'{n} 1 on 1 match(es)',
 },
 };
 let LANG = localStorage.getItem('golfCompe_lang') || 'ja';   // 既定 ja
