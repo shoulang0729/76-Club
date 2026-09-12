@@ -159,10 +159,13 @@ function renderTeamNiadora(g){
     return n+c; },0);
   const npOf=T=>cnt('np',niapinHolesOf(g),T);
   const dcOf=T=>cnt('dc',draconHolesOf(g),T);
-  /* 勝者が登録済みの旗 (h,s) の列挙（両セット未登録のホールは入らない＝§10-②）。
-     allOpen は「全ての旗が開封済み」＝OUT と IN の両方が出揃うまで false（§7.3・片側開封からの推測でのネタバレ防止） */
-  const flags=(kind,holes)=>{ const out=[]; holes.forEach(h=>{ for(let s=1;s<=S;s++) if(prizeWinnerOf(g,kind,h,s)) out.push([h,s]); }); return out; };
-  const allOpen=[...flags('np',niapinHolesOf(g)),...flags('dc',draconHolesOf(g))].every(([h,s])=>opened(h,s));
+  /* 旗 (h,s) の列挙は pzFlags(g)（results.js・読込順で先）に一本化。
+     allOpen は「全ての旗が開封済み」＝OUT と IN の両方が出揃うまで false（§7.3・片側開封からの推測でのネタバレ防止）。
+     ★2026-09-12 #156: F(g) を「勝者あり」→「対象ホールの全旗」へ広げたので、該当なしのホールも
+     開封しないとタグが出ない（＝演出として一貫）。該当なしは表示本数にも niadoraTeamCount にも寄与しないので
+     不変条件「allOpen のとき npOf+dcOf === niadoraTeamCount」は S=1/S=2 の両方でそのまま成立する。
+     対象ホールが0本のコンペでは F(g)=[] ⇒ every は true（従来と同じ・例外も出ない） */
+  const allOpen=pzFlags(g).every(([h,s])=>opened(h,s));
   const rows=teams.map(tm=>{const np=npOf(tm),dc=dcOf(tm);return {tm,n:np+dc,np,dc};}).sort((a,b)=>b.n-a.n);   // 並び=現表示値の降順
   const blocks=rows.map(({tm,n,np,dc})=>{
     const col=tmColor(tm.name);

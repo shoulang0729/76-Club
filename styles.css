@@ -247,7 +247,8 @@
   .np .npdc-kind{color:var(--prid)}  .dc .npdc-kind{color:var(--red)}
   .npdc-name{font-size:var(--f-rl-name);font-weight:var(--w-bold);line-height:1.15;margin-top:4px;
     overflow-wrap:anywhere;min-height:1.15em}
-  .npdc-name.empty{color:var(--sub);font-size:var(--f-title);font-weight:var(--w-med);cursor:default}
+  /* 開封済みの「該当なし」（—）。#156 以降はこの行／セルもタップで開閉できる＝カーソルはセル・行側の pointer のまま */
+  .npdc-name.empty{color:var(--sub);font-size:var(--f-title);font-weight:var(--w-med)}
   /* 勝者の所属チーム併記（チーム戦ニアドラタブのみ・#87 指示⑤）: 勝者名の下の小ラベル・チームカラー */
   .npdc-team{font-size:13px;font-weight:var(--w-bold);line-height:1.2;margin-top:2px;overflow-wrap:anywhere}
   /* ニアドラ2セット・ヒーロー（2026-09-12-niadora-2sets.md §8.2）: 1ホール=1セルのままセル内を2行に。
@@ -257,10 +258,11 @@
   .npdc-set{font-size:var(--f-title);font-weight:var(--w-bold);letter-spacing:.08em;color:var(--sub);line-height:1.2}
   .npdc-row+.npdc-row{margin-top:6px;padding-top:6px;border-top:1px solid var(--line)}
   /* 2セット時はセル全体ではなく行が唯一のタップ対象（§5.2）。押せない領域に pointer カーソルを出さない。
-     行の実高は 375px で 56px 以上（.npdc-set 18px ＋ .npdc-name 38.5px）＝44px 目安を満たすため追加 padding は不要（§5.3） */
+     行の実高は 375px で 56px 以上（.npdc-set 18px ＋ .npdc-name 38.5px）＝44px 目安を満たす（§5.3）。
+     ★2026-09-12 #156: 該当なし（—）の行もタップ対象になった。— は .npdc-name.empty＝--f-title の小さい字で
+     行実高が 39.25px まで縮む ⇒ min-height:44px でタップ領域の下限を担保（勝者名・？？？ の行は 56px 超で no-op） */
   .npdc-cell.split{cursor:default}
-  .npdc-row{cursor:pointer}
-  .npdc-row:has(.npdc-name.empty){cursor:default}   /* 未登録（—）の行はタップ無効（onclick も付けていない・§9-①） */
+  .npdc-row{cursor:pointer;min-height:44px}
   /* ニアドラ2セット・登録UI（2026-09-12-niadora-2sets.md §9.2）: 375px で2セレクトを縦積み（横スクロールなし） */
   .pz2{display:flex;flex-direction:column;gap:4px;flex:1;min-width:0}
   .pz2-row{display:flex;align-items:center;gap:8px}

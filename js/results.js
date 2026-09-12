@@ -25,12 +25,15 @@ function togglePzAll(){ pzMode = pzMode==='show'?'hide':'show'; pzExcept.clear()
 /* 旗1本の開閉。関数名は togglePzCell のまま（改名すると S=1 の inline onclick 文字列が変わる・§4.3）。
    実際の単位は「セル」ではなく「旗1本」になった点に注意（S=1 では両者が一致する） */
 function togglePzCell(h,s){ const k=pzKey(h,s); if(pzExcept.has(k)) pzExcept.delete(k); else pzExcept.add(k); renderResult(); }
-/* セット一括開封（§6.2/§6.3）。対象＝そのセットの「勝者が登録済みの旗」すべて。
-   1本でも伏せがあれば全開、全部開いていれば全伏せ（＝開封方向を優先。演出は「開ける」が主） */
+/* 旗集合 F(g)（reveal-per-set §7.2）。s を渡すとそのセットだけに絞る。
+   ★2026-09-12 #156: 定義を「勝者が登録済みの旗」→「対象ホールの全旗」へ広げた。
+   勝者未登録＝「該当なし」（別状態は設けない）なので、該当なしも伏せ／開封の対象＝演出として一貫する。
+   niadoraTeamCount は該当なしを0本として数える（calc.js は無変更）ので、不変条件
+   「全開封時に 表示本数＝niadoraTeamCount」は広げても成立する（該当なしは加算列に寄与しない）。
+   セット一括開封（§6.2/§6.3）は 1本でも伏せがあれば全開、全部開いていれば全伏せ（＝開封方向を優先） */
 function pzFlags(g,s){ const out=[];
-  [['np',niapinHolesOf(g)],['dc',draconHolesOf(g)]].forEach(([kind,hs])=>hs.forEach(h=>{
-    for(let ss=1;ss<=prizeSetCount(g);ss++){ if(s&&ss!==s) continue;
-      if(prizeWinnerOf(g,kind,h,ss)) out.push([h,ss]); } }));
+  [...niapinHolesOf(g),...draconHolesOf(g)].forEach(h=>{
+    for(let ss=1;ss<=prizeSetCount(g);ss++){ if(s&&ss!==s) continue; out.push([h,ss]); } });
   return out; }
 function togglePzSet(s){ const g=curGame(); if(!g||prizeSetCount(g)<s) return;   // 防御: OFF 時に呼ばれても無害
   const F=pzFlags(g,s); if(!F.length) return;
@@ -191,7 +194,9 @@ function renderPrizeHero(g, withTeam){
   const on = pzMode==='show';
   /* master チップ（状態ラベル・on/off 色つき）。S===2 のときだけセット一括チップを2個追加（§6.4）。
      ラベルは OUT/IN のリテラル＋既存 i18n（ns.allShow/ns.allHide）の連結＝新規キー0。意味は「押したら起きること」。
-     勝者が0本のセットのチップは出さない（押せないボタンを置かない・§9-⑧）。S===1 は master 1個のまま＝main と DOM 一致（§4.3） */
+     旗が0本（＝対象ホールなし）のセットのチップは出さない（押せないボタンを置かない・§9-⑧。#156 で F を
+     「対象ホールの全旗」へ広げたので、勝者0でも該当なしの旗を開封するチップとして意味がある）。
+     S===1 は master 1個のまま＝main と DOM 一致（§4.3） */
   let chips=`<span class="tgl ${on?'on':'off'}" onclick="togglePzAll()">${on?t('ns.allShow'):t('ns.allHide')}</span>`;
   if(S===2) chips += [1,2].map(s=>{ const F=pzFlags(g,s); if(!F.length) return '';
     const anyMasked=F.some(([h,ss])=>pzMasked(h,ss));
@@ -200,26 +205,25 @@ function renderPrizeHero(g, withTeam){
   const cell=({h,kind})=>{
     const plOf=s=>{ const pid=prizeWinnerOf(g,kind,h,s); return pid ? state.players.find(x=>x.id===pid) : null; };
     const top=`<div class="npdc-top"><span class="npdc-hole">${h+1}<small>H</small></span><span class="npdc-kind">${kind==='np'?t('term.niapin'):t('term.dracon')}</span></div>`;
-    const noWinner=`<div class="npdc-cell ${kind}" style="cursor:default">${top}<div class="npdc-name empty">—</div></div>`;   // 未登録: 伏せ対象外・タップ無効
-    const body=(p,m)=>{                                  // 勝者名（伏せ中は ？？？）＋チーム名の行
-      const nm = m ? '<span class="mask">？？？</span>' : esc(p.name);
+    /* 勝者名（伏せ中は ？？？）＋チーム名の行。
+       ★2026-09-12 #156: 勝者未登録（p=null）＝「該当なし」。伏せ中は他のホールと同じ ？？？ で、
+       開封すると — が出る（＝該当者なしと分かる）。以前は未登録だけ最初から — を出していたため
+       「このホールは該当者なし」が開封前に割れていた（ネタバレ）。g.prizes 側は無変更（__none__ のような値は足さない） */
+    const body=(p,m)=>{
+      if(m) return `<div class="npdc-name"><span class="mask">？？？</span></div>`;
+      if(!p) return `<div class="npdc-name empty">—</div>`;     // 開封済みの「該当なし」
       let tmRow='';
-      if(withTeam && !m){ const T=(g.teams||[]).find(T=>T.memberIds.includes(p.id));   // 伏せ中はチーム名も出さない（正体が漏れるため）
+      if(withTeam){ const T=(g.teams||[]).find(T=>T.memberIds.includes(p.id));   // 伏せ中はチーム名も出さない（正体が漏れるため＝上で return 済み）
         if(T) tmRow=`<div class="npdc-team" style="color:${tmColor(T.name)}">${esc(T.name)}</div>`; }
-      return `<div class="npdc-name">${nm}</div>${tmRow}`; };
-    if(S===1){                                           // 既定（1セット）: 従来どおり
-      const p=plOf(1);
-      if(!p) return noWinner;
-      return `<div class="npdc-cell ${kind}" onclick="togglePzCell(${h})">${top}${body(p,pzMasked(h))}</div>`; }
-    const ps=[plOf(1),plOf(2)];                          // 2セット: OUT / IN の2行
-    if(!ps[0]&&!ps[1]) return noWinner;                  // 両セットとも未登録＝従来の空セルと同じ扱い
+      return `<div class="npdc-name">${esc(p.name)}</div>${tmRow}`; };
+    if(S===1)                                            // 既定（1セット）: セル全体が1本の旗＝タップ単位
+      return `<div class="npdc-cell ${kind}" onclick="togglePzCell(${h})">${top}${body(plOf(1),pzMasked(h))}</div>`;
     /* ★2026-09-12 セット別開封（reveal-per-set §5.2）: 伏せは旗単位。タップ対象は行（.npdc-row）だけで、
        セル全体・ホール番号は no-op（誤タップで両方開く＝取り返しのつかないネタバレを防ぐ）。
-       未登録（—）の行は onclick を付けない＝タップ無効（§9-①） */
-    const rows=ps.map((p,i)=>{ const s=i+1;
-      const inner=`<div class="npdc-set">${prizeSetLabel(s)}</div>${p ? body(p,pzMasked(h,s)) : '<div class="npdc-name empty">—</div>'}`;
-      return p ? `<div class="npdc-row" onclick="togglePzCell(${h},${s})">${inner}</div>`
-               : `<div class="npdc-row">${inner}</div>`; }).join('');
+       #156 以降は該当なしの行も同じくタップ対象（片側だけ該当なしのホールも伏せられる） */
+    const rows=[1,2].map(s=>{
+      const inner=`<div class="npdc-set">${prizeSetLabel(s)}</div>${body(plOf(s),pzMasked(h,s))}`;
+      return `<div class="npdc-row" onclick="togglePzCell(${h},${s})">${inner}</div>`; }).join('');
     return `<div class="npdc-cell ${kind} split">${top}${rows}</div>`; };
   return `<div class="card"><div class="npdc-hero">${cells.map(cell).join('')}</div>${tools}</div>`;
 }
