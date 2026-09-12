@@ -51,7 +51,7 @@ function renderGame(){
   </div>
     <h3>${t('game.h3Team')}</h3><div class="fmtgrid">
     ${fchk('niadoraTeam',t('fmt.niadoraTeam'))}${fchk('teamGross',t('fmt.teamGross'))}${fchk('teamNet',t('fmt.teamNet'))}
-    ${fchk('univMatch',t('fmt.univMatch'))}${fchk('holeByHole',t('fmt.hbh'))}${bchk('best2ball',t('fmt.best2'))}
+    ${fchk('univMatch',t('fmt.univMatch'))}${bchk('holeByHole',t('fmt.hbh'))}${bchk('best2ball',t('fmt.best2'))}
     ${bchk('vegas',t('fmt.vegas'))}${fchk('match1v1',t('fmt.match1v1'))}
     ${fchk('roulette',t('fmt.roulette'))}${fchk('customMatch',t('fmt.customMatch'))}
   </div></div>`;
