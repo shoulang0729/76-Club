@@ -22,7 +22,11 @@ function renderTeamGame(g, g0, parts, key){
   if(key==='gross') return `<div class="rank-wrap">${renderTeams(g,'teamGross')}</div>` + sc();
   if(key==='net')   return `<div class="rank-wrap">${renderTeams(g,'teamNet')}</div>` + sc();
   if(key==='hbh')   return `<div class="rank-wrap">${renderTeams(g,'holeByHole')}</div>` + sc();
-  if(key==='b2')    return `<div class="rank-wrap">${renderTeams(g,'best2ball')}</div>`;
+  /* ベスト2ボールもスコア表を併設（ユーザー指摘 2026-09-12）: sc() 相当＋採用2名の強調情報（b2ScSel）。
+     'net'/'hbh' と同型だが、採用2名がどれか分かるよう第4引数を渡す（univ タブと同じ仕組み・他タブは引数なし＝不変）。
+     ルール解説は付けない（rule.best2 キーが無く、i18n キー追加をしない方針のため） */
+  if(key==='b2')    return `<div class="rank-wrap">${renderTeams(g,'best2ball')}</div>`
+                         + renderScorecard(g, g.participants, teams, b2ScSel(g));
   if(key==='vegas') return `<div class="rank-wrap">${renderTeams(g,'vegas')}</div>` + ruleBox('rule.vegas');
   /* 任意対決は g0（生ゲーム）を渡す（custom-match §6.1）: 総合タブと同じ理由＝本タブに開封バーが無く、
      revealHoles=0 のリロード直後に viewGame マスク後の g を渡すと teamWinPoints の対象チームが全滅し勝敗タグが復旧不能に消える。
@@ -244,6 +248,24 @@ function renderTeamUniv(g){
 function uvScSel(g){ const uv=uvStanding(g); if(!uv.rows.length) return null;
   const sel=new Set(), team={};
   uv.rows.forEach(r=>{ r.sel.forEach(pid=>sel.add(pid)); team[r.t.id]={n:r.N,p:r.P}; });
+  return {sel,team}; }
+
+/* 併設スコア表に渡す「ベスト2ボールの採用2名」情報（ユーザー指摘 2026-09-12: b2 タブにスコア表が無く確認できない）。
+   uvScSel と同じ形 {sel,team} を返すだけ＝renderScorecard の第4引数（対象外グレーアウト＋「対象」タグ併記）を
+   そのまま流用する。新規CSS・新規 i18n キーはゼロ（univ.selMark / univ.selOf を汎用文言として流用）。
+   採用基準は calc.js の best2(g,t) と完全一致させる（calc.js は読むだけ＝値は不変）:
+     母数＝teamMembers(g,t)（memberIds ∩ participants ∩ 選手マスタ実在・#151 のゴースト対策済み）／ネット昇順の上位2名。
+   ・同ネットで2位が複数の場合は teamMembers の順（memberIds 登録順）で先の2名を強調する。best2 側の
+     sort も安定ソートなので「採る2要素」の並びが同一＝強調行のネット合計と best2 の戻り値が必ず一致する。
+   ・メンバー1名のチームは best2 が ns[0] を2回足す仕様（ns[1]||ns[0]）。sel に入るのはその1名だけなので
+     チーム行の 対象n は「実際に強調した行数」=1 を出す（2 と書くと実在しない2人目を示唆するため）。
+   ・チーム0（teamsOf が空）は null＝renderScorecard 第4引数なしと同じ従来表示。 */
+function b2ScSel(g){ const teams=teamsOf(g); if(!teams.length) return null;
+  const sel=new Set(), team={};
+  teams.forEach(T=>{ const m=teamMembers(g,T);
+    const pick=m.slice().sort((a,b)=>netScore(g,a)-netScore(g,b)).slice(0,2);   // best2 と同じ昇順・同値は登録順（安定ソート）
+    pick.forEach(pid=>sel.add(pid));
+    team[T.id]={n:pick.length,p:m.length}; });
   return {sel,team}; }
 
 
