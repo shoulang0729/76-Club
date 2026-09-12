@@ -216,7 +216,9 @@
   .result-sticky{position:sticky;top:calc(var(--hdr-h,50px) + var(--h-tabrow) + 1px);z-index:15;background:var(--bg);padding:0 0 8px;margin:-12px 0 10px;box-shadow:0 8px 8px -8px rgba(0,0,0,.15)}
   .subtab4{display:flex;gap:6px;align-items:center;border-bottom:1px solid var(--line)}
   .subtab4 button{flex:1;border:0;border-bottom:2px solid transparent;background:var(--card);color:var(--sub);padding:0 2px;min-height:var(--h-tabrow);border-radius:0;font-size:var(--f-body);font-weight:var(--w-bold);cursor:pointer;letter-spacing:.02em}
-  .subtab4 button.on{color:var(--strong);border-bottom-color:var(--pri)}
+  /* 選択中タブが見出しを兼ねる（heading-unify §8.2）。<820px は 13px→15px。
+     行高は min-height:var(--h-tabrow)（44/48px）が支配するので font-size を上げても段差は出ない（§8.3） */
+  .subtab4 button.on{color:var(--strong);border-bottom-color:var(--pri);font-size:15px}
   /* 結果発表 下段ゲームタブ（横スクロールチップ・2026-08-20 results-regroup §8.2。段高=--h-tabrow で上段と一致。
      overflow-x はこの子要素にだけ付ける＝.result-sticky/main に付けると sticky が無効化される（§8.1） */
   .subtab-games{display:flex;gap:6px;overflow-x:auto;padding:6px 2px 2px;scrollbar-width:none}
@@ -225,7 +227,9 @@
     display:inline-flex;align-items:center;border:1px solid var(--line);background:var(--card);
     color:var(--sub);border-radius:var(--r-pill);padding:0 12px;font-size:var(--f-small);
     font-weight:var(--w-bold);cursor:pointer;letter-spacing:.02em}
-  .subtab-games button.on{background:var(--pri);color:var(--on-fill);border-color:var(--pri)}
+  /* 選択中タブが見出しを兼ねる（heading-unify §8.2）。<768px は 11px→15px＝旧 .card h2 と同値。
+     行内は横スクロール（.subtab-games{overflow-x:auto}）なのでページ全体の横スクロールは発生しない（§8.4） */
+  .subtab-games button.on{background:var(--pri);color:var(--on-fill);border-color:var(--pri);font-size:15px}
   /* 1 on 1 タブ: サマリ＋操作バーカードを .result-sticky に同居（§8.3 D15）。カード下マージンで sticky 底に隙間が出ないよう詰める */
   .result-sticky .card{margin-bottom:0}
   .result-sticky .card+.card{margin-top:6px}
@@ -271,12 +275,17 @@
   @media(min-width:768px){
     .npdc-hero{grid-template-columns:repeat(4,1fr)}
     #view-result .subtab-games button{font-size:14px;padding:0 14px}
+    #view-result .subtab-games button.on{font-size:19px}   /* 旧 #view-result .card h2 = 19px と同値＝見出しの視覚的重みを引き継ぐ（heading-unify §8.2） */
   }
   /* reveal bar */
   .reveal-bar{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:6px;background:var(--surface-2);border:1px solid var(--line);border-radius:var(--r-sm);padding:7px 9px}
   .reveal-bar .hole{font-weight:var(--w-bold);color:var(--prid);font-size:var(--f-title)}
   /* toggle chips + eye buttons */
   .cardtools{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin-bottom:7px}
+  /* カード末尾の共通フッタ行（heading-unify §4.1）: 左＝状態タグ／右端＝幹事操作（tpAnnounceUI の margin-left:auto）。
+     末尾に来たときは下マージンを削る（カード padding と二重にしない）。先頭のタグは .tag の左マージン4pxを打ち消す */
+  .card>.cardtools:last-child{margin-bottom:0}
+  .cardtools>.tag:first-child{margin-left:0}
   .tgl{display:inline-flex;align-items:center;gap:5px;border:1px solid var(--line);border-radius:var(--r-pill);padding:5px 11px;font-size:var(--f-small);cursor:pointer;background:var(--card);font-weight:var(--w-bold)}
   .tgl.on{background:var(--pri);color:var(--on-fill);border-color:var(--pri)}
   .tgl.off{background:var(--danger-bg);color:var(--red);border-color:var(--danger-line)}
@@ -302,7 +311,6 @@
   .rank-wrap .lb .nmc{font-size:var(--f-name);font-weight:var(--w-bold)}
   .lb td.nmc{text-align:left}
   .rank-wrap .lb b{font-variant-numeric:tabular-nums}
-  h2.lbh{display:flex;justify-content:space-between;align-items:baseline;gap:8px;white-space:nowrap;overflow:hidden;flex-wrap:wrap}
   /* スコア表の並べ替えスイッチ（§11.12 I）: 個人=グロス/ネット、チーム=+HBH */
   .scsw-wrap{display:inline-flex;align-items:center;gap:6px;margin-left:auto}
   .scsw-l{font-size:var(--f-small);font-weight:var(--w-med);color:var(--sub)}
@@ -312,13 +320,11 @@
   .scsw button+button{border-left:1px solid var(--line)}
   .scsw button.on{background:var(--pri);color:var(--on-fill)}
   @media(min-width:1024px){ .scsw button{min-height:44px;padding:8px 14px;font-size:13px} }
-  h2.lbh>span:first-child{flex:0 0 auto}
   /* 共通スコアカードの details 化（2026-08-30 指示⑤）: 操作行（並べ替え/合計値トグル）は summary 外の h2 だが
      .card 外なので余白・フォントだけ整える（下罫線なし・タイトルは summary 側） */
   /* スコア表の操作行（開封バー＋並び＋合計値）を1行に。狭幅は wrap で折り返し（2026-08-30 指示） */
   .sc-tgl .sc-ctl{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin:2px 0 6px;font-size:var(--f-body)}
   .sc-tgl .sc-ctl .reveal-bar{margin-top:0}
-  .lbnote{font-size:var(--f-small);font-weight:var(--w-bold);color:var(--sub);overflow:hidden;text-overflow:ellipsis;min-width:0;white-space:nowrap}
   /* score card (共通スコア表) */
   .sc2{table-layout:fixed;width:100%;font-size:12px;border-collapse:collapse}
   .sc2 col.cnm{width:64px}
@@ -475,6 +481,7 @@
     #view-result .card{padding:16px}
     #view-result .card h2{font-size:19px}
     #view-result .subtab4 button{font-size:15px;padding:0 4px}   /* 縦paddingなし＝行高は min-height:--h-tabrow が正（#87 指示⑧） */
+    #view-result .subtab4 button.on{font-size:17px}   /* 第2見出し。19px にしないのは flex:1 の3等分で en が折り返すため（heading-unify §8.2/§8.4） */
     #view-result .lb{font-size:15px}
     #view-result .lb.big{font-size:19px}
     #view-result .lb.big b{font-size:26px}

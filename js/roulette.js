@@ -112,13 +112,16 @@ function rlScorecard(g){
    ガード（rl.need2）は {head:'', body:空状態カード}＝空状態は固定しない */
 function renderRouletteParts(g){
   const teams=rTeams(g);
-  if(teams.length<2) return {head:'', body:`<div class="card"><h2>${t('rl.title')}</h2><div class="empty">${t('rl.need2')}</div></div>`};
+  // 空状態カードの <h2> は廃止＝タイトルはゲームタブ名（result.sub.roulette）が兼ねる（heading-unify §3.2）
+  if(teams.length<2) return {head:'', body:`<div class="card"><div class="empty">${t('rl.need2')}</div></div>`};
   const R=g.roulette;
   teams.forEach(t=>{ if(R.remChange[t.id]===undefined)R.remChange[t.id]=R.changeN; if(R.remChallenge[t.id]===undefined)R.remChallenge[t.id]=R.challengeM; });
   const {won,pending}=rlStandings(g);
   const wonH=ti=>Math.round((won[ti]||0)*10)/10;   // 0Hから常時表示（引分は0.5刻み）
 
-  /* 18H終了後（#31）：抽選は終わっているのでカードは描かず、リセット head → スタンディング行（取得H降順）のみ。
+  /* 18H終了後（#31）：抽選は終わっているのでカードは描かず、スタンディング行（取得H降順）→ 操作行（リセット＋連携）のみ。
+     ★2026-09-12（heading-unify §5.3-B）: 行順を rl-head → standRow から standRow → rl-head へ入れ替えた＝
+     結果が先・幹事操作が後（投影原則 §11.14-3）。連携UIは自動的に「チーム合計（取得H）の右下」に来る＝追加高さ0。
      取得H降順（同点=登録順・Array#sort は安定）。won/wonH は既存のまま再利用＝計算不変。数値は濃色インク（--strong・CSS側） */
   if(R.cur>=18){
     const standRow=`<div class="rl-standing">${
@@ -129,7 +132,7 @@ function renderRouletteParts(g){
     /* 連携ボタン（2026-08-30 ユーザー確定・自動確定廃止）: 18H終了後も進行中と同じ tpAnnounceUI を
        リセットの右（右端）に設置＝未連携なら「結果を連携する」・連携済みなら取り消し可（他種目と同じ可逆動作） */
     return {head:`<div class="rlwrap">
-      <div class="card rl-play"><div class="rl-head"><button class="btn gray sm" style="margin-left:auto" onclick="rlReset()">${t('btn.reset')}</button>${tpAnnounceUI(g,'roulette',true)}</div>${standRow}</div></div>`,
+      <div class="card rl-play">${standRow}<div class="rl-head"><button class="btn gray sm" style="margin-left:auto" onclick="rlReset()">${t('btn.reset')}</button>${tpAnnounceUI(g,'roulette',true)}</div></div></div>`,
       body:`<div class="rlwrap">${rlScorecard(g)}</div>`};
   }
 
@@ -195,14 +198,17 @@ function renderRouletteParts(g){
 }
 
 
-// リーダーボード（1行=1選手。hlMap=強調・note=タイトル横・big=大表示・maskable=名前/スコアを show.names で隠せる）
-function leaderboard(title, pids, valFn, dir, fmt, note, key, hlMap, big){
+/* リーダーボード（1行=1選手。hlMap=強調・big=大表示・maskable=名前/スコアを show.names で隠せる）。
+   heading-unify §10.1: 見出し <h2> を廃止（タイトルはゲームタブ名が兼ねる）。第1引数は「見出し文字列」→
+   「カード末尾フッタ行の左端に置く状態タグHTML」。'' のときは行そのものを作らない（縦スペースを増やさない）。
+   旧 note 引数（h2 内のタイトル横注記・専用クラスごと廃止）は全呼び出しが '' だったので削除した＝dead 引数を残さない */
+function leaderboard(tagHtml, pids, valFn, dir, fmt, key, hlMap, big){
   const rows=ranked(pids,valFn,dir);
   const nameOf=pid=>{const p=state.players.find(x=>x.id===pid);return esc(p&&p.name);};
   const body=`<table class="lb ${big?'big':''}"><tr><th class="c-pos">${t('col.rank')}</th><th>${t('col.player')}</th><th class="c-val">${dir==='asc'?t('col.score'):t('col.pts')}</th></tr>
     ${rows.map(r=>{ const hb=hlMap&&hlMap[r.pid];
       return `<tr class="rank ${hb?'hlrow':''}"><td class="c-pos">${posBadge(r.rank,r.rank===1)}</td><td class="nmc">${nameOf(r.pid)}${hb?`<span class="kanjibadge">${hb}</span>`:''}</td><td class="c-val"><b>${fmt(r.v)}</b></td></tr>`; }).join('')}</table>`;
-  return `<div class="card tight ${big?'wide':''}"><h2 class="lbh"><span>${title}</span>${note?`<span class="lbnote">${note}</span>`:''}</h2>${body}</div>`;
+  return `<div class="card tight ${big?'wide':''}">${body}${tagHtml?`<div class="cardtools mt8">${tagHtml}</div>`:''}</div>`;
 }
 
 function renderPrizes(g){
@@ -217,7 +223,8 @@ function renderPrizes(g){
   const one=(kind,h)=>`<select style="flex:1;max-width:60%" onchange="setPrize('${prizeField(kind,1)}',${h},this.value)">${opts(prizeWinnerOf(g,kind,h,1))}</select>`;
   const two=(kind,h)=>`<div class="pz2">${[1,2].map(s=>`<div class="pz2-row"><span class="pz-set">${prizeSetLabel(s)}</span><select onchange="setPrize('${prizeField(kind,s)}',${h},this.value)">${opts(prizeWinnerOf(g,kind,h,s))}</select></div>`).join('')}</div>`;
   const inputs=(kind,h)=> S===2? two(kind,h) : one(kind,h);
-  let html=`<div class="card prizewin"><h2>${t('prize.recTitle')}</h2>
+  // <h2> は廃止: このカードを包む <details> の <summary> が同じ prize.recTitle を出しており二重表示だった（heading-unify §3.2）
+  let html=`<div class="card prizewin">
     <div class="muted">${t('prize.recNote')}</div>
     <label class="mt8" style="display:flex;gap:8px;align-items:center;font-size:13px"><input type="checkbox" ${S===2?'checked':''} onchange="setPrizeTwoSets(this.checked)"> ${t('prize.twoSets')}</label>
     <div class="muted mt6">${t('prize.twoSetsNote')}</div>`;
@@ -244,27 +251,29 @@ function renderTeams(g, only){
   const teamGross=t=>teamMembers(g,t).reduce((a,pid)=>a+effGross(g,pid),0);
   const teamNet=t=>Math.round(teamMembers(g,t).reduce((a,pid)=>a+netScore(g,pid),0)*10)/10;
   // master トグルは表の下（結果が先・操作が後＝追加指示⑪・§11.14 幹事操作は控えめ配置）
-  const card=(key,title,valFn,dir,note)=>{ const rows=teams.map(t=>({t,v:valFn(t)})).sort((a,b)=> dir==='desc'? b.v-a.v : a.v-b.v);
+  // heading-unify §10.1: card() から title 引数を削除（見出し <h2> 廃止＝タイトルはゲームタブ名が兼ねる）。
+  // note（h2 の外の .muted 注記「少ないほど上位」等）は残す
+  const card=(key,valFn,dir,note)=>{ const rows=teams.map(t=>({t,v:valFn(t)})).sort((a,b)=> dir==='desc'? b.v-a.v : a.v-b.v);
     const on = tgMode[key]==='show';
     // 発表ボタン（winpoints-reveal §5.2・card の key と種目 key は一致）: 目隠しトグルと同列の控えめ配置（§11.14）
     const tools=`<div class="cardtools mt8"><span class="tgl ${on?'on':'off'}" onclick="toggleTgAll('${key}')">${on?t('ns.allShow'):t('ns.allHide')}</span>${tpAnnounceUI(g,key)}</div>`;
-    return `<div class="card tight"><h2>${title}</h2>${note?`<div class="muted" style="margin-bottom:4px">${note}</div>`:''}<table class="lb"><tr><th class="c-eye"></th><th class="c-pos">${t('col.rank')}</th><th>${t('col.team')}</th><th class="c-val">${dir==='desc'?'H':t('col.total')}</th></tr>
+    return `<div class="card tight">${note?`<div class="muted" style="margin-bottom:4px">${note}</div>`:''}<table class="lb"><tr><th class="c-eye"></th><th class="c-pos">${t('col.rank')}</th><th>${t('col.team')}</th><th class="c-val">${dir==='desc'?'H':t('col.total')}</th></tr>
       ${rows.map((r,i)=>{ const m=tgMasked(key,r.t.id);
         const nm = m ? '<span class="mask">？？？</span>' : esc(r.t.name);
         const val = m ? '<span class="mask">？</span>' : `<b>${Math.round(r.v*10)/10}</b>`;
         return `<tr class="rank"><td class="c-eye"><button class="eyebtn ${m?'off':'on'}" onclick="toggleTgRow('${key}','${r.t.id}')">${m?EYEOFF:EYE}</button></td><td class="c-pos">${posBadge(i+1,i===0)}</td><td class="nmc">${nm}</td><td class="c-val">${val}</td></tr>`; }).join('')}</table>${tools}</div>`; };
   let out='';
-  if(F.teamGross && (!only||only==='teamGross')) out+=card('teamGross',t('term.teamGross'),teamGross,'asc',t('team.noteLow'));
-  if(F.teamNet && (!only||only==='teamNet')) out+=card('teamNet',t('term.teamNet'),teamNet,'asc',t('team.noteLow'));
-  if(F.best2ball && (!only||only==='best2ball')) out+=card('best2ball',t('term.best2'),tm=>best2(g,tm),'asc',t('team.noteBest2'));
+  if(F.teamGross && (!only||only==='teamGross')) out+=card('teamGross',teamGross,'asc',t('team.noteLow'));
+  if(F.teamNet && (!only||only==='teamNet')) out+=card('teamNet',teamNet,'asc',t('team.noteLow'));
+  if(F.best2ball && (!only||only==='best2ball')) out+=card('best2ball',tm=>best2(g,tm),'asc',t('team.noteBest2'));
   if(F.holeByHole && (!only||only==='holeByHole') && teams.length>=2){ const {won}=holesWon(g);
-    out+=card('holeByHole',t('term.hbh'),(tm)=>{const i=teams.indexOf(tm);return won[i];},'desc',t('team.noteHbh')); }
+    out+=card('holeByHole',(tm)=>{const i=teams.indexOf(tm);return won[i];},'desc',t('team.noteHbh')); }
   if(F.vegas && (!only||only==='vegas')){ const vs=vegasStandings(g);
-    if(vs.teams.length<2){ out+=`<div class="card tight"><h2>${t('term.vegas')}</h2><div class="muted">${t('vegas.needTeams')}</div></div>`; }
+    if(vs.teams.length<2){ out+=`<div class="card tight"><div class="muted">${t('vegas.needTeams')}</div></div>`; }
     else{ const rows=vs.teams.map((T,i)=>({t:T,v:vs.tot[i]})).sort((a,b)=>b.v-a.v);
       const on = tgMode.vegas==='show';
       const tools=`<div class="cardtools mt8"><span class="tgl ${on?'on':'off'}" onclick="toggleTgAll('vegas')">${on?t('ns.allShow'):t('ns.allHide')}</span>${tpAnnounceUI(g,'vegas')}</div>`;
-      out+=`<div class="card tight"><h2>${t('term.vegas')}</h2><table class="lb"><tr><th class="c-eye"></th><th class="c-pos">${t('col.rank')}</th><th>${t('col.team')}</th><th class="c-val">${t('vegas.total')}</th></tr>
+      out+=`<div class="card tight"><table class="lb"><tr><th class="c-eye"></th><th class="c-pos">${t('col.rank')}</th><th>${t('col.team')}</th><th class="c-val">${t('vegas.total')}</th></tr>
         ${rows.map((r,i)=>{ const m=tgMasked('vegas',r.t.id);
           const nm = m ? '<span class="mask">？？？</span>' : esc(r.t.name);
           const val = m ? '<span class="mask">？</span>' : `<b>${r.v>0?'+':''}${r.v}</b>`;

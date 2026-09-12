@@ -5,7 +5,7 @@
 function renderTeamGame(g, g0, parts, key){
   const teams=teamsOf(g);
   if(!teams.length)
-    return `<div class="card"><h2>${t('team.title')}</h2><div class="empty">${t('team.emptyTeams')}</div></div>`;
+    return `<div class="card"><div class="empty">${t('team.emptyTeams')}</div></div>`;   // 見出しはグループタブ（result.sub.team）が兼ねる（heading-unify §3.2）
   const sc=()=>renderScorecard(g, g.participants, teams);
   /* 総合は g0（生ゲーム・viewGame マスクを通さない）を渡す（2026-08-30 バッチ98 バグ修正）:
      #97 で revealHoles 既定が 0 になり、リロード直後はマスク済み g の entered 判定が全滅→ events=[] → 総合が必ず空
@@ -117,12 +117,15 @@ function renderTeamOverall(g){
     `<div class="ptsrow"><span>${tpEvLabel(g,k)}</span><span class="ptsedit"><input type="number" min="0" step="1" value="${W[k]===undefined?1:W[k]}" onchange="setTeamEventPts('${k}',this.value)"></span></div>`).join('');
   const evPts=evPtsRows?`<details class="mt10"${tpEvPtsOpen?' open':''} ontoggle="tpEvPtsToggle(this.open)"><summary>${t('team.evPtsTitle')}</summary><div class="in">
       <div class="muted">${t('team.evPtsNote')}</div>${evPtsRows}</div></details>`:'';
-  return `<div class="card"><h2 class="lbh"><span>${t('team.overallTitle')} ${prog}</span></h2>
+  // 見出し（team.overallTitle）は廃止＝ゲームタブ「総合」が兼ねる。発表進捗タグ prog は固有情報なので
+  // カード末尾の共通フッタ行へ（heading-unify §3.2/§4.2/§14-C。総合は連携UIを持たないのでタグ単独の行）
+  return `<div class="card">
     <div class="rl-standing tp-ovh-wrap">${hero}</div>
     <div class="scroll mt10"><table class="lb tp-mx">${mxHead}${mxRows}</table></div>
     <div class="muted mt6">${t('team.noteOverall')}</div>
     <div class="muted">${t('team.noteAnnounce')}</div>
     <div class="muted">${t('pts.teamRank')}: ${(P.teamRankPts||[]).join(', ')}</div>
+    <div class="cardtools mt8">${prog}</div>
     ${evPts}
   </div>`;
 }
@@ -176,10 +179,13 @@ function renderTeamNiadora(g){
   const hasHoles=niapinHolesOf(g).length||draconHolesOf(g).length;
   const holeCards=hasHoles? renderPrizeHero(g,true) : '';   // 対象ホールなしは併設カード・登録パネルとも省略
   const editPanel=hasHoles? `<details class="prize-edit mt10"${pzCfgOpen?' open':''} ontoggle="pzCfgToggle(this.open)"><summary>${t('prize.recTitle')}</summary><div class="in">${renderPrizes(g)}</div></details>` : '';
-  // 2026-09-06 指示: 連携ボタンは見出しの右端へ（univ/custom と同型の <h2> 直下配置）。
-  // 注記「ニアピン＋ドラコン獲得本数（チーム合計）」は投影の縦スペース節約のため削除（i18n team.noteNiadora も撤去）
-  return `<div class="card"><h2>${t('term.niadora')}${tpAnnounceUI(g,'niadora')}</h2>
-    <div class="rl-standing">${blocks}</div></div>` + holeCards + editPanel;
+  /* 2026-09-12（heading-unify §5.1・§14-A）: 連携UIは「チーム合計得点カードの末尾フッタ行の右端」。
+     2026-09-06 指示「連携ボタンは見出しの右端へ」は本設計で上書き済み（見出し <h2> 自体を廃止＝
+     タイトルはゲームタブ名「ニアドラ」が兼ねる）。右寄せは tpAnnounceUI の margin-left:auto が担う。
+     注記「ニアピン＋ドラコン獲得本数（チーム合計）」は投影の縦スペース節約のため削除（i18n team.noteNiadora も撤去） */
+  return `<div class="card">
+    <div class="rl-standing">${blocks}</div>
+    <div class="cardtools mt8">${tpAnnounceUI(g,'niadora')}</div></div>` + holeCards + editPanel;
 }
 
 /* ---- 大学対抗タブ（univMatch・docs/handoff/2026-08-30-univ-match.md §6.2・投影原則 §11.14・モック承認 2026-08-30）----
@@ -194,9 +200,12 @@ function renderTeamUniv(g){
   const uv=uvStanding(g);
   const ann=!!(g.announced||{}).univMatch;
   const evTag=(g.univ&&g.univ.every)?`<span class="tag uv-tagev">${t('univ.everyOn')}</span>`:'';   // ON時のみ（OFF=規定準拠が無印・§7）
-  const head=`<h2>${t('term.univ')}${evTag}${tpAnnounceUI(g,'univMatch')}</h2>`;
+  /* 見出し <h2> は廃止＝タイトルはゲームタブ名「大学対抗」が兼ねる（heading-unify §3.2）。
+     固有情報（エブリ適用中タグ・連携UI）はカード末尾の共通フッタ行へ: 左＝状態タグ／右端＝幹事操作（§4.1/§5.2）。
+     対象校0の空状態カードにも同じフッタを出す＝連携できなくならないようにする（§5.2） */
+  const foot=`<div class="cardtools mt8">${evTag}${tpAnnounceUI(g,'univMatch')}</div>`;
   if(!uv.rows.length)   // 対象校0（スコア未入力等）＝集計ルールを案内（チームなしは renderTeamGame 冒頭の team.emptyTeams）
-    return `<div class="card">${head}<div class="empty">${t('univ.note')}</div></div>`;
+    return `<div class="card"><div class="empty">${t('univ.note')}</div>${foot}</div>`;
   const {teams:wt,events}=teamWinPoints(g);
   const ev=events.find(e=>e.key==='univMatch');
   const winIds=ev?ev.winners.map(i=>wt[i].id):[];
@@ -222,10 +231,10 @@ function renderTeamUniv(g){
   const tbRows=tbLabels.map((k,i)=>{
     const cells=uv.rows.map(r=>`<td${(i===dstage&&r.rank===1)?' class="winc"':''}>${f2(r.r4[i])}</td>`).join('');
     return `<tr><td class="tal">${'①②③④'[i]} ${t(k)}</td>${cells}</tr>`; }).join('');
-  const card1=`<div class="card">${head}
+  const card1=`<div class="card">
     <div class="rl-standing tp-ovh-wrap">${hero}</div>
     <div class="scroll mt10"><table class="lb uv-tb">${tbHead}${tbRows}</table></div>
-    </div>`;   // 注記2行（univ.note/calcNote）は 2026-08-30 指示で削除＝ルール解説（最下部 ruleBox）に集約
+    ${foot}</div>`;   // 注記2行（univ.note/calcNote）は 2026-08-30 指示で削除＝ルール解説（最下部 ruleBox）に集約
   return card1;   // メンバー表カードは PR#3 指示④で廃止（併設スコア表と重複）。ルール解説は最下部（renderTeamGame でスコア表の後ろに付与）
 }
 
@@ -263,7 +272,10 @@ function renderTeamCustom(g){
   const {teams:wt,events}=teamWinPoints(g);
   const ev=events.find(e=>e.key==='customMatch');
   const winIds=ev?ev.winners.map(i=>wt[i].id):[];
-  const head=`<h2>${tpEvLabel(g,'customMatch')}${tpAnnounceUI(g,'customMatch')}</h2>`;
+  /* 見出し <h2> は廃止（heading-unify §3.2）。任意対決のタイトルはゲームタブのラベルが同じ tpEvLabel(g,'customMatch')
+     を使っている（results.js resGameTabs）＝完全重複。連携UIはカード末尾フッタ行の右端へ（§5.2。
+     入力 details より前に置く＝開閉でボタン位置が動かない） */
+  const foot=`<div class="cardtools mt8">${tpAnnounceUI(g,'customMatch')}</div>`;
   // 並び=ポイント降順・未入力は末尾・同値は g.teams の登録順（安定ソート）。順位は入力済みのみで算出（同値は同順位 1,1,3）
   const rows=teams.map((tm,i)=>({tm,i,v:val(tm)}));
   rows.sort((a,b)=>{ if(a.v==null&&b.v==null) return a.i-b.i; if(a.v==null) return 1; if(b.v==null) return -1;
@@ -292,5 +304,5 @@ function renderTeamCustom(g){
       <label class="fl">${t('custom.name')}</label>
       <input type="text" maxlength="20" value="${esc(C.name||'')}" placeholder="${esc(t('custom.namePh'))}" onchange="setCustomName(this.value)">
       <div class="muted mt6">${t('custom.ptsNote')}</div>${ptsRows}</div></details>`;
-  return `<div class="card">${head}${body}${note}${edit}</div>`;
+  return `<div class="card">${body}${note}${foot}${edit}</div>`;
 }

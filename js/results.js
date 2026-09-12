@@ -126,12 +126,15 @@ function renderStanding(g, parts){
   const teamOf=pid=>g.teams.find(T=>T.memberIds.includes(pid))||null;
   const tmCell=pid=>{ if(!hasTeams)return''; const T=teamOf(pid);
     return `<td class="tal">${T?`<span class="pt-tm" style="color:${tmColor(T.name)}">${esc(T.name)}</span>`:''}</td>`; };   // 未所属は空セル。span=auto レイアウト表でも ellipsis を効かせる
-  const main=`<div class="card payoutcard"><h2>${t('standing.title')} ${statusBadge(g)}</h2>
+  // 見出し（standing.title）は廃止＝グループタブ「ポイント」が兼ねる。statusBadge はカード末尾の共通フッタ行へ
+  // （2026-09-12-result-heading-unify.md §3.2/§4.2・結果→状態→操作の順＝投影原則 §11.14）
+  const main=`<div class="card payoutcard">
     <div class="muted">${t('standing.total',{t:total})}${pool?t('standing.poolNote',{p:pool.toLocaleString()}):t('standing.noPool')}。${revealHoles<18?t('standing.revealNote',{n:revealHoles}):t('standing.autoNote')}</div>
     <table class="lb"><tr><th>${t('col.rank')}</th>${hasTeams?`<th class="tal">${t('col.team')}</th>`:''}<th>${t('col.player')}</th><th>${t('col.points')}</th>${pool?`<th>${t('col.payout')}</th>`:''}</tr>
     ${prows.map((r,i)=>{const p=state.players.find(x=>x.id===r.pid);
       return `<tr class="rank ${i===0&&r.pt>0?'rank1':''}"><td>${r.pt>0?(i+1):'-'}</td>${tmCell(r.pid)}<td class="tal">${esc(p.name)}</td><td><b>${r.pt}</b>pt</td>${pool?`<td><b>¥${r.yen.toLocaleString()}</b></td>`:''}</tr>`}).join('')}
-    </table></div>`;
+    </table>
+    <div class="cardtools mt8">${statusBadge(g)}</div></div>`;
   if(!hasTeams) return main;
   // (b) チーム別合計: 個人行（prows）の合算のみ。未所属はポイント/配分額が付いたときだけ行を出す
   const agg=new Map();
@@ -153,23 +156,26 @@ function pzCfgToggle(open){ pzCfgOpen=open; }
 function renderIndGame(g, parts, key){
   if(key==='prize'){   // ニアドラ: ヒーロー主役＋勝者登録は details 内に控えめ（§5.1.1。prizes は viewGame 非依存＝g で同値）
     if(!niapinHolesOf(g).length && !draconHolesOf(g).length)
-      return `<div class="card"><h2>${t('prize.title')}</h2><div class="empty">${t('prize.emptyCfg')}</div></div>`;
+      return `<div class="card"><div class="empty">${t('prize.emptyCfg')}</div></div>`;   // 見出しはゲームタブ（result.sub.prize）が兼ねる（heading-unify §3.2）
     return renderPrizeHero(g)
       + `<details class="prize-edit mt10"${pzCfgOpen?' open':''} ontoggle="pzCfgToggle(this.open)"><summary>${t('prize.recTitle')}</summary><div class="in">${renderPrizes(g)}</div></details>`;
   }
   // 進捗バナーは全廃（順位確定=#87・暫定順位=2026-08-30 Sレーン②）。進捗はスコア表と statusBadge で読める
+  /* rankCardNS / leaderboard の第1引数は「見出し文字列」から「フッタ行左端に置くタグHTML」へ変更
+     （heading-unify §10.1）。タイトルはゲームタブ名が兼ねるので渡さない＝タブと同じ文字列を二重に出さない。
+     グロスのみ、エブリ適用中は固有情報なので .uv-tagev タグ（汎用の“適用中”タグとして共用・§9.2）で残す */
   let card='', rule='';
-  if(key==='gross'){ card=rankCardNS(g.womenEvery.enabled?t('result.grossEvery'):t('term.gross'), parts, pid=>effGross(g,pid), 'asc', v=>v, 'gross', null); rule='rule.gross'; }
+  if(key==='gross'){ card=rankCardNS(g.womenEvery.enabled?`<span class="tag uv-tagev">${t('result.grossEvery')}</span>`:'', parts, pid=>effGross(g,pid), 'asc', v=>v, 'gross', null); rule='rule.gross'; }
   else if(key==='net'){
     // 次回幹事（ネットで決定）：ゲーム設定の対象順位 kanjiRanks の行にバッジ表示（ネットタブのみ・§11.17）。
     // マスター g.kanjiBadge で ON/OFF（既定OFF・2026-08-29-host-option.md §2。OFF は判定自体を行わず hlMap=null）
     const kpids = g.kanjiBadge ? nextKanji(g) : [];
     const hl = kpids.length ? {} : null; kpids.forEach(pid=>hl[pid]=t('term.organizer'));
-    card=rankCardNS(t('term.net'), parts, pid=>netScore(g,pid), 'asc', v=>v, 'net', hl); rule='rule.net'; }
-  else if(key==='stb'){ card=leaderboard(t('term.stableford'), parts, pid=>stablefordPts(g,pid), 'desc', v=>v+'pt', '', 'stb'); rule='rule.stableford'; }
-  else if(key==='oly'){ card=leaderboard(t('term.olympic'), parts, pid=>olympicPts(g,pid), 'desc', v=>v+'pt', '', 'oly'); rule='rule.olympic'; }
-  else if(key==='cal'){ card=leaderboard(t('term.callaway'), parts, pid=>callawayNet(g,pid),'asc',v=>v,'', 'cal'); rule='rule.callaway'; }
-  else if(key==='nas'){ card=leaderboard(t('pts.nassauTotal'), parts, pid=>nassauTotalNet(g,pid),'asc',v=>v,'', 'nas'); rule='rule.nassau'; }
+    card=rankCardNS('', parts, pid=>netScore(g,pid), 'asc', v=>v, 'net', hl); rule='rule.net'; }
+  else if(key==='stb'){ card=leaderboard('', parts, pid=>stablefordPts(g,pid), 'desc', v=>v+'pt', 'stb'); rule='rule.stableford'; }
+  else if(key==='oly'){ card=leaderboard('', parts, pid=>olympicPts(g,pid), 'desc', v=>v+'pt', 'oly'); rule='rule.olympic'; }
+  else if(key==='cal'){ card=leaderboard('', parts, pid=>callawayNet(g,pid),'asc',v=>v,'cal'); rule='rule.callaway'; }
+  else if(key==='nas'){ card=leaderboard('', parts, pid=>nassauTotalNet(g,pid),'asc',v=>v,'nas'); rule='rule.nassau'; }
   return `<div class="rank-wrap">${card}</div>` + renderScorecard(g,parts,null) + ruleBox(rule);
 }
 
@@ -319,17 +325,19 @@ function renderScorecard(g, parts, teams, uvSel){
 
 // グロス/ネット専用の順位カード（名前・スコアを表ごと master ＋順位ごとの目隠しボタンで制御。バッジは常時表示）
 // master トグルは表の下（結果が先・操作が後＝追加指示⑪・§11.14 幹事操作は控えめ配置）
-function rankCardNS(title, pids, valFn, dir, fmt, table, hlMap){
+// tagHtml（第1引数・heading-unify §10.1）: カード末尾フッタ行の左端に置く状態タグHTML。見出し <h2> は廃止＝
+// タイトルはゲームタブ名が兼ねる。'' なら既存のトグル1個だけの行＝従来と同じ見た目
+function rankCardNS(tagHtml, pids, valFn, dir, fmt, table, hlMap){
   const rows=ranked(pids,valFn,dir);
   const nameOf=pid=>{const p=state.players.find(x=>x.id===pid);return esc(p&&p.name);};
   const nsOn = nsMode[table]==='show';
-  const tools=`<div class="cardtools mt8">
+  const tools=`<div class="cardtools mt8">${tagHtml}
     <span class="tgl ${nsOn?'on':'off'}" onclick="toggleNSAll('${table}')">${nsOn?t('ns.allShow'):t('ns.allHide')}</span></div>`;
   const body=`<table class="lb big"><tr><th class="c-eye"></th><th class="c-pos">${t('col.rank')}</th><th>${t('col.player')}</th><th class="c-val">${dir==='asc'?t('col.score'):t('col.pts')}</th></tr>
     ${rows.map(r=>{ const hb=hlMap&&hlMap[r.pid]; const m=nsMasked(table,r.pid);
       const nm = m ? '<span class="mask">※※※</span>' : nameOf(r.pid);
       const sv = m ? '<span class="mask">？</span>' : `<b>${fmt(r.v)}</b>`;
       return `<tr class="rank ${hb?'hlrow':''}"><td class="c-eye"><button class="eyebtn ${m?'off':'on'}" onclick="toggleNSRow('${table}','${r.pid}')">${m?EYEOFF:EYE}</button></td><td class="c-pos">${posBadge(r.rank,r.rank===1)}</td><td class="nmc">${nm}${hb?`<span class="kanjibadge">${hb}</span>`:''}</td><td class="c-val">${sv}</td></tr>`; }).join('')}</table>`;
-  return `<div class="card tight wide"><h2 class="lbh"><span>${title}</span></h2>${body}${tools}</div>`;
+  return `<div class="card tight wide">${body}${tools}</div>`;
 }
 
