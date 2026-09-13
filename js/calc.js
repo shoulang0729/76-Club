@@ -101,12 +101,29 @@ function holesWon(g){
   }
   return {teams,won};
 }
-/* ベスト2ボール（§3）: ラウンド単位でチーム内のネット上位2名の合計。
-   ★2026-09-13 Issue #186: 母数を teamScoreMembers（1H以上入力済み）に限定。従来は teamMembers 全員を
-   並べていたため、未入力メンバーの netScore=0 が「最良ボール」として採用されていた（欠席者がいるチームが必勝）。
-   方式（ラウンド単位・上位2名・入力済み1名ならその1名を2回）は従来どおり。入力済み0名は null＝種目の対象外。 */
-function best2(g,t){ const m=teamScoreMembers(g,t); if(!m.length)return null;
-  const ns=m.map(pid=>netScore(g,pid)).sort((a,b)=>a-b); return Math.round((ns[0]+(ns[1]||ns[0]))*10)/10; }
+/* ---- ベスト2ボール（§3.4・docs/handoff/2026-09-13-best2-per-hole.md が正）----
+   ★2026-09-13 方式変更（load-bearing）: ラウンド単位のネット上位2名 → 「各ホールごとの上位2名を18ホール合計」。
+   判定値は adjHole（エブリ適用後の打数）＝ホールバイホール/1on1/ベガス/スコア表と同一基準。
+   ダブルペリアHDCP は効かない（アプリにホールハンデ指数が無く、等分配分は競技規則に存在しないため。設計 §3.3）。
+   ・入力が1名しかいないホールは、その1名を2回採用（ラウンド単位時代の ns[1]||ns[0] と同じ思想・設計 §5.1）。
+   ・誰も入力していないホール（未入力／未開封）はそのホールを飛ばす＝開封に応じた暫定集計になる（設計 §5.4）。
+   ・母数は teamScoreMembers（#186 で新設）。ホール別では adjHole が null を返すので未入力者は構造的に入らないが、
+     意図の明示と b2ScSel との共有のため据え置く（値は teamMembers 全員でも同一＝実測 145=145・設計 §5.3）。
+   ・値は整数（adjHole が整数）＝0.1 丸めは不要。 */
+function best2HoleVal(g,pid,i){ return adjHole(g,pid,i); }   // ★将来ホールハンデ指数を導入する差し替え点（設計 §3.5）
+/* そのホールで採用される2ボール。pids は強調表示用（同値は teamScoreMembers の順＝memberIds 登録順・安定ソート）。
+   dbl=true は「1名しかいないので同じ人を2回採用した」印（表示で ×2 を併記する・§7.2） */
+function best2HolePick(g,T,i){
+  const rows=teamScoreMembers(g,T).map(pid=>({pid,v:best2HoleVal(g,pid,i)}))
+    .filter(r=>r.v!=null).sort((a,b)=>a.v-b.v);
+  if(!rows.length) return null;
+  const two = rows.length>=2 ? [rows[0],rows[1]] : [rows[0],rows[0]];
+  return { pids:[...new Set(two.map(r=>r.pid))], sum:two[0].v+two[1].v, dbl:rows.length<2 };
+}
+function best2(g,T){ let s=0,used=0;
+  for(let i=0;i<18;i++){ const p=best2HolePick(g,T,i); if(p){ s+=p.sum; used++; } }
+  return used? s : null;
+}
 
 /* ---- ラスベガス（Vegas・§11.11）: 2人組の2桁合体・フリップ・点差累積。独立集計＝payout非干渉 ---- */
 /* 数字は「エブリ適用後×ダブルパー上限」、フリップ発動のバーディ判定は「生スコア」（各々既存慣例に準拠） */

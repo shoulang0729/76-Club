@@ -496,6 +496,15 @@
   .tp-mx td{font-size:var(--f-rl-name);font-weight:var(--w-bold);line-height:1;padding:2px 10px}
   .tp-mx th{font-size:calc(var(--f-rl-name)*.6);line-height:1.1;padding:3px 6px;white-space:normal;overflow-wrap:anywhere}
   .tp-mx td.tal{font-size:calc(var(--f-rl-name)*.6);line-height:1.1}
+  /* 実値＋勝ち点セル（2026-09-12-result-share.md §3.2/§3.6）: 値=既存の td サイズ（--f-rl-name 級）のまま、
+     勝ち点と単位略号だけを em 比で小さくする＝新規トークンなし・dense（下）にも自動追従。
+     値と勝ち点は同じ1行なので行高は現行と変わらない（投影 §11.14 の可読性を維持） */
+  .tp-mx-pt{font-size:.5em;margin-left:.25em}
+  .tp-mx-u{font-size:.55em}
+  /* 4チーム以上の dense（同 §3.5）: 値 .72 倍・ヘッダ/種目ラベル .48 倍＝横が溢れにくい。
+     3チーム以下は付与しない＝現行と同じ大きさ。それでも溢れる極端なケースは親 .scroll の横スクロール（現行と同じ最悪系） */
+  .tp-mx-d td{font-size:calc(var(--f-rl-name)*.72);padding:2px 6px}
+  .tp-mx-d th,.tp-mx-d td.tal{font-size:calc(var(--f-rl-name)*.48)}
   /* 勝ち点タグ（緑・文字併記 §11.14-2）: 文字=win-ink/背景=win-bg＝濃色ベタ塗りなし。引分は既存 .tagtie */
   .tagwin{background:var(--win-bg);color:var(--win-ink)}
   /* チーム戦ニアドラ hero（team-points.md §6.2③）: .rl-st の縦積みバリアント＝名前・本数・内訳が離れず1ブロックで折返す */
