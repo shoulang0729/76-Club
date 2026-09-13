@@ -252,12 +252,6 @@ function renderPrizeHero(g, withTeam){
         → 採用セルに枠（.b2c）＋1名を2回採用したホールに「×2」を併記し、チームの「計」行を「ベスト2」行に差し替える。
      判別は deco.sel / deco.b2 の有無だけで行う＝**①の出力は本変更の前後でバイト一致**。
    **省略時の出力は従来とバイト一致**（他タブ＝net/gross/hbh/個人戦は引数なしのまま＝非影響）。*/
-/* ベスト2ボールの採用セル装飾（§7.2）。機能色の意味「採用=枠」＝面のベタ塗りはしない（CLAUDE.md）。
-   ★暫定でインラインスタイル（styles.css が並行編集中のため本 PR では触らない）。
-     クラス名 .b2c / .b2x / .b2row は付けてあるので、PM が styles.css へ移したらこの2定数を消せる。
-     トークンは既存の --win / --sub / --w-bold のみ（新トークンなし） */
-const B2_CELL_ST='box-shadow:inset 0 0 0 2px var(--win);font-weight:var(--w-bold)';
-const B2_X_ST='font-size:9px;vertical-align:super;color:var(--sub)';
 const SC_COLGROUP = (()=>{ const F=[0,1,2,3,4,5,6,7,8],B=[9,10,11,12,13,14,15,16,17];
   return `<colgroup><col class="cnm">${F.map(()=>'<col class="ch">').join('')}<col class="cs">${B.map(()=>'<col class="ch">').join('')}<col class="cs"><col class="cs"><col class="cs"><col class="cs"></colgroup>`; })();
 function renderScorecard(g, parts, teams, deco){
@@ -280,7 +274,7 @@ function renderScorecard(g, parts, teams, deco){
        B2 が無いときは k===0 のまま＝従来と1バイトも変わらない文字列になる */
     const bc = B2 ? B2.cell[pid] : null;
     const cell=i=>{ const k=bc?bc[i]:0;
-      return `<td class="${hh(i)}${k?' b2c':''}"${k?` style="${B2_CELL_ST}"`:''}>${av[i]??''}${k===2?`<span class="b2x" style="${B2_X_ST}">×2</span>`:''}</td>`; };
+      return `<td class="${hh(i)}${k?' b2c':''}">${av[i]??''}${k===2?'<span class="b2x">×2</span>':''}</td>`; };   // 見た目は styles.css の .sc2 .b2c / .sc2 .b2x（§7.2）
     return `<tr${uvCls(pid)}><td class="nm">${esc(p.name)}${uvTag(pid)}</td>${F9.map(cell).join('')}<td class="sub">${MT(sum(av,0,9)||'')}</td>${B9.map(cell).join('')}<td class="sub">${MT(sum(av,9,18)||'')}</td><td class="tot">${MT(effGross(g,pid)||'')}</td><td class="tot">${MT(periaHdcp(g,pid))}</td><td class="netc">${MT(netScore(g,pid))}</td></tr>`; };
   /* §11.12 I: 選択指標での並べ替え。ranked()＋tieBreak を流用＝順位カードと同じ並び。
      値が無い（未入力）選手は ranked() から落ちるので、元の順序のまま末尾に付ける。 */
