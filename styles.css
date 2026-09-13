@@ -117,6 +117,11 @@
   input,select,textarea{font-family:inherit;font-size:var(--f-title);border:1px solid var(--line);border-radius:var(--r-sm);
     padding:8px 10px;width:100%;background:var(--card);color:var(--ink)}
   input[type=checkbox]{width:auto}
+  /* ラジオは input,select,textarea の width:100% を打ち消す（チェックボックスと同じ扱い）。
+     flex コンテナ（label{display:flex}）の中で縮まないよう flex:0 0 auto も付ける。#185 PR2 で
+     アプリ初のラジオが入り、幅100%に伸びてラベルが右端へ飛ぶ崩れが 375px で出たため（既存の
+     チェックボックス行は挙動を変えないよう別セレクタのまま） */
+  input[type=radio]{width:auto;flex:0 0 auto}
   /* buttons（ピル形・プライマリ青 §11.4） */
   button.btn{background:var(--pri);color:var(--on-fill);border:0;border-radius:var(--r-pill);padding:9px 16px;font-size:var(--f-body);font-weight:var(--w-bold);cursor:pointer;letter-spacing:.02em}
   button.btn:active{transform:translateY(1px)}

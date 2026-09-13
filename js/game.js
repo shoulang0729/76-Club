@@ -31,7 +31,7 @@ function gameSettingsHtml(g){
      合計モード×人数不揃いのときだけ <summary> の danger タグと本文の警告が出る（§6.2）。 */
   if(F.teamGross || F.teamNet){
     const warn=teamScoreWarn(g), tag=teamScoreWarnTag();
-    const rd=(v,label)=>`<label style="display:flex;gap:8px;align-items:center;font-size:13px;margin-bottom:6px"><input type="radio" name="tsm" value="${v}" style="width:auto;flex:0 0 auto" ${teamAvgOn(g)===(v==='avg')?'checked':''} onchange="setTeamScoreMode('${v}')"> ${label}</label>`;
+    const rd=(v,label)=>`<label style="display:flex;gap:8px;align-items:center;font-size:13px;margin-bottom:6px"><input type="radio" name="tsm" value="${v}" ${teamAvgOn(g)===(v==='avg')?'checked':''} onchange="setTeamScoreMode('${v}')"> ${label}</label>`;
     html += gsSec('teamScore', `${t('game.teamScoreCard')}${warn?' '+tag:''}`,
     `${rd('sum',t('game.teamScoreSum'))}${rd('avg',t('game.teamScoreAvg'))}
     <div class="muted mt6">${t('game.teamScoreNote')}</div>
