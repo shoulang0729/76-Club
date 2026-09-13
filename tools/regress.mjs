@@ -78,6 +78,16 @@ const TEAM3_GAME = baseGame({
       nassau: false, best2ball: false, vegas: false, match1v1: false },
   });
 
+/* refsLive / refsDeleted が共有するゲーム定義（§8.3）。team3 の構成のまま、p03 を参照する記録を増やして
+   「削除したときに何が動くか」を見えるようにしてある（NP 3H の勝者＝p03・ルーレット代表 1H/3H の T1＝p03。4ホールとも代表がそろって決着＝team3 の h2 代表欠けは埋める）。
+   ゲームは2ケースで完全に同一＝差分の出どころを state.players だけに限定する。 */
+const REFS_GAME = Object.assign({}, TEAM3_GAME, {
+  prizes: { niapinWinner: { 2: 'p03', 7: 'p05', 11: 'p09', 16: 'p02' }, draconWinner: { 4: 'p06' } },
+  roulette: { cur: 4, reps: {
+    0: { T1: 'p03', T2: 'p05', T3: 'p09' }, 1: { T1: 'p02', T2: 'p06', T3: 'p10' },
+    2: { T1: 'p03', T2: 'p07', T3: 'p11' }, 3: { T1: 'p04', T2: 'p08', T3: 'p12' } } },
+});
+
 const CASES = {
   // A) 個人戦フルセット（β・12名・p12 は前半9Hのみ入力=経過）: ペリア/エブリ/ステーブル/オリンピック/
   //    キャロウェイ/握り(ナッソー)/NPDC個人配点/payout/nextKanji(既定=2位下・ブービー上)
@@ -100,6 +110,14 @@ const CASES = {
   //     期待値は team3 と完全一致するはず（一致しなくなったら＝計算が retired を読み始めた証拠＝PR 差し戻し）。
   retiredNoop: { channel: 'a', players: PLAYERS.map(p => ({ ...p, retired: p.id === 'p03' || p.id === 'p04' })),
     game: TEAM3_GAME },
+  /* B'') 完全削除で過去コンペがどう変わるかの固定（2026-09-13-player-delete-refs.md §8.3・PR2）:
+        ゲームは REFS_GAME で**完全に同一**、違いは players に p03 が居るか（refsLive）／居ないか（refsDeleted）だけ。
+        refsDeleted は「p03 を物理削除したが参照は残っている」状態＝ §2.4 の参照切れ。
+        ★これは現行挙動を**固定する**フィクスチャで、期待どおりの値ではなく「こう変わってしまう」ことの記録:
+          teamGross 勝者が グリーン → レッド／賞金ポイント総量 108 → 81／computePoints から p03 が消える。
+        したがって migrate 等で参照切れを自動掃除する変更が入ると必ず落ちる（D-1 の番人）。 */
+  refsLive:    { channel: 'a', game: REFS_GAME },
+  refsDeleted: { channel: 'a', players: PLAYERS.filter(p => p.id !== 'p03'), game: REFS_GAME },
   // C) 2チーム×2名（β）: ラスベガス（フリップ＋ダブルパー上限）/ ベスト2 / 1on1マッチ（2試合）/ 全種目連携済み
   team2Vegas: { channel: 'b', game: baseGame({
     teams: [
