@@ -274,7 +274,13 @@ function renderTeams(g, only){
           : (r.v==null ? `<span class="muted">—</span>` : `<b>${Math.round(r.v*10)/10}</b>`);
         return `<tr class="rank"><td class="c-eye"><button class="eyebtn ${m?'off':'on'}" onclick="toggleTgRow('${key}','${r.t.id}')">${m?EYEOFF:EYE}</button></td><td class="c-pos">${posBadge(i+1,i===0)}</td><td class="nmc">${nm}</td><td class="c-val">${val}</td></tr>`; }).join('')}</table>${tools}</div>`; };
   let out='';
-  const tsNote=teamAvgOn(g)?t('team.noteAvg'):t('team.noteLow');
+  /* 注記行（team-score-average §6.2 出す場所②）: 合計モード×登録メンバー数が不揃いのときだけ、
+     グロス対抗／ネット対抗カードの注記の下に警告を1行足す（幹事が結果を見る瞬間に気づける）。
+     文言は teamScoreWarn()（js/game.js）＝コンペ設定 S3b と同じ1関数・同じ i18n キー。
+     ★card() は5種目で共用なので警告は呼び出し側で note に組み立てて渡す
+       ＝best2ball/holeByHole/vegas のカードは1pxも変わらない。 */
+  const tsWarn=teamScoreWarn(g);
+  const tsNote=(teamAvgOn(g)?t('team.noteAvg'):t('team.noteLow'))+(tsWarn?`<div class="mt6">${teamScoreWarnTag()} ${tsWarn}</div>`:'');
   if(F.teamGross && (!only||only==='teamGross')) out+=card('teamGross',T=>teamGrossVal(g,T),'asc',tsNote);
   if(F.teamNet && (!only||only==='teamNet')) out+=card('teamNet',T=>teamNetVal(g,T),'asc',tsNote);
   if(F.best2ball && (!only||only==='best2ball')) out+=card('best2ball',tm=>best2(g,tm),'asc',t('team.noteBest2'));
