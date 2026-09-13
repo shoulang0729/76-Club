@@ -82,36 +82,80 @@ function tpEvLabel(g,key){ const nm=(key==='customMatch')?(((g&&g.custom&&g.cust
 /* 種目別勝ち点表の行順（#87 指示③）＝チーム戦下段タブの生成順（resGameTabs grp='team'・総合を除く）:
    nd→gross→net→univ→hbh→b2→vegas→m1→roulette。タブ生成順を変えるときは本配列も同期させる */
 const TP_EV_ORDER=['niadora','teamGross','teamNet','univMatch','holeByHole','best2ball','vegas','match1v1','roulette','customMatch'];
-function renderTeamOverall(g){
+/* ---- 総合タブの表示モデル（result-share.md §3.8）----
+   画面（renderTeamOverall）と共有画像（PR-B の js/share.js）が共用する「表示の唯一の正」。
+   計算は teamWinPoints(g) だけを読む＝ここでスコアから何も計算しない（js/calc.js は非接触・§10）。
+   戻り値に DOM も HTML 片も入れない。label は esc 済み（任意対決はユーザー入力名を含む＝DOM 用）・
+   labelRaw は生（canvas は esc を通さない生名が要る）。
+   cols=表の列順（teamWinPoints の teams 順＝現行の列順・不変）／teams=ヒーロー順（勝ち点降順・col に列 index）。
+   ★？マスク（§3.1・load-bearing）: ev.on が false の行は cells を全て state:'mask' にし、
+     val/unit/pts に何も入れない＝実値がモデルに載らない。winners も空にする（勝者もモデルに出さない）。
+     描画側の書き忘れではなくモデル側で落とすので、画面でも画像でもネタバレが構造的に起きない。 */
+const TP_EV_UNIT={holeByHole:'H',vegas:'H',roulette:'H',match1v1:'W',univMatch:'#'};   // 言語非依存のリテラル略号（NP/DC/G と同じ規律＝i18n キー追加なし・§3.2）
+/* 種目ラベルの生名（esc 前）。tpEvLabel は esc 済みを返すので、辞書文字列を二重エスケープしないよう別関数にする */
+function tpEvLabelRaw(g,key){ const nm=(key==='customMatch')?(((g&&g.custom&&g.custom.name)||'').trim()):'';
+  return nm? nm : t(TP_EV_LABEL[key]||key); }
+/* 実値の表示書式（§3.2）: 小数1桁に丸め・整数は小数点なし（teamNet は calc 側で丸め済み＝再丸めしても不変） */
+function tpEvVal(v){ return String(Math.round(v*10)/10); }
+function tpShareModel(g){
   const {teams,wins,events}=teamWinPoints(g);
-  if(!events.length) return '';   // 成立種目0＝総合カード非表示（配分もされない・§3.4）
+  if(!events.length) return null;   // 成立種目0＝総合カード非表示（配分もされない・§3.4）
   const P=g.points||{};
   const N=events.length, n=events.filter(e=>e.on).length;   // 発表進捗（winpoints-reveal D5）。n=N(≥1)で「確定」
-  const prog = n===N ? `<span class="tag" style="background:var(--win);color:var(--on-fill)">${t('status.fixed')}</span>`
-                     : `<span class="tag tagtie">${t('team.annProg',{n,N})}</span>`;
+  const cols=teams.map(tm=>({id:tm.id,name:tm.name,nameEsc:esc(tm.name),color:tmColor(tm.name)}));
   const rows=teams.map((tm,i)=>({tm,i,v:wins[i]})); rows.sort((a,b)=>b.v-a.v);
   let rank=0,prev=null;
   rows.forEach((r,idx)=>{ if(prev===null||r.v!==prev){rank=idx+1;prev=r.v;} r.rank=rank; r.p=(P.teamRankPts||[])[rank-1]||0; });
+  const hteams=rows.map(r=>({id:r.tm.id,name:r.tm.name,nameEsc:esc(r.tm.name),color:tmColor(r.tm.name),
+    col:r.i,win:r.v,winText:tpFmtWin(r.v),rank:r.rank,pt:r.p}));   // 配分は各員満額（人数割りしない・D4）
+  /* 行順=TP_EV_ORDER（チーム戦下段タブの生成順・#87 指示③）。表示順のみの並べ替え＝teamWinPoints の値・
+     成立判定は不変。タブに無いキーは末尾（安定ソートで元順維持） */
+  const evs=[...events].sort((a,b)=>{ const o=k=>{ const i=TP_EV_ORDER.indexOf(k); return i<0?TP_EV_ORDER.length:i; }; return o(a.key)-o(b.key); })
+    .map(ev=>({ key:ev.key, label:tpEvLabel(g,ev.key), labelRaw:tpEvLabelRaw(g,ev.key), w:ev.w, on:ev.on,
+      winners: ev.on? ev.winners.slice() : [],   // ★未連携は勝者も出さない
+      cells: teams.map((tm,i)=>{
+        if(!ev.on)           return {state:'mask',val:'',unit:'',unitPre:false,pts:''};   // ★未連携＝値も勝ち点も載せない（？のみ）
+        if(ev.vals[i]==null) return {state:'none',val:'',unit:'',unitPre:false,pts:''};   // 種目の対象外＝—
+        const win=ev.winners.includes(i);
+        return {state: win?(ev.winners.length>1?'tie':'win'):'lose',
+          val:tpEvVal(ev.vals[i]), unit:TP_EV_UNIT[ev.key]||'', unitPre:ev.key==='univMatch',   // 順位（#1）だけ略号が前
+          pts: win? '+'+tpShare(ev.w,ev.winners.length) : ''};   // 勝ち点は勝ち/山分けのみ（文字併記＝色だけに頼らない・§11.14-2）
+      }) }));
+  return {meta:{name:g.name||'',date:g.date||'',course:g.course||''},
+    prog:{n,N,fixed:n===N}, teams:hteams, cols, events:evs};
+}
+/* 種目別勝ち点表のセル（result-share §3.2/§3.6）: 実値（大）＋勝ち点（小）を同じ1行に置く＝行は高くならない。
+   状態はモデル側で決まっている（mask は値を持たない）＝ここでネタバレ判定をしない */
+function tpMxCell(c){
+  if(c.state==='mask') return '<td><span class="mask">？</span></td>';
+  if(c.state==='none') return '<td><span class="muted">—</span></td>';
+  const u=c.unit?`<span class="tp-mx-u">${c.unit}</span>`:'';
+  const pt=c.pts?`<span class="tp-mx-pt">${c.pts}</span>`:'';
+  const cls=c.state==='win'?' class="winc"':(c.state==='tie'?' class="rtie"':'');
+  return `<td${cls}><b>${c.unitPre?u:''}${c.val}${c.unitPre?'':u}${pt}</b></td>`;
+}
+function renderTeamOverall(g){
+  const M=tpShareModel(g);
+  if(!M) return '';   // 成立種目0＝総合カード非表示（配分もされない・§3.4）
+  const P=g.points||{};
+  const {n,N}=M.prog;
+  const prog = M.prog.fixed ? `<span class="tag" style="background:var(--win);color:var(--on-fill)">${t('status.fixed')}</span>`
+                            : `<span class="tag tagtie">${t('team.annProg',{n,N})}</span>`;
   // ヒーロー横並び（#87 指示④）: 順=勝ち点降順。勝ち点=確定(on)分のみの積み上げ（teamWinPoints が正）。
   // 順位バッジ＋配分タグは発表≥1 のときのみ（n=0 はチーム名と「0」だけ＝computePoints の配分ゲートと一致・D5）
-  const hero=rows.map(r=>{ const col=tmColor(r.tm.name);
-    return `<span class="rl-st tp-nd tp-ovh">
-      <span class="rl-st-team" style="color:${col}">${esc(r.tm.name)}</span>
-      <span class="tp-ov-pt" style="color:${col}">${tpFmtWin(r.v)}</span>
-      ${n>=1?`<span class="tp-nd-tagrow">${posBadge(r.rank,r.rank===1)}<span class="tag">${t('team.rankTag',{rank:r.rank,p:r.p})}</span></span>`:''}
-    </span>`; }).join('');   // 配分は各員満額（人数割りしない・D4）
-  // 種目別勝ち点表（補助・通常サイズ）: 行=成立種目・列=チーム。勝ち=緑＋値・山分け=橙＋獲得分・負け=空欄・対象外=—。
-  // 未確定(!on)行=ラベルに「未確定」タグ＋値セルは対象外含め全チーム？マスク（勝者ネタバレ防止・D6）
-  // 行順=チーム戦の下段ゲームタブ（resGameTabs 左→右・総合を除く）に一致（2026-08-30 ユーザー指示・#87）。
-  // 表示順のみの並べ替え＝teamWinPoints の値・成立判定は不変。タブに無いキーは末尾（安定ソートで元順維持）
-  const mxEvs=[...events].sort((a,b)=>{ const o=k=>{ const i=TP_EV_ORDER.indexOf(k); return i<0?TP_EV_ORDER.length:i; }; return o(a.key)-o(b.key); });
-  const mxHead=`<tr><th class="tal">${t('team.matrixTitle')}</th>${teams.map(tm=>
-    `<th style="color:${tmColor(tm.name)}">${esc(tm.name)}</th>`).join('')}</tr>`;
-  const mxRows=mxEvs.map(ev=>`<tr><td class="tal">${tpEvLabel(g,ev.key)}${ev.w!==1?` <span class="muted">×${ev.w}</span>`:''}${ev.on?'':` <span class="tag tagtie">${t('team.pending')}</span>`}</td>${teams.map((tm,i)=>{
-    if(!ev.on) return '<td><span class="mask">？</span></td>';
-    if(ev.vals[i]==null) return '<td><span class="muted">—</span></td>';
-    if(ev.winners.includes(i)) return `<td class="${ev.winners.length>1?'rtie':'winc'}"><b>${tpShare(ev.w,ev.winners.length)}</b></td>`;
-    return '<td></td>'; }).join('')}</tr>`).join('');
+  const hero=M.teams.map(r=>`<span class="rl-st tp-nd tp-ovh">
+      <span class="rl-st-team" style="color:${r.color}">${r.nameEsc}</span>
+      <span class="tp-ov-pt" style="color:${r.color}">${r.winText}</span>
+      ${n>=1?`<span class="tp-nd-tagrow">${posBadge(r.rank,r.rank===1)}<span class="tag">${t('team.rankTag',{rank:r.rank,p:r.pt})}</span></span>`:''}
+    </span>`).join('');
+  /* 種目別勝ち点表（result-share §3.2 で「実値＋勝ち点」に拡張）: 行=成立種目・列=チーム。
+     勝ち=緑＋実値＋獲得勝ち点・山分け=橙＋実値＋獲得分・負け=実値のみ（地色なし）・対象外=—。
+     未確定(!on)行=ラベルに「未確定」タグ＋全チーム？マスク（実値も勝ち点も描かない＝勝者ネタバレ防止・D6/§3.1）。
+     4チーム以上は .tp-mx-d（dense）で字を詰める（§3.5・新規トークンなし＝--f-rl-name の係数違い）。
+     行順・列・勝ち/山分けの色分けは不変（TP_EV_ORDER・teamWinPoints が正） */
+  const mxHead=`<tr><th class="tal">${t('team.matrixTitle')}</th>${M.cols.map(c=>
+    `<th style="color:${c.color}">${c.nameEsc}</th>`).join('')}</tr>`;
+  const mxRows=M.events.map(ev=>`<tr><td class="tal">${ev.label}${ev.w!==1?` <span class="muted">×${ev.w}</span>`:''}${ev.on?'':` <span class="tag tagtie">${t('team.pending')}</span>`}</td>${ev.cells.map(tpMxCell).join('')}</tr>`).join('');
   // 重み設定 details（winpoints-reveal §13.5・D14/D15・投影原則 §11.14「幹事操作は控えめ配置」）:
   // 採用中の種目のみ TP_EV_ORDER 順（niadora は F.niadoraTeam・βはαチャネルで自動除外）。成立前でも事前設定可。
   // ゲーム設定タブには置かない（teamRankPts と同居させず重複配置回避）。
@@ -121,11 +165,17 @@ function renderTeamOverall(g){
     `<div class="ptsrow"><span>${tpEvLabel(g,k)}</span><span class="ptsedit"><input type="number" min="0" step="1" value="${W[k]===undefined?1:W[k]}" onchange="setTeamEventPts('${k}',this.value)"></span></div>`).join('');
   const evPts=evPtsRows?`<details class="mt10"${tpEvPtsOpen?' open':''} ontoggle="tpEvPtsToggle(this.open)"><summary>${t('team.evPtsTitle')}</summary><div class="in">
       <div class="muted">${t('team.evPtsNote')}</div>${evPtsRows}</div></details>`:'';
+  /* 共有ヘッダ1行（result-share §3.4）: コンペ名・開催日・コース名。画面ヘッダ hdrGame はカードの外にあり
+     スクショにも共有画像にも写らないため、「どのコンペの結果か」をカード本体に持たせる。
+     空の項目は区切りごと省略（g.course 未設定など）。日付は g.date の文字列そのまま（ロケール変換しない）＝
+     基本設定タブと同じ扱い。i18n 追加なし（区切りは ' ・ ' のリテラル） */
+  const meta=[esc(M.meta.name),esc(M.meta.date),esc(M.meta.course)].filter(s=>s).join(' ・ ');
   // 見出し（team.overallTitle）は廃止＝ゲームタブ「総合」が兼ねる。発表進捗タグ prog は固有情報なので
   // カード末尾の共通フッタ行へ（heading-unify §3.2/§4.2/§14-C。総合は連携UIを持たないのでタグ単独の行）
   return `<div class="card">
+    ${meta?`<div class="muted">${meta}</div>`:''}
     <div class="rl-standing tp-ovh-wrap">${hero}</div>
-    <div class="scroll mt10"><table class="lb tp-mx">${mxHead}${mxRows}</table></div>
+    <div class="scroll mt10"><table class="lb tp-mx${M.cols.length>=4?' tp-mx-d':''}">${mxHead}${mxRows}</table></div>
     <div class="muted mt6">${t('team.noteOverall')}</div>
     <div class="muted">${t('team.noteAnnounce')}</div>
     <div class="muted">${t('pts.teamRank')}: ${(P.teamRankPts||[]).join(', ')}</div>
