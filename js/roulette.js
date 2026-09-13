@@ -253,14 +253,20 @@ function renderTeams(g, only){
   // master トグルは表の下（結果が先・操作が後＝追加指示⑪・§11.14 幹事操作は控えめ配置）
   // heading-unify §10.1: card() から title 引数を削除（見出し <h2> 廃止＝タイトルはゲームタブ名が兼ねる）。
   // note（h2 の外の .muted 注記「少ないほど上位」等）は残す
-  const card=(key,valFn,dir,note)=>{ const rows=teams.map(t=>({t,v:valFn(t)})).sort((a,b)=> dir==='desc'? b.v-a.v : a.v-b.v);
+  /* ★null（＝種目の対象外。全員未入力のチームの best2 など）の扱い（best2-per-hole §5.5 / team-score-average §4.4）:
+     値は「—」・並びは方向（asc/desc）によらず**末尾**。以前は a.v-b.v が NaN になって並びが不定になり、
+     値セルも Math.round(null*10)/10 ＝ 0 と描かれて最上位に見えていた。
+     valFn が数値しか返さないカード（teamGross/teamNet/holeByHole）の出力は不変（null が出ないため）。 */
+  const card=(key,valFn,dir,note)=>{ const rows=teams.map(t=>({t,v:valFn(t)}))
+      .sort((a,b)=> (a.v==null||b.v==null) ? (a.v==null?1:0)-(b.v==null?1:0) : (dir==='desc'? b.v-a.v : a.v-b.v));
     const on = tgMode[key]==='show';
     // 発表ボタン（winpoints-reveal §5.2・card の key と種目 key は一致）: 目隠しトグルと同列の控えめ配置（§11.14）
     const tools=`<div class="cardtools mt8"><span class="tgl ${on?'on':'off'}" onclick="toggleTgAll('${key}')">${on?t('ns.allShow'):t('ns.allHide')}</span>${tpAnnounceUI(g,key)}</div>`;
     return `<div class="card tight">${note?`<div class="muted" style="margin-bottom:4px">${note}</div>`:''}<table class="lb"><tr><th class="c-eye"></th><th class="c-pos">${t('col.rank')}</th><th>${t('col.team')}</th><th class="c-val">${dir==='desc'?'H':t('col.total')}</th></tr>
       ${rows.map((r,i)=>{ const m=tgMasked(key,r.t.id);
         const nm = m ? '<span class="mask">？？？</span>' : esc(r.t.name);
-        const val = m ? '<span class="mask">？</span>' : `<b>${Math.round(r.v*10)/10}</b>`;
+        const val = m ? '<span class="mask">？</span>'
+          : (r.v==null ? `<span class="muted">—</span>` : `<b>${Math.round(r.v*10)/10}</b>`);
         return `<tr class="rank"><td class="c-eye"><button class="eyebtn ${m?'off':'on'}" onclick="toggleTgRow('${key}','${r.t.id}')">${m?EYEOFF:EYE}</button></td><td class="c-pos">${posBadge(i+1,i===0)}</td><td class="nmc">${nm}</td><td class="c-val">${val}</td></tr>`; }).join('')}</table>${tools}</div>`; };
   let out='';
   if(F.teamGross && (!only||only==='teamGross')) out+=card('teamGross',teamGross,'asc',t('team.noteLow'));

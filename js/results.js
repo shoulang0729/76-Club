@@ -245,13 +245,26 @@ function renderPrizeHero(g, withTeam){
 /* ★共通スコアカード（個人戦・チーム戦で同一仕様）。枠は全18ホール固定、開封ホールに値が入る。
    列: 選手 | 1-9 | OUT | 10-18 | IN | 計 | HD | Net。ホール幅は全て均等・合計欄5列は全て同一幅。
    teams を渡すとチーム別（見出し＋メンバー＋チーム小計＋ホール勝敗ハイライト）。
-   uvSel（省略可・大学対抗タブ専用 PR#3 指示⑤）: {sel:Set(対象pid), team:{[teamId]:{n,p}}} を渡すと
-   足切り（集計対象外）の選手行を muted（.uv-off）にし、対象者の名前に「対象」タグを併記する。
+   deco（省略可・第4引数＝「装飾オブジェクト」。2026-09-13-best2-per-hole.md §7.5 で一般化）:
+     ① 大学対抗タブ（uvScSel・PR#3 指示⑤）  {sel:Set(対象pid), team:{[teamId]:{n,p}}}
+        → 足切り（集計対象外）の選手行を muted（.uv-off）にし、対象者の名前に「対象」タグを併記する。
+     ② ベスト2ボールタブ（b2ScSel・§7.1/§7.3） {cell:{[pid]:[18] 0=非採用/1=採用/2=採用×2}, b2:{[tid]:{hole,out,in,total}}}
+        → 採用セルに枠（.b2c）＋1名を2回採用したホールに「×2」を併記し、チームの「計」行を「ベスト2」行に差し替える。
+     判別は deco.sel / deco.b2 の有無だけで行う＝**①の出力は本変更の前後でバイト一致**。
    **省略時の出力は従来とバイト一致**（他タブ＝net/gross/hbh/個人戦は引数なしのまま＝非影響）。*/
+/* ベスト2ボールの採用セル装飾（§7.2）。機能色の意味「採用=枠」＝面のベタ塗りはしない（CLAUDE.md）。
+   ★暫定でインラインスタイル（styles.css が並行編集中のため本 PR では触らない）。
+     クラス名 .b2c / .b2x / .b2row は付けてあるので、PM が styles.css へ移したらこの2定数を消せる。
+     トークンは既存の --win / --sub / --w-bold のみ（新トークンなし） */
+const B2_CELL_ST='box-shadow:inset 0 0 0 2px var(--win);font-weight:var(--w-bold)';
+const B2_X_ST='font-size:9px;vertical-align:super;color:var(--sub)';
 const SC_COLGROUP = (()=>{ const F=[0,1,2,3,4,5,6,7,8],B=[9,10,11,12,13,14,15,16,17];
   return `<colgroup><col class="cnm">${F.map(()=>'<col class="ch">').join('')}<col class="cs">${B.map(()=>'<col class="ch">').join('')}<col class="cs"><col class="cs"><col class="cs"><col class="cs"></colgroup>`; })();
-function renderScorecard(g, parts, teams, uvSel){
+function renderScorecard(g, parts, teams, deco){
   const n=revealHoles;
+  /* 装飾オブジェクトの振り分け（§7.5）。どちらでもない／未指定なら両方 null＝従来と同一の DOM 文字列になる */
+  const uvSel = (deco && deco.sel) ? deco : null;    // ① 大学対抗（既存・出力不変）
+  const B2    = (deco && deco.b2)  ? deco : null;    // ② ベスト2ボール（新規）
   const F9=[0,1,2,3,4,5,6,7,8], B9=[9,10,11,12,13,14,15,16,17];
   const hh=i=>g.hidden[i]?'hh':'';
   const MT=v=> show.totals ? v : '<span class="mask">···</span>';   // 合計値の表示/非表示
@@ -262,7 +275,12 @@ function renderScorecard(g, parts, teams, uvSel){
   const uvCls=pid=> uvSel ? (uvSel.sel.has(pid)?'':' class="uv-off"') : '';
   const uvTag=pid=> (uvSel && uvSel.sel.has(pid)) ? `<span class="tag uv-tagsel">${t('univ.selMark')}</span>` : '';
   const pRow=(pid)=>{ const p=state.players.find(x=>x.id===pid); const av=adjArr(g,pid);
-    const cell=i=>`<td class="${hh(i)}">${av[i]??''}</td>`;
+    /* 採用フラグ（§7.1）: B2 のときだけ「そのホールで採用されたか（0/1/2）」を引く。
+       正は calc.js の best2HolePick（b2ScSel が組み立てる）＝表示側で採用者を判定し直さない（#157 の二重管理を作らない）。
+       B2 が無いときは k===0 のまま＝従来と1バイトも変わらない文字列になる */
+    const bc = B2 ? B2.cell[pid] : null;
+    const cell=i=>{ const k=bc?bc[i]:0;
+      return `<td class="${hh(i)}${k?' b2c':''}"${k?` style="${B2_CELL_ST}"`:''}>${av[i]??''}${k===2?`<span class="b2x" style="${B2_X_ST}">×2</span>`:''}</td>`; };
     return `<tr${uvCls(pid)}><td class="nm">${esc(p.name)}${uvTag(pid)}</td>${F9.map(cell).join('')}<td class="sub">${MT(sum(av,0,9)||'')}</td>${B9.map(cell).join('')}<td class="sub">${MT(sum(av,9,18)||'')}</td><td class="tot">${MT(effGross(g,pid)||'')}</td><td class="tot">${MT(periaHdcp(g,pid))}</td><td class="netc">${MT(netScore(g,pid))}</td></tr>`; };
   /* §11.12 I: 選択指標での並べ替え。ranked()＋tieBreak を流用＝順位カードと同じ並び。
      値が無い（未入力）選手は ranked() から落ちるので、元の順序のまま末尾に付ける。 */
@@ -294,6 +312,15 @@ function renderScorecard(g, parts, teams, uvSel){
       // メンバーは個人スコア順（グロス=エブリ後グロス／ネット・HBH=ネット）
       sortPids(teamMembers(g,tm), scSortTeam==='gross'?'gross':'net')
         .forEach(pid=>{ body+=pRow(pid); });
+      if(B2){
+        /* ★b2 タブのみ: 「計」行を「ベスト2」行に差し替える（§7.3）。
+           ①チームの要約行がちょうど1本 ②その「計」セルが順位カードの数字と一致＝投影しても検算できる
+           ③.winc（HBH の勝ちホール＝別競技の緑）を出さない。値は b2ScSel（= best2HolePick）が正。
+           合計値トグル OFF のマスクは現行の「計」行と同じ（ホール別セルは ·／合計欄は MT） */
+        const B=B2.b2[tm.id]||{hole:[],out:0,in:0,total:0};
+        const bCell=(i)=> show.totals ? `<td>${B.hole[i]??''}</td>` : '<td><span class="mask">·</span></td>';
+        body+=`<tr class="parr tsum b2row"><td class="nm" style="color:${col};font-weight:var(--w-bold)">${t('sc.best2Row')}</td>${F9.map(i=>bCell(i)).join('')}<td class="sub">${MT(B.out||'')}</td>${B9.map(i=>bCell(i)).join('')}<td class="sub">${MT(B.in||'')}</td><td class="tot">${MT(B.total||'')}</td><td class="tot">-</td><td class="netc">-</td></tr>`;
+      } else {
       const tCell=(i)=>{ if(!show.totals) return '<td><span class="mask">·</span></td>';   // 合計値OFFなら値も色も隠す
         const s=teamMembers(g,tm).reduce((a,pid)=>a+(adjHole(g,pid,i)||0),0); return `<td class="${winAt[i].includes(ti)?'winc':''}">${s||''}</td>`;};
       const tGross=teamMembers(g,tm).reduce((a,pid)=>a+effGross(g,pid),0);
@@ -301,8 +328,11 @@ function renderScorecard(g, parts, teams, uvSel){
       const tOut=teamMembers(g,tm).reduce((a,pid)=>a+sum(adjArr(g,pid),0,9),0);
       const tIn=teamMembers(g,tm).reduce((a,pid)=>a+sum(adjArr(g,pid),9,18),0);
       body+=`<tr class="parr tsum"><td class="nm" style="color:${col};font-weight:var(--w-bold)">${t('col.total')}</td>${F9.map(i=>tCell(i)).join('')}<td class="sub">${MT(tOut||'')}</td>${B9.map(i=>tCell(i)).join('')}<td class="sub">${MT(tIn||'')}</td><td class="tot">${MT(tGross||'')}</td><td class="tot">-</td><td class="netc">${MT(tNet||'')}</td></tr>`;
+      }
     });
-    note=t('sc.noteTeam');
+    /* 注記: b2 タブは sc.noteTeam（緑＝ホールを取ったチーム）を出さない＝この表に緑は無いため（§7.3）。
+       代わりに sc.noteBest2（枠＝採用ボール／×2＝1名を2回採用）を出す（§7.2 のモックと同じ1行） */
+    note=B2? t('sc.noteBest2') : t('sc.noteTeam');
   } else {
     body=sortPids(parts, scSortInd).map(pid=>pRow(pid)).join('');
     note=t('sc.noteHidden');
