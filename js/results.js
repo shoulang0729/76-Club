@@ -301,8 +301,11 @@ function renderScorecard(g, parts, teams, deco){
     const won=teams.map((_,ti)=>{let w=0;winAt.forEach(ws=>{if(ws.includes(ti))w+=1/ws.length;});return w;});
     /* §11.12 I: チームは選択指標で並べ替え（グロス/ネット=合計の昇順・HBH=取得ホール数の降順）。
        winAt は元の teams インデックス基準なので、並べ替えは表示順（ti を保持）だけで行う。 */
-    const tGrossOf=T=>teamMembers(g,T).reduce((a,pid)=>a+effGross(g,pid),0);
-    const tNetOf=T=>Math.round(teamMembers(g,T).reduce((a,pid)=>a+netScore(g,pid),0)*10)/10;
+    /* 並べ替えの値は calc.js の teamGrossVal/teamNetVal（合計/平均の分岐込み）＝順位カードと同じ正を使う。
+       これを表示側で計算し直すと「1位のチームが表の2番目にいる」食い違いが起きる（team-score-average §6.4）。
+       値なし（全員未入力＝平均モードのみ発生）は Infinity で末尾に置く。下の「計」行の値は合計のまま（§6.4）。 */
+    const tGrossOf=T=>{ const v=teamGrossVal(g,T); return v==null?Infinity:v; };
+    const tNetOf=T=>{ const v=teamNetVal(g,T); return v==null?Infinity:v; };
     const order=teams.map((tm,ti)=>({tm,ti}));
     order.sort((a,b)=> scSortTeam==='hbh' ? won[b.ti]-won[a.ti]
       : scSortTeam==='gross' ? tGrossOf(a.tm)-tGrossOf(b.tm) : tNetOf(a.tm)-tNetOf(b.tm));

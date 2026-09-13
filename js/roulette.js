@@ -248,8 +248,8 @@ function setPrizeTwoSets(v){ curGame().prizes.twoSets=!!v; save(); renderResult(
 // only（省略可・2026-08-20-results-regroup.md §5.2）: 指定時は当該フォーマットのカード1枚だけ返す。無指定は現行どおり全カード＝後方互換
 function renderTeams(g, only){
   const F=chFormats(g); const teams=teamsOf(g);   // αではβゲームのカードを出さない（§11.12 C）
-  const teamGross=t=>teamMembers(g,t).reduce((a,pid)=>a+effGross(g,pid),0);
-  const teamNet=t=>Math.round(teamMembers(g,t).reduce((a,pid)=>a+netScore(g,pid),0)*10)/10;
+  /* グロス対抗／ネット対抗の値は calc.js の teamGrossVal/teamNetVal が唯一の正（合計/平均の分岐込み）。
+     #157 の教訓で表示側に式を持たない＝勝ち点（teamWinPoints）とカードの値が構造的に一致する。 */
   // master トグルは表の下（結果が先・操作が後＝追加指示⑪・§11.14 幹事操作は控えめ配置）
   // heading-unify §10.1: card() から title 引数を削除（見出し <h2> 廃止＝タイトルはゲームタブ名が兼ねる）。
   // note（h2 の外の .muted 注記「少ないほど上位」等）は残す
@@ -257,20 +257,26 @@ function renderTeams(g, only){
      値は「—」・並びは方向（asc/desc）によらず**末尾**。以前は a.v-b.v が NaN になって並びが不定になり、
      値セルも Math.round(null*10)/10 ＝ 0 と描かれて最上位に見えていた。
      valFn が数値しか返さないカード（teamGross/teamNet/holeByHole）の出力は不変（null が出ないため）。 */
+  /* 平均モードの表示（team-score-average §6.3）: グロス対抗／ネット対抗カードのときだけ、値列ヘッダを
+     「平均」にし、チーム名に母数の人数を併記する（投影先で平均が検算できる＝§11.14 の文字併記と同じ思想）。
+     best2ball/holeByHole/vegas のカードは1pxも変えない。 */
   const card=(key,valFn,dir,note)=>{ const rows=teams.map(t=>({t,v:valFn(t)}))
       .sort((a,b)=> (a.v==null||b.v==null) ? (a.v==null?1:0)-(b.v==null?1:0) : (dir==='desc'? b.v-a.v : a.v-b.v));
+    const avg = teamAvgOn(g) && (key==='teamGross'||key==='teamNet');
     const on = tgMode[key]==='show';
     // 発表ボタン（winpoints-reveal §5.2・card の key と種目 key は一致）: 目隠しトグルと同列の控えめ配置（§11.14）
     const tools=`<div class="cardtools mt8"><span class="tgl ${on?'on':'off'}" onclick="toggleTgAll('${key}')">${on?t('ns.allShow'):t('ns.allHide')}</span>${tpAnnounceUI(g,key)}</div>`;
-    return `<div class="card tight">${note?`<div class="muted" style="margin-bottom:4px">${note}</div>`:''}<table class="lb"><tr><th class="c-eye"></th><th class="c-pos">${t('col.rank')}</th><th>${t('col.team')}</th><th class="c-val">${dir==='desc'?'H':t('col.total')}</th></tr>
+    return `<div class="card tight">${note?`<div class="muted" style="margin-bottom:4px">${note}</div>`:''}<table class="lb"><tr><th class="c-eye"></th><th class="c-pos">${t('col.rank')}</th><th>${t('col.team')}</th><th class="c-val">${dir==='desc'?'H':(avg?t('col.avg'):t('col.total'))}</th></tr>
       ${rows.map((r,i)=>{ const m=tgMasked(key,r.t.id);
-        const nm = m ? '<span class="mask">？？？</span>' : esc(r.t.name);
+        const nm = m ? '<span class="mask">？？？</span>'
+          : esc(r.t.name)+(avg?` <span class="muted">${t('team.memN',{n:teamScoreMembers(g,r.t).length})}</span>`:'');   // 目隠し中は人数も出さない
         const val = m ? '<span class="mask">？</span>'
           : (r.v==null ? `<span class="muted">—</span>` : `<b>${Math.round(r.v*10)/10}</b>`);
         return `<tr class="rank"><td class="c-eye"><button class="eyebtn ${m?'off':'on'}" onclick="toggleTgRow('${key}','${r.t.id}')">${m?EYEOFF:EYE}</button></td><td class="c-pos">${posBadge(i+1,i===0)}</td><td class="nmc">${nm}</td><td class="c-val">${val}</td></tr>`; }).join('')}</table>${tools}</div>`; };
   let out='';
-  if(F.teamGross && (!only||only==='teamGross')) out+=card('teamGross',teamGross,'asc',t('team.noteLow'));
-  if(F.teamNet && (!only||only==='teamNet')) out+=card('teamNet',teamNet,'asc',t('team.noteLow'));
+  const tsNote=teamAvgOn(g)?t('team.noteAvg'):t('team.noteLow');
+  if(F.teamGross && (!only||only==='teamGross')) out+=card('teamGross',T=>teamGrossVal(g,T),'asc',tsNote);
+  if(F.teamNet && (!only||only==='teamNet')) out+=card('teamNet',T=>teamNetVal(g,T),'asc',tsNote);
   if(F.best2ball && (!only||only==='best2ball')) out+=card('best2ball',tm=>best2(g,tm),'asc',t('team.noteBest2'));
   if(F.holeByHole && (!only||only==='holeByHole') && teams.length>=2){ const {won}=holesWon(g);
     out+=card('holeByHole',(tm)=>{const i=teams.indexOf(tm);return won[i];},'desc',t('team.noteHbh')); }
