@@ -83,7 +83,45 @@ function hostMenuCard(){
     <div class="muted" id="sdDesc" style="margin:6px 0 8px">${esc(t(sp.desc))}</div>
     <button class="btn gold sm" onclick="seedTestData()">${t('host.seedBtn')}</button>
     <div class="muted">${t('host.seedNote')}</div>
-    ${auditCard()}`);
+    ${auditCard()}${purgeCard()}`);
+}
+
+/* ============================ 選手の完全削除（#171 PR2・2026-09-13-player-delete-refs.md §6.3）============================
+   既定の操作は「退会」（js/players.js・PR1）で、退会者は state.players に残る＝過去コンペの値は1ビットも変わらない。
+   それでも記録ごと消したい場合の逃げ道がこのパネル。取り返しのつかない操作なので
+     ① 幹事メニュー（details）② このパネル（details）③ 対象は退会者だけ ④ 確認ダイアログ1回
+   の4段（#177A の「2枚のドアの奥に置く／一括削除は作らない」と同型・確認は §6.3 のとおり1回）。
+   ★掃除そのものは delPlayer()（#174）をそのまま呼ぶ＝削除の挙動は現行から1バイトも変えない。
+   ★対象一覧・件数は毎回その場で計算する揮発データ（localStorage 非保存＝キーは5つのまま）。 */
+function purgeRow(p){ const r=delPlayerRefs(p.id); const c=[];
+  if(r.parts) c.push(t('confirm.delRefParts',{n:r.parts}));
+  if(r.holes) c.push(t('confirm.delRefScore',{n:r.holes}));
+  if(r.team)  c.push(t('col.team')+'×'+r.team);       // チーム所属数（既存キーの組合せ＝新規キーを増やさない）
+  if(r.prize) c.push(t('confirm.delRefPrize',{n:r.prize}));
+  if(r.rep)   c.push(t('confirm.delRefRep',{n:r.rep}));
+  if(r.m1)    c.push(t('confirm.delRefM1',{n:r.m1}));
+  return `<div class="row between mt6"><div class="fx1 tal">${esc(p.name)}${
+    c.length?`<span class="muted"> / ${esc(c.join(' / '))}</span>`:''}</div>
+    <button class="btn danger sm" onclick="purgePlayer('${p.id}')">${t('purge.del')}</button></div>`;
+}
+function purgeBody(){ const list=plRetired();                       // ★退会者のみ（現役はこのパネルに出さない）
+  return list.length? list.map(purgeRow).join('') : `<div class="empty">${t('purge.none')}</div>`;
+}
+function purgeCard(){
+  return `<details><summary>${t('purge.summary')}</summary><div class="in">
+    <div class="muted">${t('purge.note')}</div>
+    <div id="purgeOut">${purgeBody()}</div>
+  </div></details>`;
+}
+function purgeRefresh(){ const el=document.getElementById('purgeOut'); if(el) el.innerHTML=purgeBody(); }
+/* 削除は必ず1件ずつ（auditDel と同じ）。押した時点で退会者でなければ何もせず一覧を引き直すだけ＝取り違え防止。
+   確認・掃除・save は delPlayer() が行う（確認をキャンセルすれば state は変わらない）。 */
+function purgePlayer(id){
+  const p=state.players.find(x=>x.id===id);
+  if(!p||!p.retired){ purgeRefresh(); return; }
+  delPlayer(id);
+  if(!state.players.some(x=>x.id===id)) toast(t('audit.deleted'));
+  purgeRefresh();
 }
 
 /* ============================ データ点検（#171 PR2）============================

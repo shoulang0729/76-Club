@@ -167,9 +167,17 @@ function setPlayerRetired(id,v){ const p=state.players.find(x=>x.id===id); if(!p
    pzFlags は勝者の有無によらず対象ホールの全旗を出す（#156）ので、空文字とキー無しは表示上も等価）。
    各フィールドは未定義・null がありうる（古いデータ・match1v1 未使用のコンペ等）ので必ずガードする。 */
 const PRIZE_WINNER_FIELDS=['niapinWinner','draconWinner','niapinWinner2','draconWinner2'];   // 2セット運用（#146）の2セット目も含む
-// 削除で消える記録の件数（確認ダイアログ用）: ルーレット代表ホール数 / 受賞件数 / 1on1 試合数
-function delPlayerRefs(id){ let rep=0, prize=0, m1=0;
+/* 削除で消える記録の件数（確認ダイアログ＋幹事メニューの「選手の完全削除」用・§7 PR2）:
+   parts=参加コンペ数 / holes=入力済みスコアのホール数 / team=チーム所属数（コンペ横断の延べ数）/
+   rep=ルーレット代表ホール数 / prize=受賞件数 / m1=1on1 試合数。
+   参加者・スコア・チーム所属は読み出し側の実在フィルタで無害化されるので audit（#177A）の検出対象外だが、
+   「完全削除で何が消えるか」を幹事に見せるための件数としてはここで数える（delPlayer の掃除範囲と同じ6種）。 */
+function delPlayerRefs(id){ let parts=0, holes=0, team=0, rep=0, prize=0, m1=0;
   state.games.forEach(g=>{
+    if((g.participants||[]).includes(id)) parts++;
+    const sc=g.scores&&g.scores[id];
+    if(Array.isArray(sc)) holes+=sc.filter(v=>v!=null&&v!=='').length;   // 空文字も未入力扱い（calc.js の teamScoreMembers と同じ条件に揃える）
+    team+=(g.teams||[]).filter(tm=>(tm.memberIds||[]).includes(id)).length;
     const R=g.roulette;
     if(R&&R.reps) for(const h in R.reps){ const rp=R.reps[h];
       if(rp&&Object.keys(rp).some(tid=>rp[tid]===id)) rep++; }
@@ -178,11 +186,13 @@ function delPlayerRefs(id){ let rep=0, prize=0, m1=0;
     const pairs=g.match1v1&&g.match1v1.pairs;
     if(Array.isArray(pairs)) m1+=pairs.filter(p=>Array.isArray(p)&&p.includes(id)).length;
   });
-  return {rep,prize,m1}; }
-// 確認ダイアログの文面: 参照0件なら従来どおり confirm.delete のみ（余計な文言を出さない）
+  return {parts,holes,team,rep,prize,m1}; }
+// 確認ダイアログの文面: 参照0件なら従来どおり confirm.delete のみ（余計な文言を出さない＝新規選手の削除は1クリック相当）
 function delPlayerMsg(id){ const r=delPlayerRefs(id); const parts=[];
-  if(r.rep)   parts.push(t('confirm.delRefRep',{n:r.rep}));
+  if(r.parts) parts.push(t('confirm.delRefParts',{n:r.parts}));
+  if(r.holes) parts.push(t('confirm.delRefScore',{n:r.holes}));
   if(r.prize) parts.push(t('confirm.delRefPrize',{n:r.prize}));
+  if(r.rep)   parts.push(t('confirm.delRefRep',{n:r.rep}));
   if(r.m1)    parts.push(t('confirm.delRefM1',{n:r.m1}));
   return parts.length? t('confirm.delPlayerRefs',{v:parts.join(' / ')}) : t('confirm.delete'); }
 function delPlayer(id){ if(!confirm(delPlayerMsg(id)))return;
