@@ -371,6 +371,11 @@
   .sc2 .parr td{color:var(--ink);font-size:10px;font-weight:var(--w-bold)}
   .sc2 .tsum td{font-size:11px;background:var(--surface-1)}
   .sc2 .winc{background:var(--win-bg) !important;font-weight:var(--w-bold);color:var(--win-ink)}
+  /* ベスト2ボールタブの採用セル（2026-09-13-best2-per-hole.md §7.2・#192 のインライン暫定からの移設）。
+     機能色の意味「採用=枠」＝面のベタ塗りはしない（CLAUDE.md）。×2 は1名を2回採用したホールの文字併記。
+     新規トークンなし（--win / --sub / --w-bold のみ）。背景は触らないので .hh（隠しホール）と共存する */
+  .sc2 .b2c{box-shadow:inset 0 0 0 2px var(--win);font-weight:var(--w-bold)}
+  .sc2 .b2x{font-size:9px;vertical-align:super;color:var(--sub)}
   @media(min-width:560px){ .sc2{font-size:14px} .sc2 col.cnm{width:82px} .sc2.uvsc col.cnm{width:118px} .sc2 col.cs{width:42px} .sc2 td.nm,.sc2 th.nm{font-size:13px} .sc2 th,.sc2 td{height:28px} }
   /* two-column (未使用でも保持) */
   .ind-split{display:flex;gap:12px;align-items:flex-start}
