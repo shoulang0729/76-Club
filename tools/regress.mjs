@@ -364,6 +364,52 @@ const CASES = {
       olympic: false, callaway: false, nassau: false, vegas: false, match1v1: false,
       univMatch: false, customMatch: false },
   }) },
+  // Q) ベスト2ボール＝ホール別採用（β・2026-09-13-best2-per-hole.md §11.2）: 4名×3チーム・全員18H入力。
+  //    チーム構成とスコア式は team3 と同一（差分の出どころを formats/announced だけに限定する）。
+  //    ★ホールごとに採用者が入れ替わることの固定: 新方式 [124,110,106]（グリーン勝ち）／
+  //    旧方式（ラウンド単位でネット上位2名）なら [128.8,122,111] になるので、誤って旧式に戻ると必ず落ちる。
+  best2Hole: { channel: 'b', game: baseGame({
+    teams: [
+      { id: 'T1', name: 'レッド', memberIds: ['p01', 'p02', 'p03', 'p04'] },
+      { id: 'T2', name: 'ブルー', memberIds: ['p05', 'p06', 'p07', 'p08'] },
+      { id: 'T3', name: 'グリーン', memberIds: ['p09', 'p10', 'p11', 'p12'] },
+    ],
+    participants: ALL.slice(),
+    scores: mkScores(ALL, (pi, h) => ((pi * 5 + h * 3 + (pi * h) % 4) % 6) - 2),
+    announced: { best2ball: true },
+    formats: { gross: true, net: true, best2ball: true, teamGross: false, teamNet: false, holeByHole: false,
+      roulette: false, niadoraInd: false, niadoraTeam: false, stableford: false, olympic: false, callaway: false,
+      nassau: false, vegas: false, match1v1: false, univMatch: false, customMatch: false },
+  }) },
+  // R) ベスト2ボール × 2名そろわないホール（β・同設計 §5.1）: 2名×2チーム。T2 の p06 が13番以降未入力。
+  //    ★「1名しかいないホールはその1名を2回採用」の固定: 新方式 [159,140]（ブルー勝ち）。
+  //    ①そのホールを飛ばす実装なら T2 が小さくなりすぎ ②1名分だけ足す実装なら中途半端な値 → どちらも落ちる。
+  best2Short: { channel: 'b', game: baseGame({
+    teams: [ { id: 'T1', name: 'レッド', memberIds: ['p01', 'p02'] },
+             { id: 'T2', name: 'ブルー', memberIds: ['p05', 'p06'] } ],
+    participants: ['p01', 'p02', 'p05', 'p06'],
+    // ★p06（pi===3）は13番(h>=12)以降が未入力＝そのホールは p05 を2回採用（設計 §5.1）
+    scores: mkScores(['p01', 'p02', 'p05', 'p06'], (pi, h) => (pi === 3 && h >= 12) ? null : ((pi * 5 + h * 3 + (pi * h) % 4) % 6) - 2),
+    announced: { best2ball: true },
+    formats: { gross: true, net: true, best2ball: true, teamGross: false, teamNet: false, holeByHole: false,
+      roulette: false, niadoraInd: false, niadoraTeam: false, stableford: false, olympic: false, callaway: false,
+      nassau: false, vegas: false, match1v1: false, univMatch: false, customMatch: false },
+  }) },
+  // S) ベスト2ボール × 人数差（β・同設計 §5.2）: 1名／2名／3名の3チーム。
+  //    ★1名チーム＝その人のグロス×2（18ホールすべてが §5.1 に落ちる）。新方式 [122,159,123]（レッド勝ち）／旧方式は [122,133,131.8]。
+  best2Solo: { channel: 'b', game: baseGame({
+    teams: [
+      { id: 'T1', name: 'レッド', memberIds: ['p01'] },
+      { id: 'T2', name: 'ブルー', memberIds: ['p05', 'p06'] },
+      { id: 'T3', name: 'グリーン', memberIds: ['p09', 'p10', 'p11'] },
+    ],
+    participants: ['p01', 'p05', 'p06', 'p09', 'p10', 'p11'],
+    scores: mkScores(['p01', 'p05', 'p06', 'p09', 'p10', 'p11'], (pi, h) => ((pi * 5 + h * 3 + (pi * h) % 4) % 6) - 2),
+    announced: { best2ball: true },
+    formats: { gross: true, net: true, best2ball: true, teamGross: false, teamNet: false, holeByHole: false,
+      roulette: false, niadoraInd: false, niadoraTeam: false, stableford: false, olympic: false, callaway: false,
+      nassau: false, vegas: false, match1v1: false, univMatch: false, customMatch: false },
+  }) },
 };
 
 /* ============ vm 読込と実行 ============ */
