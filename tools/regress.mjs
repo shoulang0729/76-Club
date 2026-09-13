@@ -410,6 +410,75 @@ const CASES = {
       roulette: false, niadoraInd: false, niadoraTeam: false, stableford: false, olympic: false, callaway: false,
       nassau: false, vegas: false, match1v1: false, univMatch: false, customMatch: false },
   }) },
+  /* T) チーム対抗＝平均・人数が揃っている（α・docs/handoff/2026-09-12-team-score-average.md §10.2 P）:
+        team3 と**完全に同じ構成**＋ teamScoreMode:'avg'。差分の出どころを teamScoreMode だけに限定する。
+        ★同人数なら avg=sum/n は厳密な単調変換＝勝者・勝ち点・配分が team3 と同一になることを固定する
+        （teamGross [81.5,75.5,66.5] w[2] / teamNet [67.1,65.7,62.4] w[2] / wins [1.5,1.5,2]）。 */
+  teamAvgEven: { channel: 'a', game: baseGame({
+    teamScoreMode: 'avg',
+    teams: [
+      { id: 'T1', name: 'レッド', memberIds: ['p01', 'p02', 'p03', 'p04'] },
+      { id: 'T2', name: 'ブルー', memberIds: ['p05', 'p06', 'p07', 'p08'] },
+      { id: 'T3', name: 'グリーン', memberIds: ['p09', 'p10', 'p11', 'p12'] },
+    ],
+    participants: ALL.slice(),
+    scores: mkScores(ALL, (pi, h) => ((pi * 5 + h * 3 + (pi * h) % 4) % 6) - 2),
+    prizePool: 30000,
+    prizes: { niapinWinner: { 2: 'p01', 7: 'p05', 11: 'p09', 16: 'p02' }, draconWinner: { 4: 'p06' } },
+    points: { teamEventPts: { teamGross: 2, niadora: 3 } },
+    roulette: { cur: 4, reps: {
+      0: { T1: 'p01', T2: 'p05', T3: 'p09' }, 1: { T1: 'p02', T2: 'p06', T3: 'p10' },
+      2: { T1: 'p03', T2: 'p07' }, 3: { T1: 'p04', T2: 'p08', T3: 'p12' } } },
+    announced: { teamGross: true, holeByHole: true, niadora: true },
+    kanjiBadge: true,
+    kanjiRanks: { r1: { enabled: true, dir: 'down' }, r2: { enabled: true, dir: 'down' }, booby: { enabled: true, dir: 'up' } },
+    formats: { gross: true, net: true, teamGross: true, teamNet: true, holeByHole: true, roulette: true,
+      niadoraInd: true, niadoraTeam: true, stableford: false, olympic: false, callaway: false,
+      nassau: false, best2ball: false, vegas: false, match1v1: false },
+  }) },
+  /* U) チーム対抗＝平均・人数差で勝者が入れ替わる（α・同設計 §10.2 Q）:
+        ghostMember と**完全に同じ構成**＋ teamScoreMode:'avg'（T1 は p04 がゴースト＝実質3名）。
+        合計では T1 が勝つ（[238,302,266] w[0]）が、平均では T3 が勝つ（[79.3,75.5,66.5] w[2]・wins [1,1,3]）
+        ＝Issue #171 の実害（3名チームが人数の少なさだけで優勝）が解消することを固定する。
+        ゴースト除外（#151）と平均の併用も同時に検出する。 */
+  teamAvgUneven: { channel: 'a', game: baseGame({
+    teamScoreMode: 'avg',
+    teams: [
+      { id: 'T1', name: 'レッド', memberIds: ['p01', 'p02', 'p03', 'p04'] },
+      { id: 'T2', name: 'ブルー', memberIds: ['p05', 'p06', 'p07', 'p08'] },
+      { id: 'T3', name: 'グリーン', memberIds: ['p09', 'p10', 'p11', 'p12'] },
+    ],
+    participants: ALL.filter(p => p !== 'p04'),                       // ★p04 は memberIds に残したまま＝ゴースト
+    scores: mkScores(ALL, (pi, h) => ((pi * 5 + h * 3 + (pi * h) % 4) % 6) - 2),   // ★p04 のスコアも残す
+    prizePool: 30000,
+    prizes: { niapinWinner: { 2: 'p04', 7: 'p05', 11: 'p09', 16: 'p02' }, draconWinner: { 4: 'p04' } },
+    points: { teamEventPts: { teamGross: 2, niadora: 3 } },
+    roulette: { cur: 4, reps: {
+      0: { T1: 'p01', T2: 'p05', T3: 'p09' }, 1: { T1: 'p02', T2: 'p06', T3: 'p10' },
+      2: { T1: 'p03', T2: 'p07' }, 3: { T1: 'p04', T2: 'p08', T3: 'p12' } } },
+    announced: { teamGross: true, holeByHole: true, niadora: true },
+    kanjiBadge: true,
+    kanjiRanks: { r1: { enabled: true, dir: 'down' }, r2: { enabled: true, dir: 'down' }, booby: { enabled: true, dir: 'up' } },
+    formats: { gross: true, net: true, teamGross: true, teamNet: true, holeByHole: true, roulette: true,
+      niadoraInd: true, niadoraTeam: true, stableford: false, olympic: false, callaway: false,
+      nassau: false, best2ball: false, vegas: false, match1v1: false },
+  }) },
+  /* V) ★平均の母数＝「1H以上入力済み」メンバー（β・同設計 §10.2 R / §3）:
+        T1 は4名登録だが p04 が1打も未入力（effGross=0 / netScore=0）。母数を登録4名にした誤実装なら
+        teamGross [59.5,75.5] w[0]（＝人類に不可能なスコア）になる。正しくは238÷3で [79.3,75.5] w[1]。
+        合計モードとも勝者が逆（合計は [238,302] w[0]）＝母数の取り違えを必ず落とす。 */
+  teamAvgUnentered: { channel: 'a', game: baseGame({
+    teamScoreMode: 'avg',
+    teams: [ { id: 'T1', name: 'レッド', memberIds: ['p01', 'p02', 'p03', 'p04'] },
+             { id: 'T2', name: 'ブルー', memberIds: ['p05', 'p06', 'p07', 'p08'] } ],
+    participants: ALL.slice(0, 8),
+    // ★p04（pi===3）は全ホール未入力＝effGross 0 / netScore 0（設計 §3.1）。他は team3 と同じ式
+    scores: mkScores(ALL.slice(0, 8), (pi, h) => pi === 3 ? null : ((pi * 5 + h * 3 + (pi * h) % 4) % 6) - 2),
+    announced: { teamGross: true, teamNet: true },
+    formats: { gross: true, net: true, teamGross: true, teamNet: true, holeByHole: false, roulette: false,
+      niadoraInd: false, niadoraTeam: false, stableford: false, olympic: false, callaway: false,
+      nassau: false, best2ball: false, vegas: false, match1v1: false, univMatch: false, customMatch: false },
+  }) },
 };
 
 /* ============ vm 読込と実行 ============ */
