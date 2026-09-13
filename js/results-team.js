@@ -151,7 +151,10 @@ function renderTeamOverall(g){
   /* 種目別勝ち点表（result-share §3.2 で「実値＋勝ち点」に拡張）: 行=成立種目・列=チーム。
      勝ち=緑＋実値＋獲得勝ち点・山分け=橙＋実値＋獲得分・負け=実値のみ（地色なし）・対象外=—。
      未確定(!on)行=ラベルに「未確定」タグ＋全チーム？マスク（実値も勝ち点も描かない＝勝者ネタバレ防止・D6/§3.1）。
-     4チーム以上は .tp-mx-d（dense）で字を詰める（§3.5・新規トークンなし＝--f-rl-name の係数違い）。
+     .tp-mx-d（dense）で字を詰める条件は「4チーム以上 **または** 狭幅（scNarrow＝<1024px）」（§3.5 を PM 判断で拡張）。
+     設計は 4チーム以上だけを条件にしていたが、実測で 375px×3チームが溢れた（317→345px・カード高 966→1576px）。
+     原因は行数ではなく値幅で、「285.6+1」で列幅が 92〜117px になりラベル列が 37〜39px まで潰れて1文字ずつ折返すため。
+     dense を当てると 375px の ja/zh/en とも 317/317・高さ 879〜895px に収まる（実測）。
      行順・列・勝ち/山分けの色分けは不変（TP_EV_ORDER・teamWinPoints が正） */
   const mxHead=`<tr><th class="tal">${t('team.matrixTitle')}</th>${M.cols.map(c=>
     `<th style="color:${c.color}">${c.nameEsc}</th>`).join('')}</tr>`;
@@ -175,7 +178,7 @@ function renderTeamOverall(g){
   return `<div class="card">
     ${meta?`<div class="muted">${meta}</div>`:''}
     <div class="rl-standing tp-ovh-wrap">${hero}</div>
-    <div class="scroll mt10"><table class="lb tp-mx${M.cols.length>=4?' tp-mx-d':''}">${mxHead}${mxRows}</table></div>
+    <div class="scroll mt10"><table class="lb tp-mx${(M.cols.length>=4||scNarrow())?' tp-mx-d':''}">${mxHead}${mxRows}</table></div>
     <div class="muted mt6">${t('team.noteOverall')}</div>
     <div class="muted">${t('team.noteAnnounce')}</div>
     <div class="muted">${t('pts.teamRank')}: ${(P.teamRankPts||[]).join(', ')}</div>
