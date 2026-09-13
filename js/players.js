@@ -176,7 +176,7 @@ function delPlayerRefs(id){ let parts=0, holes=0, team=0, rep=0, prize=0, m1=0;
   state.games.forEach(g=>{
     if((g.participants||[]).includes(id)) parts++;
     const sc=g.scores&&g.scores[id];
-    if(Array.isArray(sc)) holes+=sc.filter(v=>v!=null).length;
+    if(Array.isArray(sc)) holes+=sc.filter(v=>v!=null&&v!=='').length;   // 空文字も未入力扱い（calc.js の teamScoreMembers と同じ条件に揃える）
     team+=(g.teams||[]).filter(tm=>(tm.memberIds||[]).includes(id)).length;
     const R=g.roulette;
     if(R&&R.reps) for(const h in R.reps){ const rp=R.reps[h];
