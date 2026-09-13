@@ -54,23 +54,9 @@ const baseGame = (over) => Object.assign({
   announced: {},
 }, over);
 
-const CASES = {
-  // A) 個人戦フルセット（β・12名・p12 は前半9Hのみ入力=経過）: ペリア/エブリ/ステーブル/オリンピック/
-  //    キャロウェイ/握り(ナッソー)/NPDC個人配点/payout/nextKanji(既定=2位下・ブービー上)
-  indBasic: { channel: 'b', game: baseGame({
-    participants: ALL.slice(),
-    scores: mkScores(ALL, (pi, h) => (pi === 11 && h >= 9) ? null : ((pi * 7 + h * 5) % 7) - 2),
-    periaCap: 30, prizePool: 10000,
-    prizes: { niapinWinner: { 2: 'p03', 7: 'p08', 11: 'p01', 16: 'p05' }, draconWinner: { 4: 'p02', 13: 'p10' } },
-    formats: { gross: true, net: true, stableford: true, olympic: true, callaway: true, nassau: true,
-      niadoraInd: true, niadoraTeam: false, roulette: false, teamGross: false, teamNet: false,
-      holeByHole: false, best2ball: false, vegas: false, match1v1: false },
-  }) },
-  // B) チーム戦3チーム（α）: 種目別勝ち点の「重み」(teamGross=2/niadora=3)と「連携」
-  //    （announced= teamGross/holeByHole/niadora のみ→ teamNet/roulette は未確定=勝ち点0）、
-  //    ニアドラ同数タイの山分け(T1=T2=2本→w3を1.5ずつ)、ルーレット(cur=4・h2は代表欠け=pending)、
-  //    幹事3対象(1位down/2位down/ブービーup・免除 p04/p10)
-  team3: { channel: 'a', game: baseGame({
+/* team3 のゲーム定義（ケース B と B' で共有）。retiredNoop は「ゲームデータは完全に同一で players だけが違う」
+   ことを構造で保証するため、同じオブジェクトを参照する（__CASES は case ごとに JSON 直列化される＝相互干渉なし）。 */
+const TEAM3_GAME = baseGame({
     teams: [
       { id: 'T1', name: 'レッド', memberIds: ['p01', 'p02', 'p03', 'p04'] },
       { id: 'T2', name: 'ブルー', memberIds: ['p05', 'p06', 'p07', 'p08'] },
@@ -90,7 +76,30 @@ const CASES = {
     formats: { gross: true, net: true, teamGross: true, teamNet: true, holeByHole: true, roulette: true,
       niadoraInd: true, niadoraTeam: true, stableford: false, olympic: false, callaway: false,
       nassau: false, best2ball: false, vegas: false, match1v1: false },
+  });
+
+const CASES = {
+  // A) 個人戦フルセット（β・12名・p12 は前半9Hのみ入力=経過）: ペリア/エブリ/ステーブル/オリンピック/
+  //    キャロウェイ/握り(ナッソー)/NPDC個人配点/payout/nextKanji(既定=2位下・ブービー上)
+  indBasic: { channel: 'b', game: baseGame({
+    participants: ALL.slice(),
+    scores: mkScores(ALL, (pi, h) => (pi === 11 && h >= 9) ? null : ((pi * 7 + h * 5) % 7) - 2),
+    periaCap: 30, prizePool: 10000,
+    prizes: { niapinWinner: { 2: 'p03', 7: 'p08', 11: 'p01', 16: 'p05' }, draconWinner: { 4: 'p02', 13: 'p10' } },
+    formats: { gross: true, net: true, stableford: true, olympic: true, callaway: true, nassau: true,
+      niadoraInd: true, niadoraTeam: false, roulette: false, teamGross: false, teamNet: false,
+      holeByHole: false, best2ball: false, vegas: false, match1v1: false },
   }) },
+  // B) チーム戦3チーム（α）: 種目別勝ち点の「重み」(teamGross=2/niadora=3)と「連携」
+  //    （announced= teamGross/holeByHole/niadora のみ→ teamNet/roulette は未確定=勝ち点0）、
+  //    ニアドラ同数タイの山分け(T1=T2=2本→w3を1.5ずつ)、ルーレット(cur=4・h2は代表欠け=pending)、
+  //    幹事3対象(1位down/2位down/ブービーup・免除 p04/p10)
+  team3: { channel: 'a', game: TEAM3_GAME },
+  // B') 退会フラグ（2026-09-13-player-delete-refs.md §8.2）: ゲームは team3 と**完全に同一**（同じ TEAM3_GAME）で、
+  //     違いは players の p03/p04 が retired:true であることだけ。退会は §3 の計算から一切見えないので
+  //     期待値は team3 と完全一致するはず（一致しなくなったら＝計算が retired を読み始めた証拠＝PR 差し戻し）。
+  retiredNoop: { channel: 'a', players: PLAYERS.map(p => ({ ...p, retired: p.id === 'p03' || p.id === 'p04' })),
+    game: TEAM3_GAME },
   // C) 2チーム×2名（β）: ラスベガス（フリップ＋ダブルパー上限）/ ベスト2 / 1on1マッチ（2試合）/ 全種目連携済み
   team2Vegas: { channel: 'b', game: baseGame({
     teams: [
@@ -490,7 +499,7 @@ const sandbox = {
   localStorage: { getItem: () => null, setItem: () => {}, removeItem: () => {} },
   window: { matchMedia: () => ({ matches: false, addEventListener() {} }), addEventListener() {} },
   __CASES: JSON.stringify(Object.fromEntries(Object.entries(CASES).map(([k, c]) =>
-    [k, { channel: c.channel, state: { players: PLAYERS, games: [c.game], currentGameId: c.game.id } }]))),
+    [k, { channel: c.channel, state: { players: c.players || PLAYERS, games: [c.game], currentGameId: c.game.id } }]))),
 };
 const driver = `
 globalThis.__RESULTS = {};

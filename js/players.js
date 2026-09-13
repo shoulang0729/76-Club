@@ -1,4 +1,7 @@
 /* ============================ PLAYERS ============================ */
+/* 退会者一覧の開閉（2026-09-13-player-delete-refs.md §5）: 揮発の表示状態＝localStorage に入れない（キーは5つのまま）。
+   sdPat / auditRan と同じ流儀でモジュールスコープに持つ。 */
+let plShowRetired=false;
 function renderPlayers(){
   const el=document.getElementById('view-players');
   const g=curGame();
@@ -7,9 +10,12 @@ function renderPlayers(){
   const TL={label:t('team.colorLabel'),auto:t('team.colorAuto'),red:t('tmc.red'),blue:t('tmc.blue'),green:t('tmc.green'),yellow:t('tmc.yellow'),gray:t('tmc.gray'),
     purple:t('tmc.purple'),orange:t('tmc.orange'),teal:t('tmc.teal'),pink:t('tmc.pink'),lime:t('tmc.lime')};
   // 参加者・チーム対抗カード（ゲーム未選択時は msg.needGame を1つ表示）（§11.12 N）
+  /* 参加者候補（§6.2）: 現役＋「すでに participants に入っている退会者」だけを出す（後者は外せないと困るので残す）。
+     並びは現役→退会（filter 2本の連結）。退会者チップには tag を付けて区別する */
+  const partCand = g ? [...state.players.filter(p=>!p.retired), ...state.players.filter(p=>p.retired&&g.participants.includes(p.id))] : [];
   const gameCards = !g ? `<div class="empty">${t('msg.needGame')}</div>`
     : `<div class="card"><h2>${t('game.partsCard')}</h2>
-    ${state.players.length? state.players.map(p=>`<span class="chip ${g.participants.includes(p.id)?'on':''}" onclick="toggleParticipant('${p.id}')">${esc(p.name)}${p.everyType!=='none'?' '+everyLabel(p.everyType):''}</span>`).join('')
+    ${partCand.length? partCand.map(p=>`<span class="chip ${g.participants.includes(p.id)?'on':''}" onclick="toggleParticipant('${p.id}')">${esc(p.name)}${p.everyType!=='none'?' '+everyLabel(p.everyType):''}${p.retired?`<span class="tag">${t('player.retiredTag')}</span>`:''}</span>`).join('')
       : `<div class="muted">${t('game.partsEmpty')}</div>`}
   </div>
   <div class="card"><h2>${t('game.teamCard')}</h2>
@@ -45,9 +51,9 @@ function renderPlayers(){
       <div class="muted">${t('player.note')}</div>
     </div>
     <div class="card">
-      <h2>${t('player.registered',{n:state.players.length})}</h2>
+      <h2>${t('player.registered',{n:plActive().length})}</h2>
       ${state.players.length? `<div class="scroll"><table><tr><th>${t('player.colName')}</th><th>${t('player.colGender')}</th><th>${t('player.colBirth')}</th><th>${t('player.colType')}</th><th>${t('player.colExempt')}</th><th></th></tr>
-        ${state.players.map(p=>`<tr>
+        ${plActive().map(p=>`<tr>
           <td style="text-align:left;white-space:nowrap">${esc(p.name)}</td>
           <td><select style="padding:4px;font-size:12px" onchange="setPlayerField('${p.id}','gender',this.value)"><option value="M" ${p.gender!=='F'?'selected':''}>${t('player.m')}</option><option value="F" ${p.gender==='F'?'selected':''}>${t('player.f')}</option></select></td>
           <td><input type="date" style="padding:3px;font-size:11px" value="${p.birth||''}" onchange="setPlayerField('${p.id}','birth',this.value||null)"></td>
@@ -57,8 +63,22 @@ function renderPlayers(){
             <option value="every2" ${p.everyType==='every2'?'selected':''}>E2(−36)</option></select></td>
           <td><input type="checkbox" ${p.kanjiExempt?'checked':''} onchange="setPlayerKanji('${p.id}',this.checked)"></td>
           <td><button class="btn sm gray" onclick="editPlayer('${p.id}')">✎</button>
-              <button class="btn sm danger" onclick="delPlayer('${p.id}')">×</button></td>
-        </tr>`).join('')}</table></div>` : `<div class="empty">${t('player.empty')}</div>`}
+              ${plHasRecord(p.id)
+                ? `<button class="btn sm gray" onclick="setPlayerRetired('${p.id}',true)">${t('player.retire')}</button>`
+                : `<button class="btn sm danger" onclick="delPlayer('${p.id}')">×</button>`}</td>
+        </tr>`).join('')}
+        ${plRetired().length? `<tr><td colspan="6" style="text-align:left">
+          <span class="chip ${plShowRetired?'on':''}" onclick="toggleRetiredList()">${plShowRetired?t('player.hideRetired'):t('player.showRetired',{n:plRetired().length})}</span></td></tr>` : ''}
+        ${(plShowRetired&&plRetired().length)? `<tr><td colspan="6" class="muted" style="text-align:left">${t('player.retiredHead',{n:plRetired().length})}</td></tr>
+        ${plRetired().map(p=>`<tr class="muted">
+          <td style="text-align:left;white-space:nowrap">${esc(p.name)}<span class="tag">${t('player.retiredTag')}</span></td>
+          <td>${p.gender==='F'?t('player.f'):t('player.m')}</td>
+          <td>${p.birth||'—'}</td>
+          <td>${everyLabel(p.everyType)}</td>
+          <td>${p.kanjiExempt?'✓':'—'}</td>
+          <td><button class="btn sm gray" onclick="setPlayerRetired('${p.id}',false)">${t('player.unretire')}</button></td>
+        </tr>`).join('')}` : ''}</table></div>
+        ${(plShowRetired&&plRetired().length)? `<div class="muted">${t('player.retiredNote')}</div>` : ''}` : `<div class="empty">${t('player.empty')}</div>`}
     </div>
     ${gameCards}`;   // バックアップは state 丸ごと＝コンペ横断なので「コンペ設定」タブへ移設（#166③・renderBasic）
 }
@@ -112,7 +132,8 @@ function addPlayer(){
   const n=document.getElementById('pName').value.trim(); if(!n) return toast(t('toast.enterName'));
   state.players.push({id:uid(),name:n,gender:document.getElementById('pGender').value,
     birth:document.getElementById('pBirth').value||null,
-    everyType:document.getElementById('pEvery').value, kanjiExempt:document.getElementById('pKanji').checked});
+    everyType:document.getElementById('pEvery').value, kanjiExempt:document.getElementById('pKanji').checked,
+    retired:false});   // 退会フラグは明示して push（newGame() が既定値を明示しているのと同じ流儀・§5）
   save(); renderPlayers(); toast(t('toast.added'));
 }
 function setPlayerField(id,field,val){ state.players.find(p=>p.id===id)[field]=val; save(); }
@@ -121,6 +142,22 @@ function editPlayer(id){ const p=state.players.find(x=>x.id===id);
   save(); renderPlayers(); }
 function setPlayerEvery(id,v){ state.players.find(p=>p.id===id).everyType=v; save(); }
 function setPlayerKanji(id,v){ state.players.find(p=>p.id===id).kanjiExempt=v; save(); }
+/* ---- 退会フラグ（#171 PR1・docs/handoff/2026-09-13-player-delete-refs.md §4.3/§6.1）----
+   退会は「マスタ一覧と参加者候補から隠す」だけの表示フラグ。state.players からは消さないので
+   teamMembers / evPer / uvHdcpA / タイブレーク等の §3 計算は一切影響を受けない（＝過去コンペの
+   値・勝者・配分が1ビットも変わらない）。復帰はフラグを false に戻すだけ。 */
+function plActive(){ return state.players.filter(p=>!p.retired); }
+function plRetired(){ return state.players.filter(p=>p.retired); }
+function toggleRetiredList(){ plShowRetired=!plShowRetired; renderPlayers(); }   // 揮発（save() しない）
+/* 記録を1つでも持つ選手か（持つ＝マスタ行から × を出さず「退会」だけにする・§6.1 / Q2）。
+   参加者・スコア・チーム所属に加え、delPlayerRefs の直接参照（代表/受賞/1on1）も見る */
+function plHasRecord(id){ const r=delPlayerRefs(id);
+  if(r.rep||r.prize||r.m1) return true;
+  return state.games.some(g=>(g.participants||[]).includes(id) || (g.scores&&g.scores[id])
+    || (g.teams||[]).some(tm=>(tm.memberIds||[]).includes(id))); }
+function setPlayerRetired(id,v){ const p=state.players.find(x=>x.id===id); if(!p)return;
+  if(v && !confirm(t('confirm.retire',{v:p.name})))return;   // 復帰は確認なし（失うものが無い）
+  p.retired=!!v; save(); renderPlayers(); }
 /* ---- 選手削除（#171）----
    選手IDを保持するフィールドは participants / scores / teams.memberIds だけではない。
    roulette.reps・roulette.pool・prizes.*Winner*・match1v1.pairs は teamMembers() の実在絞り込み（#151）を

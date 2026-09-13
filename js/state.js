@@ -14,6 +14,7 @@ function migrate(s){
     if(p.kanjiExempt===undefined) p.kanjiExempt=false;
     if(p.gender===undefined) p.gender='M';
     if(p.birth===undefined) p.birth=null;             // 生年月日(YYYY-MM-DD)。同ネットのタイブレークに使用
+    if(p.retired===undefined) p.retired=false;        // 退会フラグ（2026-09-13-player-delete-refs.md §5）。表示から隠すだけ＝§3 の計算は一切参照しない
   });
   /* コースライブラリ（2026-09-06-course-master.md §4.4）。localStorage キーは増やさない（golfCompe_v1 内）。
      ★防御的正規化：nines[].par は必ず9要素。ここが崩れると読込時の g.par が18要素でなくなり §3 に波及する
