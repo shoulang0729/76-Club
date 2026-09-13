@@ -84,6 +84,12 @@ function teamRanked(g, valFn, dir){
    チーム集計・表示は必ず teamMembers(g,T)＝T.memberIds ∩ g.participants かつ選手マスターに実在、で絞る。
    teamsOf(g)＝参加メンバーが1人以上のチーム（参加者ゼロのチームは対抗の対象にしない＝vegasStandings/m1Teams と同型）。 */
 function teamMembers(g,T){ return T.memberIds.filter(pid=>g.participants.includes(pid)&&state.players.find(x=>x.id===pid)); }
+/* ★2026-09-13 スコア集計の共通母数（Issue #186）: teamMembers かつ「1H以上入力済み」。
+   未入力の選手は effGross/netScore が 0 を返す（＝実在しない最良スコア）ため、チームのスコアを
+   足す/選ぶ/平均する集計は必ずこの母数で行う。判定に「登録人数」が要る用途（人数表示・
+   ルーレット代表の有無など）は従来どおり teamMembers を使う（本関数で置き換えない）。
+   条件は teamWinPoints の entered / uvMembers（§4.2）と同一＝以後はこの1本に寄せる。 */
+function teamScoreMembers(g,T){ return teamMembers(g,T).filter(pid=>(g.scores[pid]||[]).some(v=>v!=null&&v!=='')); }
 function teamsOf(g){ return g.teams.filter(t=>teamMembers(g,t).length); }
 function holesWon(g){
   const teams=teamsOf(g); const won=teams.map(()=>0);
@@ -95,7 +101,11 @@ function holesWon(g){
   }
   return {teams,won};
 }
-function best2(g,t){ const m=teamMembers(g,t); if(!m.length)return null;
+/* ベスト2ボール（§3）: ラウンド単位でチーム内のネット上位2名の合計。
+   ★2026-09-13 Issue #186: 母数を teamScoreMembers（1H以上入力済み）に限定。従来は teamMembers 全員を
+   並べていたため、未入力メンバーの netScore=0 が「最良ボール」として採用されていた（欠席者がいるチームが必勝）。
+   方式（ラウンド単位・上位2名・入力済み1名ならその1名を2回）は従来どおり。入力済み0名は null＝種目の対象外。 */
+function best2(g,t){ const m=teamScoreMembers(g,t); if(!m.length)return null;
   const ns=m.map(pid=>netScore(g,pid)).sort((a,b)=>a-b); return Math.round((ns[0]+(ns[1]||ns[0]))*10)/10; }
 
 /* ---- ラスベガス（Vegas・§11.11）: 2人組の2桁合体・フリップ・点差累積。独立集計＝payout非干渉 ---- */
@@ -167,7 +177,8 @@ function uvHdcpA(g,pid){
 // ネット＝グロス−HDCP（数学的に小数第1位で確定。0.1丸めは浮動小数ノイズ除去のみ＝値は不変）
 function uvNetA(g,pid){ return Math.round((uvGrossA(g,pid)-uvHdcpA(g,pid))*10)/10; }
 // §4.2 集計母数: ①参加中 ②選手マスターに実在 ③1H以上入力済み（teamWinPoints の entered と同型・§12 既定事項3）
-function uvMembers(g,T){ return teamMembers(g,T).filter(pid=> (g.scores[pid]||[]).some(v=>v!=null&&v!=='')); }
+// ★2026-09-13 Issue #186: 条件が teamScoreMembers と同一（文字どおり同じ式）だったので委譲＝二重管理の解消（値は不変）
+function uvMembers(g,T){ return teamScoreMembers(g,T); }
 /* §4.2/§4.3 学校成績: 対象者=ネット昇順N名（同ネットはグロス→memberIds 登録順＝安定ソート）。
    r4=[対象平均ネット, 対象平均グロス, 全員平均ネット, 全員平均グロス]（比較用に小数第4位丸め・辞書式昇順）。
    Q4 切替ポイント: 規定の③④が「合計」と判明したら avg(...)→Σ(...) の1行変更で対応（§4.3）。 */

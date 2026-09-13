@@ -342,6 +342,28 @@ const CASES = {
       stableford: false, olympic: false, callaway: false, nassau: false, best2ball: false,
       vegas: false, match1v1: false },
   }) },
+  // P) ベスト2ボール × 未入力メンバー（β・Issue #186）: 参加者だが1打も入力していないメンバーを含む構成。
+  //    修正前は netScore=0（未入力）が「最良のボール」として採用され、欠席者がいるチームが必ず勝っていた。
+  //    ・T1: p04 が全ホール未入力（participants には居る＝ゴースト #151 とは別物）→ best2 は p01/p02/p03 の上位2名
+  //    ・T2: 4名全員入力済み＝母数の絞り込みで値が1打も動かないことの固定
+  //    ・T3: 入力済みが p09 の1名だけ（p10/p11 は未入力）→ ns[1]||ns[0]＝その1名のネット×2（既存仕様の維持）
+  //    teamNet/teamGross は従来どおり teamMembers 全員の合計（未入力は 0 加算）＝本修正の非対象であることも併せて固定する。
+  best2Absent: { channel: 'b', game: baseGame({
+    teams: [
+      { id: 'T1', name: 'レッド', memberIds: ['p01', 'p02', 'p03', 'p04'] },
+      { id: 'T2', name: 'ブルー', memberIds: ['p05', 'p06', 'p07', 'p08'] },
+      { id: 'T3', name: 'グリーン', memberIds: ['p09', 'p10', 'p11'] },
+    ],
+    participants: ALL.slice(0, 11),
+    scores: mkScores(ALL.slice(0, 11), (pi, h) => (pi === 3 || pi === 9 || pi === 10) ? null   // p04/p10/p11 は1打も入力なし
+      : ((pi * 5 + h * 3 + (pi * h) % 4) % 6) - 2),
+    prizePool: 10000,
+    announced: { teamGross: true, teamNet: true, best2ball: true },
+    formats: { gross: true, net: true, teamGross: true, teamNet: true, best2ball: true,
+      holeByHole: false, roulette: false, niadoraInd: false, niadoraTeam: false, stableford: false,
+      olympic: false, callaway: false, nassau: false, vegas: false, match1v1: false,
+      univMatch: false, customMatch: false },
+  }) },
 };
 
 /* ============ vm 読込と実行 ============ */
