@@ -186,9 +186,11 @@ function sdBirth(i){ const y=1965+(i*7)%31, m=1+(i*5)%12, d=1+(i*11)%28;
 /* 選手マスターは同名なら再利用して属性を上書き（現行ロジック踏襲＝再生成しても選手が増えない・D5） */
 function sdPlayer(spec){
   let p=state.players.find(x=>x.name===spec.name);
-  if(!p){ p={id:uid(),name:spec.name,gender:spec.gender,birth:spec.birth,everyType:spec.everyType,kanjiExempt:spec.kanjiExempt};
+  // retired（2026-09-13-player-delete-refs.md §7 / Q6）: テストデータ生成は「現役として登録し直す」＝
+  // 同名の退会者を再利用したときも false に戻す（生成直後の一覧に選手が出ないのを防ぐ）
+  if(!p){ p={id:uid(),name:spec.name,gender:spec.gender,birth:spec.birth,everyType:spec.everyType,kanjiExempt:spec.kanjiExempt,retired:false};
     state.players.push(p); }
-  else { p.gender=spec.gender; p.birth=spec.birth; p.everyType=spec.everyType; p.kanjiExempt=spec.kanjiExempt; }
+  else { p.gender=spec.gender; p.birth=spec.birth; p.everyType=spec.everyType; p.kanjiExempt=spec.kanjiExempt; p.retired=false; }
   return p.id;
 }
 function sdRoster(p){

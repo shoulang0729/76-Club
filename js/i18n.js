@@ -25,6 +25,10 @@ ja: {
   'player.note':'性別・生年月日は<b>同ネット時のタイブレーク</b>に使用（女性→年長の順で上位）。ハンデ区分＝エブリなし/ワン/ツー。',
   'player.registered':'登録済み（{n}名）','player.colName':'名前','player.colGender':'性別','player.colBirth':'生年月日','player.colType':'ハンデ<br>区分','player.colExempt':'幹事<br>対象外',
   'player.empty':'まだ選手がいません',
+  /* 退会フラグ（2026-09-13-player-delete-refs.md §6.4）。退会＝一覧と参加者候補から隠すだけで計算には無関係 */
+  'player.retire':'退会','player.unretire':'復帰','player.retiredTag':'退会','player.retiredHead':'退会者（{n}名）',
+  'player.showRetired':'退会者を表示（{n}名）','player.hideRetired':'退会者を隠す',
+  'player.retiredNote':'退会者は新しいコンペの参加者候補に出ません（過去の記録・結果は変わりません）。',
   'backup.title':'バックアップ','backup.note':'端末保存なのでたまに書き出しを。機種変・データ消失に備えられます。','backup.export':'JSON書き出し','backup.import':'JSON読み込み',
   'game.title':'ゲーム（コンペ）','game.selectPh':'— 選択 —','game.newBtn':'＋新規',
   'game.emptyCreate':'ゲームを新規作成してください（動作確認は最下部の「幹事メニュー」から）',
@@ -223,6 +227,7 @@ ja: {
   'confirm.seedTest':'「{v}」のテストデータを新しいゲームとして作成します。よろしいですか？','confirm.rlReset':'ルーレットを最初からやり直しますか？',
   /* 選手削除の影響提示（#171）: この選手を参照している記録の件数を出してから消す */
   'confirm.delPlayerRefs':'この選手はコンペの記録にも含まれています（{v}）。削除するとこれらの記録も消え、結果が変わる場合があります。削除しますか？',
+  'confirm.retire':'{v} を退会にします。過去コンペの記録と結果はそのまま残ります。',
   'confirm.delRefRep':'ルーレット代表 {n}ホール','confirm.delRefPrize':'ニアピン/ドラコン受賞 {n}件','confirm.delRefM1':'1 on 1 {n}試合',
 },
 zh: {
@@ -249,6 +254,9 @@ zh: {
   'player.note':'性别与出生日期用于<b>净杆同分时的排序</b>（女性优先→年长优先）。差点类型＝无 / 每洞让1杆 / 每洞让2杆。',
   'player.registered':'已登记（{n}人）','player.colName':'名字','player.colGender':'性别','player.colBirth':'出生日期','player.colType':'差点<br>类型','player.colExempt':'干事<br>豁免',
   'player.empty':'还没有选手',
+  'player.retire':'退会','player.unretire':'恢复','player.retiredTag':'已退会','player.retiredHead':'已退会（{n}人）',
+  'player.showRetired':'显示已退会（{n}人）','player.hideRetired':'隐藏已退会',
+  'player.retiredNote':'已退会选手不会出现在新比赛的参赛候选中（过往记录与结果不变）。',
   'backup.title':'备份','backup.note':'数据保存在本机，请不时导出，以防换机或数据丢失。','backup.export':'导出JSON','backup.import':'导入JSON',
   'game.title':'比赛','game.selectPh':'— 选择 —','game.newBtn':'＋新建',
   'game.emptyCreate':'请新建比赛（可从最下方的「干事菜单」进行功能测试）',
@@ -444,6 +452,7 @@ zh: {
   'confirm.name':'名字','confirm.delete':'确定删除吗？','confirm.deleteGame':'确定删除此比赛吗？','confirm.clearScores':'确定清空所有成绩吗？',
   'confirm.seedTest':'将创建「{v}」的测试数据作为新比赛，确定吗？','confirm.rlReset':'确定从头重新开始轮盘吗？',
   'confirm.delPlayerRefs':'该选手也包含在比赛记录中（{v}）。删除后这些记录也会一并消失，成绩可能因此改变。确定删除吗？',
+  'confirm.retire':'将 {v} 设为已退会。过往比赛的记录与结果保持不变。',
   'confirm.delRefRep':'轮盘代表 {n}洞','confirm.delRefPrize':'近洞/远洞获奖 {n}项','confirm.delRefM1':'1 on 1 {n}场',
 },
 en: {
@@ -470,6 +479,9 @@ en: {
   'player.note':'Gender and birth date break <b>net-score ties</b> (female first, then elder). Handicap type = none / Every-1 / Every-2.',
   'player.registered':'Registered ({n})','player.colName':'Name','player.colGender':'Gender','player.colBirth':'Birth','player.colType':'HC<br>type','player.colExempt':'Org.<br>exempt',
   'player.empty':'No players yet',
+  'player.retire':'Retire','player.unretire':'Restore','player.retiredTag':'Retired','player.retiredHead':'Retired ({n})',
+  'player.showRetired':'Show retired ({n})','player.hideRetired':'Hide retired',
+  'player.retiredNote':'Retired players are hidden from new game rosters. Past records and results are unchanged.',
   'backup.title':'Backup','backup.note':'Data lives on this device — export occasionally to guard against device changes or data loss.','backup.export':'Export JSON','backup.import':'Import JSON',
   'game.title':'Game (Competition)','game.selectPh':'— Select —','game.newBtn':'+ New',
   'game.emptyCreate':'Create a new game (use the "Organizer menu" at the bottom for a demo)',
@@ -665,6 +677,7 @@ en: {
   'confirm.name':'Name','confirm.delete':'Delete?','confirm.deleteGame':'Delete this game?','confirm.clearScores':'Clear all scores?',
   'confirm.seedTest':'Create test data "{v}" as a new game?','confirm.rlReset':'Restart roulette from the start?',
   'confirm.delPlayerRefs':'This player also appears in competition records ({v}). Deleting removes those records and may change past results. Delete?',
+  'confirm.retire':'Mark {v} as retired? Past records and results stay unchanged.',
   'confirm.delRefRep':'roulette rep on {n} hole(s)','confirm.delRefPrize':'{n} nearpin/dracon award(s)','confirm.delRefM1':'{n} 1 on 1 match(es)',
 },
 };

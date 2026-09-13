@@ -104,7 +104,7 @@ net(pid)      = effGross(pid) − periaHdcp(pid)     # ← ネット個人戦。
 
 ```jsonc
 {
-  "players": [ { "id": "xxx", "name": "山田", "gender": "M" } ],   // gender: "M" | "F"
+  "players": [ { "id": "xxx", "name": "山田", "gender": "M", "retired": false } ],   // gender: "M" | "F" ／ ★2026-09-13 retired: bool（既定 false・退会）
   "games": [ {
     "id": "g1", "name": "第1回コンペ", "date": "2026-07-12", "course": "○○CC",
     "par":    [4,4,3,...],            // length 18
@@ -128,6 +128,8 @@ net(pid)      = effGross(pid) − periaHdcp(pid)     # ← ネット個人戦。
   "currentGameId": "g1"
 }
 ```
+
+- **★2026-09-13 追補【確定】（`docs/handoff/2026-09-13-player-delete-refs.md` が正）**: `players[]` に **`retired`（bool・既定 false）** を追加。**true＝退会**で、**選手マスター一覧と「参加者」候補チップから隠すためだけのフラグ**。**§3 の計算（`teamMembers` / `evPer` / ペリア / タイブレーク / 次回幹事 / 賞金ポイント配分ほか）は `retired` を一切参照しない**＝退会させても過去コンペの値・勝者・配分は1ビットも変わらない（回帰22ケース完全一致で実証）。`migrate()` が未定義を `false` で補完（`kanjiExempt` と同型）。選手の**物理削除**は「過去コンペの結果を後から書き換えない」（`2026-09-12-team-score-average.md` §0）に反する操作なので、参加履歴のある選手は退会を既定とし、記録ごとの完全削除は幹事メニュー配下に隔離する。
 
 ---
 
