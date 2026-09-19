@@ -506,6 +506,25 @@ const CASES = {
       niadoraInd: false, niadoraTeam: false, stableford: false, olympic: false, callaway: false,
       nassau: false, best2ball: false, vegas: false, match1v1: false, univMatch: false, customMatch: false },
   }) },
+  /* W) ★ベスト2ボール＝α運用（α・2026-09-19 α昇格 PR #199）: best2Hole（Q）と**完全に同じ構成**で channel だけ 'a'。
+        昇格前は chFormats が α で best2ball を false に落としていた＝events も wins も空（[0,0,0]）だったので、
+        このケースだけが「α で best2ball が勝ち点に載る」経路を覆う（既存25ケースは α×best2ball:true を1件も持たない）。
+        ★固定するもの: events に best2ball が1件だけ載る／vals=[124,110,106]（Q と同値＝α/β でスコアは変わらない）／
+        announced.best2ball=true なので winners=[2]（グリーン）に w=1 → wins=[0,0,1]。
+        誤って α でもβ扱いに戻したら events が空になって必ず落ちる。 */
+  best2Alpha: { channel: 'a', game: baseGame({
+    teams: [
+      { id: 'T1', name: 'レッド', memberIds: ['p01', 'p02', 'p03', 'p04'] },
+      { id: 'T2', name: 'ブルー', memberIds: ['p05', 'p06', 'p07', 'p08'] },
+      { id: 'T3', name: 'グリーン', memberIds: ['p09', 'p10', 'p11', 'p12'] },
+    ],
+    participants: ALL.slice(),
+    scores: mkScores(ALL, (pi, h) => ((pi * 5 + h * 3 + (pi * h) % 4) % 6) - 2),
+    announced: { best2ball: true },
+    formats: { gross: true, net: true, best2ball: true, teamGross: false, teamNet: false, holeByHole: false,
+      roulette: false, niadoraInd: false, niadoraTeam: false, stableford: false, olympic: false, callaway: false,
+      nassau: false, vegas: false, match1v1: false, univMatch: false, customMatch: false },
+  }) },
 };
 
 /* ============ vm 読込と実行 ============ */

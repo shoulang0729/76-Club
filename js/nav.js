@@ -28,7 +28,7 @@ function setScSortTeam(v){ scSortTeam=v; renderResult(); }
 /* α/β チャネル（§11.12 C）: 表示状態のみ。golfCompe_channel に永続化（golfCompe_v1 とは分離＝データ非干渉）。
    α='a'（検証済みの安定版・既定） / β='b'（テスト中の新機能）。βゲームは β でだけ選択・集計・表示する。 */
 const CHANNELS=['a','b'];
-const BETA_FMT=['stableford','olympic','callaway','nassau','best2ball','vegas','holeByHole'];   // β版のゲーム（残りは全てα）・univMatch は 2026-08-30 α昇格（PR #109）／holeByHole は 2026-09-12 検証不十分につき β 降格（Issue #160・g.formats の値は保持＝β に戻せば復活）
+const BETA_FMT=['stableford','olympic','callaway','nassau','vegas','holeByHole'];   // β版のゲーム（残りは全てα）・univMatch は 2026-08-30 α昇格（PR #109）／holeByHole は 2026-09-12 検証不十分につき β 降格（Issue #160・g.formats の値は保持＝β に戻せば復活）／best2ball は 2026-09-19 α昇格（PR #199・ホール別方式 #190/#192 の確認済み）
 let CHANNEL = CHANNELS.includes(localStorage.getItem('golfCompe_channel')) ? localStorage.getItem('golfCompe_channel') : 'a';
 function setChannel(c){ if(!CHANNELS.includes(c))return; CHANNEL=c; localStorage.setItem('golfCompe_channel',c); render(); }
 function toggleChannel(){ setChannel(CHANNEL==='a'?'b':'a'); toast(t('ch.switched',{v:t('ch.'+CHANNEL)})); }

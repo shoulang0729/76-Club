@@ -10,7 +10,7 @@ function gameSettingsHtml(g){
   // β系フォーマットのトグルは β版でだけ表示・選択可（§11.12 C）。α版でも g.formats の値自体は保持する
   const bchk=(k,label)=> CHANNEL==='b' ? fchk(k,label) : '';
   // グループ表示（バッチ95追加5・ユーザー確定順）: 結果発表のグループ構成（個人戦/チーム戦）と同じ小見出し付き。
-  // 個人戦=gross→net→niadoraInd→β4種／チーム戦=niadoraTeam→gross→net→hbh→b2(β)→vegas(β)→m1→roulette。見出しは配点カードの h3 キーを流用
+  // 個人戦=gross→net→niadoraInd→β4種／チーム戦=niadoraTeam→gross→net→univ→hbh(β)→b2→vegas(β)→m1→roulette→custom。見出しは配点カードの h3 キーを流用
   // S3「集計する競技」＝統合タブの主役。折りたたまない（設計 §3.2 Q4）
   let html = `<div class="card"><h2>${t('game.fmtCard')} ${CHANNEL==='b'?`<span class="tag tagbeta">${t('ch.b')}</span>`:''}</h2>
     <h3>${t('game.h3Ind')}</h3><div class="fmtgrid">
@@ -20,7 +20,7 @@ function gameSettingsHtml(g){
   </div>
     <h3>${t('game.h3Team')}</h3><div class="fmtgrid">
     ${fchk('niadoraTeam',t('fmt.niadoraTeam'))}${fchk('teamGross',t('fmt.teamGross'))}${fchk('teamNet',t('fmt.teamNet'))}
-    ${fchk('univMatch',t('fmt.univMatch'))}${bchk('holeByHole',t('fmt.hbh'))}${bchk('best2ball',t('fmt.best2'))}
+    ${fchk('univMatch',t('fmt.univMatch'))}${bchk('holeByHole',t('fmt.hbh'))}${fchk('best2ball',t('fmt.best2'))}
     ${bchk('vegas',t('fmt.vegas'))}${fchk('match1v1',t('fmt.match1v1'))}
     ${fchk('roulette',t('fmt.roulette'))}${fchk('customMatch',t('fmt.customMatch'))}
   </div></div>`;
