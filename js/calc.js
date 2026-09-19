@@ -8,16 +8,31 @@ function complete(g,pid){ const sc=g.scores[pid]||[]; return sc.filter(v=>v!=nul
    エブリ選手はHDCPが小さくなり（0クリップされやすく）ネットが上がる。二重控除にはならない。
    ★§11.22（2026-08-31・peria-options）幹事会社方式に合わせる任意オプション2つ。両方OFF（既定）＝上式と完全に同一:
      ①g.periaDblPar  … 隠しホールの集計値をパーの2倍で頭打ち（エブリ適用後の値に min。グロスは頭打ちしない）
-     ②g.periaAllowNeg … 0クリップを外す（隠し12ホールが全て入力済みのときのみ＝経過表示の暴走防止）。上限 periaCap の判定は従来どおり */
+     ②g.periaAllowNeg … 0クリップを外す（隠しホールを1つ以上入力済みのときのみ＝経過表示の暴走防止。★2026-09-19 に条件を緩和）。上限 periaCap の判定は従来どおり */
+/* ★2026-09-19 暫定HDCP（docs/handoff/2026-09-19-provisional-hdcp.md §3.2）:
+   h/k/K/n と「暫定か」の判定はここ1本が正（表示のタグ判定 periaProv も同じものを見る）。
+   k=開封(入力)済みの隠しホール数 / K=隠しホール総数 / n=入力済みホール数。
+   partial=false（＝18H入力済み、または隠しホールが1つも入っていない）のときは
+   下の periaHdcp が 2026-09-19 以前の式と文字どおり同一の経路に落ちる（§3.2 の表）。 */
+function periaParts(g,pid){
+  let h=0,k=0,K=0;
+  g.hidden.forEach((hid,i)=>{ if(hid){ K++; const v=adjHole(g,pid,i);
+    if(v!=null){ k++; h += g.periaDblPar? Math.min(v, 2*g.par[i]) : v; } } });
+  const n=enteredCount(g,pid);
+  return { h, k, K, n, partial: k>0 && (k<K || n<18) };
+}
 function periaHdcp(g,pid){
-  let h=0; g.hidden.forEach((hid,i)=>{ if(hid){ const v=adjHole(g,pid,i);
-    if(v!=null) h += g.periaDblPar? Math.min(v, 2*g.par[i]) : v; } });
-  let hd=(h*1.5 - parTotal(g))*g.periaCoef;
-  const neg = g.periaAllowNeg && g.hidden.every((hid,i)=>!hid || adjHole(g,pid,i)!=null);
+  const P=periaParts(g,pid);
+  const hEst = (P.k>0 && P.k<P.K) ? P.h*P.K/P.k : P.h;      // ① 隠しホールの平均を K ホール分に引き伸ばす
+  let hd=(hEst*1.5 - parTotal(g))*g.periaCoef;
+  const neg = g.periaAllowNeg && (P.k>0 || P.K===0);         // ★経過中も負を許す（§3.4）。18H時点の値は不変
   if(hd<0 && !neg)hd=0;
-  if(g.periaCap!=null && hd>g.periaCap)hd=g.periaCap;
+  if(g.periaCap!=null && hd>g.periaCap)hd=g.periaCap;        // ★上限は按分の「前」（§3.7）
+  if(P.partial) hd = hd*P.n/18;                              // ② 消化率で按分
   return Math.round(hd*10)/10;
 }
+/* 表示用（§7）: 1人でも暫定なら true。計算と同じ periaParts を見る＝二重管理を作らない */
+function periaProv(g,pids){ return (pids||g.participants).some(pid=>periaParts(g,pid).partial); }
 function enteredCount(g,pid){ return (g.scores[pid]||[]).filter(v=>v!=null&&v!=='').length; }
 /* エブリ控除の実額（§11.2）：入力済み各ホールに−1(E1)/−2(E2)を積み上げる＝表示系(adjArr/adjHole)と同一基準。
    18H入力時は従来どおりE1=−18/E2=−36。ペリアHDCPもこのエブリ後スコアを基準に算定する（§11.12 H）。 */
@@ -206,12 +221,17 @@ function uvHole(g,pid,i){ const v=(g.scores[pid]||[])[i]; return (v==null||v==='
 function uvGrossA(g,pid){ let s=0; for(let i=0;i<18;i++){ const v=uvHole(g,pid,i); if(v!=null)s+=v; } return s; }   // グロスはカットしない（§4.4）
 function uvHdcpA(g,pid){
   // Wパーカットは隠しホール集計（HDCP算定）にのみ適用。エブリON時は min もエブリ後の値で判定（§4.4・§11.12 H と同順）
-  let H=0; g.hidden.forEach((hid,i)=>{ if(hid){ const v=uvHole(g,pid,i); if(v!=null)H+=Math.min(v,2*g.par[i]); } });
-  let hd=(H*1.5 - parTotal(g))*0.8;                     // 係数 0.8 固定（§12 既定事項3・g.periaCoef 非連動）
+  let H=0,k=0,K=0; g.hidden.forEach((hid,i)=>{ if(hid){ K++; const v=uvHole(g,pid,i);
+    if(v!=null){ k++; H+=Math.min(v,2*g.par[i]); } } });
+  const n=enteredCount(g,pid);
+  const partial = k>0 && (k<K || n<18);                 // ★2026-09-19 暫定HDCP（2026-09-19-provisional-hdcp.md §3.8）
+  const hEst = (k>0 && k<K) ? H*K/k : H;                // ① 隠しホールの平均を K ホール分に引き伸ばす
+  let hd=(hEst*1.5 - parTotal(g))*0.8;                  // 係数 0.8 固定（§12 既定事項3・g.periaCoef 非連動）
   if(hd<0)hd=0;
   const p=state.players.find(x=>x.id===pid);
   const cap=(p&&p.gender==='F')?40:36;                  // 規定: 男36/女40（g.periaCap 非連動）
-  if(hd>cap)hd=cap;
+  if(hd>cap)hd=cap;                                     // ★上限・0クリップは按分の「前」（§3.7）
+  if(partial) hd = hd*n/18;                             // ② 消化率で按分
   return Math.round(hd*10)/10;
 }
 // ネット＝グロス−HDCP（数学的に小数第1位で確定。0.1丸めは浮動小数ノイズ除去のみ＝値は不変）

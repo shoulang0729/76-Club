@@ -5,6 +5,9 @@
    対象: js/state.js + js/nav.js + js/score.js + js/roulette.js + js/calc.js を vm に読み込み、
          決定的フィクスチャ（乱数不使用・固定スコアの12名構成）で
          teamWinPoints / computePoints / computePayout / nextKanji（＋univMatch ケースのみ uvStanding/uvTargetN）の出力を丸ごと比較する。
+         ★2026-09-19（docs/handoff/2026-09-19-provisional-hdcp.md §8）: 全ケースに legacyParity（18H入力済み選手の
+         HDCP が 2026-09-19 以前の式と厳密一致することの恒久ガード＝期待値は全ケース []）を追加し、
+         reveal:true のケース（indBasic/team3/univOn/periaOpts）だけ開封途中の HDCP/ネット系列を記録する。
    注意: §3 計算は load-bearing（CLAUDE.md）。本ハーネスが FAIL したら、まず「意図しない挙動変化」を疑う。
          設計書で計算仕様を変えた PR でのみ --update で期待値を更新し、差分をレビューに供すること。 */
 import fs from 'node:fs';
@@ -91,7 +94,7 @@ const REFS_GAME = Object.assign({}, TEAM3_GAME, {
 const CASES = {
   // A) 個人戦フルセット（β・12名・p12 は前半9Hのみ入力=経過）: ペリア/エブリ/ステーブル/オリンピック/
   //    キャロウェイ/握り(ナッソー)/NPDC個人配点/payout/nextKanji(既定=2位下・ブービー上)
-  indBasic: { channel: 'b', game: baseGame({
+  indBasic: { channel: 'b', reveal: true, game: baseGame({
     participants: ALL.slice(),
     scores: mkScores(ALL, (pi, h) => (pi === 11 && h >= 9) ? null : ((pi * 7 + h * 5) % 7) - 2),
     periaCap: 30, prizePool: 10000,
@@ -104,7 +107,7 @@ const CASES = {
   //    （announced= teamGross/holeByHole/niadora のみ→ teamNet/roulette は未確定=勝ち点0）、
   //    ニアドラ同数タイの山分け(T1=T2=2本→w3を1.5ずつ)、ルーレット(cur=4・h2は代表欠け=pending)、
   //    幹事3対象(1位down/2位down/ブービーup・免除 p04/p10)
-  team3: { channel: 'a', game: TEAM3_GAME },
+  team3: { channel: 'a', reveal: true, game: TEAM3_GAME },
   // B') 退会フラグ（2026-09-13-player-delete-refs.md §8.2）: ゲームは team3 と**完全に同一**（同じ TEAM3_GAME）で、
   //     違いは players の p03/p04 が retired:true であることだけ。退会は §3 の計算から一切見えないので
   //     期待値は team3 と完全一致するはず（一致しなくなったら＝計算が retired を読み始めた証拠＝PR 差し戻し）。
@@ -149,7 +152,7 @@ const CASES = {
   }) },
   // E) 大学対抗（β・every ON・重み2・連携済み）: スコアはDと同一。womenEvery OFF でも univ.every ON なら
   //    各ホール −1/−2 を反映して集計（コンペ本体エブリと独立・§4.4）。エブリで p07(every1) が p06 を上回り境界タイ解消
-  univOn: { channel: 'b', game: baseGame({
+  univOn: { channel: 'b', reveal: true, game: baseGame({
     teams: [
       { id: 'U1', name: '青葉大', memberIds: ['p01', 'p02', 'p03', 'p04', 'p05', 'p06', 'p07'] },
       { id: 'U2', name: '白樺大', memberIds: ['p08', 'p09', 'p10', 'p11'] },
@@ -203,7 +206,7 @@ const CASES = {
   //    ダブルパー超過4ホール（カットの分岐）、p09 はカット後も上限36 に当たる（上限の分岐）。
   //    womenEvery ON（p03/p07=every1・p05/p10=every2）でエブリ→カットの順序（D2）も踏む。
   //    握り(nassau)も ON にして net9 経由の HDCP/2 配分を回帰対象に含める。
-  periaOpts: { channel: 'b', game: baseGame({
+  periaOpts: { channel: 'b', reveal: true, game: baseGame({
     participants: ALL.slice(),
     scores: mkScores(ALL, (pi, h) => pi < 3 ? ((pi + h) % 3) - 2 : ((pi * 7 + h * 5) % 9) - 2),
     periaCap: 36, periaDblPar: true, periaAllowNeg: true, prizePool: 10000,
@@ -536,10 +539,33 @@ const sandbox = {
   localStorage: { getItem: () => null, setItem: () => {}, removeItem: () => {} },
   window: { matchMedia: () => ({ matches: false, addEventListener() {} }), addEventListener() {} },
   __CASES: JSON.stringify(Object.fromEntries(Object.entries(CASES).map(([k, c]) =>
-    [k, { channel: c.channel, state: { players: c.players || PLAYERS, games: [c.game], currentGameId: c.game.id } }]))),
+    [k, { channel: c.channel, reveal: !!c.reveal,
+      state: { players: c.players || PLAYERS, games: [c.game], currentGameId: c.game.id } }]))),
 };
 const driver = `
 globalThis.__RESULTS = {};
+/* ★2026-09-19 暫定HDCP（docs/handoff/2026-09-19-provisional-hdcp.md §8.1）
+   2026-09-19 以前の periaHdcp の凍結コピー。**絶対に更新しない**（確定値＝18H入力済みの HDCP が
+   動いていないことを性質として恒久的に見張るための基準）。 */
+function periaHdcpLegacy(g,pid){
+  let h=0; g.hidden.forEach((hid,i)=>{ if(hid){ const v=adjHole(g,pid,i);
+    if(v!=null) h += g.periaDblPar? Math.min(v, 2*g.par[i]) : v; } });
+  let hd=(h*1.5 - parTotal(g))*g.periaCoef;
+  const neg = g.periaAllowNeg && g.hidden.every((hid,i)=>!hid || adjHole(g,pid,i)!=null);
+  if(hd<0 && !neg)hd=0;
+  if(g.periaCap!=null && hd>g.periaCap)hd=g.periaCap;
+  return Math.round(hd*10)/10;
+}
+// ★js/results.js:78 の viewGameN と同一（DOM 非依存のため複製。results.js を読むと document 依存が入る）
+const viewN=(g,n)=>{ if(n>=18) return g; const s={};
+  g.participants.forEach(pid=>{ const a=g.scores[pid]||[]; s[pid]=a.map((v,i)=> i<n? v : null); });
+  return Object.assign({}, g, {scores:s}); };
+// n=0..18 を1ホールずつ進めたときの「1ホールあたり変動の最大値」と発生ホール（同設計 §8.2）
+const maxStepOf=(g,f)=>{ let prev=null, mx=0, mh=0;
+  for(let n=0;n<=18;n++){ const v=viewN(g,n), cur=g.participants.map(pid=>f(v,pid));
+    if(prev) cur.forEach((x,i)=>{ const d=Math.round(Math.abs(x-prev[i])*10)/10; if(d>mx){mx=d;mh=n;} });
+    prev=cur; }
+  return [mx,mh]; };
 for (const [name, cs] of Object.entries(JSON.parse(__CASES))) {
   CHANNEL = cs.channel;              // α/β（chFormats が参照。表示状態だが計算のゲートに効く）
   state = cs.state; migrate(state);  // 実アプリと同じ補完（defaultPoints/newRoulette/kanjiRanks 等）
@@ -569,6 +595,26 @@ for (const [name, cs] of Object.entries(JSON.parse(__CASES))) {
       net:  Object.fromEntries(g.participants.map(pid => [pid, netScore(g, pid)])),
       nassau: Object.fromEntries(g.participants.map(pid => [pid, nassauTotalNet(g, pid)])),
     };
+  }
+  /* ★2026-09-19 暫定HDCP（同設計 §8.1）恒久ガード: 18H入力済みの選手で新旧 periaHdcp が
+     厳密一致しない pid の配列。期待値は**全ケース []**。§3.1 を触って確定値を動かすと必ず非空になる。 */
+  globalThis.__RESULTS[name].legacyParity = g.participants.filter(pid =>
+    enteredCount(g, pid) === 18 && !Object.is(periaHdcp(g, pid), periaHdcpLegacy(g, pid)));
+  /* ★2026-09-19 暫定HDCP（同設計 §8.2）新種スナップショット: 開封 n を振った HDCP/ネットの系列。
+     期待値ファイルの肥大を避けるため reveal:true のケースだけ（indBasic/team3/univOn/periaOpts）。 */
+  if (cs.reveal) {
+    const NS = [0, 6, 9, 12, 14, 16, 17, 18];
+    const r = { players: g.participants.slice(), ns: NS, hdcp: {}, net: {}, maxStep: maxStepOf(g, periaHdcp) };
+    NS.forEach(n => { const v = viewN(g, n);
+      r.hdcp[n] = g.participants.map(pid => periaHdcp(v, pid));
+      r.net[n]  = g.participants.map(pid => netScore(v, pid)); });
+    if (g.formats && g.formats.univMatch) {   // 大学対抗は netScore を通らない独立計算（同設計 §3.8）
+      r.uvHdcp = {}; r.uvNet = {}; r.maxStepUv = maxStepOf(g, uvHdcpA);
+      NS.forEach(n => { const v = viewN(g, n);
+        r.uvHdcp[n] = g.participants.map(pid => uvHdcpA(v, pid));
+        r.uvNet[n]  = g.participants.map(pid => uvNetA(v, pid)); });
+    }
+    globalThis.__RESULTS[name].reveal = r;
   }
 }`;
 vm.runInContext(src + '\n' + driver, vm.createContext(sandbox));
