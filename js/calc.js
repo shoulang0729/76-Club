@@ -116,29 +116,16 @@ function holesWon(g){
   }
   return {teams,won};
 }
-/* ---- チーム対抗グロス／ネットの集計方法（§3.5 追補・docs/handoff/2026-09-12-team-score-average.md）----
-   g.teamScoreMode: 'sum'（既存ゲーム＝migrate で backfill・従来と完全に同一）/ 'avg'（newGame の既定）。
-   判定点はこの teamAvgOn() ただ1つ（他ファイルで g.teamScoreMode を直接見ない＝設計 §5.4 の seam。
-   「過去コンペも平均で言い直す」に切り替えるときはこの1関数と migrate の1行だけを触る）。
-   ★平均の母数（設計 §3）: teamScoreMembers＝teamMembers ∩ 1H以上入力済み（#186 で新設した共通母数）。
-     未入力メンバーは effGross=0・netScore=0（実測）＝母数に入れると平均が実在しない値まで下がる
-     （実測: 4名登録・1名未入力で 238 → 59.5。正しくは 238÷3＝79.3）。
-   ★合計モードの分子は teamMembers 全員のまま（フィルタしない）＝hidden 全false＋periaAllowNeg ON の
-     病的ケースでは未入力者の netScore が 0 でなくなる（実測 443≠387）ため。従来式を1文字も変えないことで
-     「既存コンペは1打も動かない」を無条件に保証する（設計 §3.4）。 */
-function teamAvgOn(g){ return (g&&g.teamScoreMode)==='avg'; }
-function teamAggr(g,T,valFn){
-  if(teamAvgOn(g)){ const m=teamScoreMembers(g,T); if(!m.length) return null;   // 入力済み0人＝値なし（teamWinPoints では起きない・設計 §4.4）
-    return m.reduce((a,pid)=>a+valFn(pid),0)/m.length; }
-  return teamMembers(g,T).reduce((a,pid)=>a+valFn(pid),0);   // ★従来式そのまま
-}
-// グロスは合計モードでは素の整数のまま（round1 を掛けない＝現行と機械的に同一）。ネットは従来どおり round1
-function teamGrossVal(g,T){ const v=teamAggr(g,T,pid=>effGross(g,pid)); return v==null?null:(teamAvgOn(g)?Math.round(v*10)/10:v); }
+/* ---- チーム対抗グロス／ネットの集計（§3.5・docs/handoff/2026-09-19-team-avg-only.md）----
+   ★常に「1人あたり平均」。合計モード（旧 g.teamScoreMode）は 2026-09-19 に廃止（ユーザー確定・設計 §0）。
+     既存データに残っている 'sum'/'avg' の文字列は残置・非参照（migrate は delete しない・設計 §3）。
+   ★母数（＝分母かつ分子の集合）: teamScoreMembers＝teamMembers ∩ 1H以上入力済み。
+     未入力メンバーは effGross=0・netScore=0 なので、登録人数を母数にすると 238÷4=59.5 という
+     実在しないスコアで勝ってしまう（実測・2026-09-12-team-score-average.md §3.2）。 */
+function teamAggr(g,T,valFn){ const m=teamScoreMembers(g,T); if(!m.length) return null;   // 入力済み0人＝値なし
+  return m.reduce((a,pid)=>a+valFn(pid),0)/m.length; }
+function teamGrossVal(g,T){ const v=teamAggr(g,T,pid=>effGross(g,pid)); return v==null?null:Math.round(v*10)/10; }
 function teamNetVal(g,T){ const v=teamAggr(g,T,pid=>netScore(g,pid)); return v==null?null:Math.round(v*10)/10; }
-/* 人数不揃い警告の判定（設計 §6.2）: 登録（参加中）メンバー数で見る＝経過ラウンド中の偽陽性を出さない */
-function teamMemberCounts(g){ return teamsOf(g).map(T=>({T,n:teamMembers(g,T).length})); }
-function teamSizeUneven(g){ const c=teamMemberCounts(g).map(x=>x.n);
-  return c.length>=2 && Math.min(...c)!==Math.max(...c); }
 /* ---- ベスト2ボール（§3.4・docs/handoff/2026-09-13-best2-per-hole.md が正）----
    ★2026-09-13 方式変更（load-bearing）: ラウンド単位のネット上位2名 → 「各ホールごとの上位2名を18ホール合計」。
    判定値は adjHole（エブリ適用後の打数）＝ホールバイホール/1on1/ベガス/スコア表と同一基準。

@@ -154,7 +154,7 @@ const SD_PATTERNS = [
   /* §5.8 小規模・エッジ（4名・2チーム）。同順位・未入力ホール・賞金プール0・NP/DC 一部未設定の表示確認 */
   { key:'p6', label:'seed.p6', desc:'seed.p6d', seed:20260906, ch:'a',
     name:'テストコンペ6 小規模・エッジ', date:'2026-09-06', course:'テスト国際CC', off:61,
-    every:true, pool:0, kanjiBadge:true, teamScore:'sum',   // 既存コンペ相当の「合計」モード（他パターンは newGame 既定の平均）
+    every:true, pool:0, kanjiBadge:true,
     formats:{ gross:true,net:true,niadoraInd:true,niadoraTeam:true,teamGross:true,teamNet:true,holeByHole:true,
       roulette:true,stableford:false,nassau:false,olympic:false,callaway:false,best2ball:false,vegas:false,match1v1:false,univMatch:false },
     players:[
@@ -239,9 +239,6 @@ function sdBuild(p){
   g.name=p.name; g.date=p.date; g.course=p.course||'';
   g.par=SD_PAR.slice(); g.hidden=SD_HIDDEN.slice();
   g.womenEvery.enabled=!!p.every;
-  // チーム対抗の集計方法（team-score-average §7.6）。未指定は newGame() の既定＝'avg'（平均）。
-  // p6 だけ 'sum' を付けてアプリ内テストデータで両モードを再現できるようにする（スコア生成は不変）。
-  if(p.teamScore) g.teamScoreMode=p.teamScore;
   if(p.kanjiBadge) g.kanjiBadge=true;
   if(p.kanjiRanks) g.kanjiRanks=JSON.parse(JSON.stringify(p.kanjiRanks));
   if(p.univEvery) g.univ.every=true;

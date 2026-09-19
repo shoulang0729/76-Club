@@ -25,19 +25,6 @@ function gameSettingsHtml(g){
     ${fchk('roulette',t('fmt.roulette'))}${fchk('customMatch',t('fmt.customMatch'))}
   </div></div>`;
 
-  /* S3b チーム対抗の集計（合計／平均）＝設計 2026-09-12-team-score-average.md §6.1。
-     グロス対抗／ネット対抗のどちらかを採用しているときだけ出す（S4〜S6 の「採用したら直下に出る」規律と同型・
-     setFmt → renderBasic 再描画で出没）。既定は閉（gsSec）。S4 以降の番号は動かさないので「S3b」と呼ぶ。
-     合計モード×人数不揃いのときだけ <summary> の danger タグと本文の警告が出る（§6.2）。 */
-  if(F.teamGross || F.teamNet){
-    const warn=teamScoreWarn(g), tag=teamScoreWarnTag();
-    const rd=(v,label)=>`<label style="display:flex;gap:8px;align-items:center;font-size:13px;margin-bottom:6px"><input type="radio" name="tsm" value="${v}" ${teamAvgOn(g)===(v==='avg')?'checked':''} onchange="setTeamScoreMode('${v}')"> ${label}</label>`;
-    html += gsSec('teamScore', `${t('game.teamScoreCard')}${warn?' '+tag:''}`,
-    `${rd('sum',t('game.teamScoreSum'))}${rd('avg',t('game.teamScoreAvg'))}
-    <div class="muted mt6">${t('game.teamScoreNote')}</div>
-    ${warn?`<div class="muted mt6">${tag} ${warn}</div>`:''}`);
-  }
-
   // S4 ルーレット設定はルーレット対抗ON時のみ表示（winpoints-reveal §5.3。setFmt→renderBasic 再描画で出没）
   if(F.roulette){
     html += gsSec('roulette', t('game.rlCard'), `<div class="muted">${t('game.rlNote')}</div>
@@ -134,18 +121,3 @@ function setPointsNum(k,v){ curGame().points[k]=parseInt(v)||0; save(); }
 function setRoulette(k,v){ curGame().roulette[k]=Math.max(0,parseInt(v)||0); save(); }
 function setVegas(k,v){ curGame().vegas[k]=v; save(); }
 function setUniv(k,v){ curGame().univ[k]=!!v; save(); renderBasic(); }   // 大学対抗設定（univ-match §6.3・setVegas と同型）
-/* チーム対抗グロス／ネットの集計方法（team-score-average §6.1）。値は 'sum'|'avg' の2値だけ＝未知値は保守的に 'sum'。
-   再描画で警告タグの出没を追従させる（setUniv/setKanjiBadge と同型）。結果発表側はタブ遷移時の render() で追従。 */
-function setTeamScoreMode(v){ const g=curGame(); if(!g)return; g.teamScoreMode=(v==='avg')?'avg':'sum'; save(); renderBasic(); }
-/* 人数不揃い警告の文言（team-score-average §6.2）。コンペ設定 S3b（本ファイル）と結果発表の
-   グロス対抗／ネット対抗カード（js/roulette.js）の両方がこの1関数を呼ぶ＝文言の二重管理を作らない。
-   ★判定は登録（参加中）メンバー数＝teamSizeUneven／teamMemberCounts（js/calc.js）で、入力済み人数では見ない。
-     経過ラウンド中は「先に上がった組だけ入力済み」が普通なので、入力済みで判定すると毎回誤警告が出る。
-   合計モードのときだけ出す（平均は人数差を吸収するのが目的＝警告が消えるのが「直った」サイン）。
-   チーム名はユーザー入力なので esc() 必須（t() の {v} 置換は素の文字列連結）。 */
-function teamScoreWarn(g){
-  if(!g || teamAvgOn(g) || !teamSizeUneven(g)) return '';
-  return t('game.teamScoreWarn',{v: teamMemberCounts(g).map(x=>esc(x.T.name)+t('team.memN',{n:x.n})).join('／')});
-}
-/* 警告の danger タグ（js/players.js:83 の既存パターンを流用＝styles.css は触らない） */
-function teamScoreWarnTag(){ return `<span class="tag" style="background:var(--danger-bg);color:var(--red)">${t('game.teamScoreWarnTag')}</span>`; }

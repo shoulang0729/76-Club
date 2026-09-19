@@ -301,11 +301,12 @@ function renderScorecard(g, parts, teams, deco){
     const tAt=(t,i)=>{let s=0,c=0;teamMembers(g,t).forEach(pid=>{const v=adjHole(g,pid,i);if(v!=null){s+=v;c++;}});return c?s:null;};
     const winAt=[]; for(let i=0;i<18;i++){const tot=teams.map(t=>tAt(t,i));const val=tot.filter(v=>v!=null);winAt.push(val.length?tot.map((v,ti)=>v===Math.min(...val)?ti:-1).filter(x=>x>=0):[]);}
     const won=teams.map((_,ti)=>{let w=0;winAt.forEach(ws=>{if(ws.includes(ti))w+=1/ws.length;});return w;});
-    /* §11.12 I: チームは選択指標で並べ替え（グロス/ネット=合計の昇順・HBH=取得ホール数の降順）。
+    /* §11.12 I: チームは選択指標で並べ替え（グロス/ネット=1人あたり平均の昇順・HBH=取得ホール数の降順）。
+       ★「合計の昇順」だったが 2026-09-19（#198）に平均一本化＝正本 §11.12 I も同時に追補している。
        winAt は元の teams インデックス基準なので、並べ替えは表示順（ti を保持）だけで行う。 */
-    /* 並べ替えの値は calc.js の teamGrossVal/teamNetVal（合計/平均の分岐込み）＝順位カードと同じ正を使う。
-       これを表示側で計算し直すと「1位のチームが表の2番目にいる」食い違いが起きる（team-score-average §6.4）。
-       値なし（全員未入力＝平均モードのみ発生）は Infinity で末尾に置く。下の「計」行の値は合計のまま（§6.4）。 */
+    /* 並べ替えの値は calc.js の teamGrossVal/teamNetVal（常に1人あたり平均）＝順位カードと同じ正を使う。
+       これを表示側で計算し直すと「1位のチームが表の2番目にいる」食い違いが起きる（2026-09-19-team-avg-only.md §5.2）。
+       値なし（全員未入力）は Infinity で末尾に置く。★下の「計」行の値は合計のまま据え置き（同設計 §5.2）。 */
     const tGrossOf=T=>{ const v=teamGrossVal(g,T); return v==null?Infinity:v; };
     const tNetOf=T=>{ const v=teamNetVal(g,T); return v==null?Infinity:v; };
     const order=teams.map((tm,ti)=>({tm,ti}));
