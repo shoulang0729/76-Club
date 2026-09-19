@@ -117,7 +117,9 @@ const CASES = {
         ゲームは REFS_GAME で**完全に同一**、違いは players に p03 が居るか（refsLive）／居ないか（refsDeleted）だけ。
         refsDeleted は「p03 を物理削除したが参照は残っている」状態＝ §2.4 の参照切れ。
         ★これは現行挙動を**固定する**フィクスチャで、期待どおりの値ではなく「こう変わってしまう」ことの記録:
-          teamGross 勝者が グリーン → レッド／賞金ポイント総量 108 → 81／computePoints から p03 が消える。
+          wins [1.5,1.5,2] → [0,3,2]／ニアドラ勝者 [0,1] → [1]／賞金ポイント総量 108 → 86／computePoints から p03 が消える。
+          ※2026-09-19 の平均一本化（2026-09-19-team-avg-only.md §6.3）で「teamGross の勝者が グリーン → レッド
+            に入れ替わる」症状は消えた（81.5 → 82.3 でどちらもグリーン勝ち＝平均は人数減だけで勝敗を裏返さない）。
         したがって migrate 等で参照切れを自動掃除する変更が入ると必ず落ちる（D-1 の番人）。 */
   refsLive:    { channel: 'a', game: REFS_GAME },
   refsDeleted: { channel: 'a', players: PLAYERS.filter(p => p.id !== 'p03'), game: REFS_GAME },
@@ -440,39 +442,13 @@ const CASES = {
       roulette: false, niadoraInd: false, niadoraTeam: false, stableford: false, olympic: false, callaway: false,
       nassau: false, vegas: false, match1v1: false, univMatch: false, customMatch: false },
   }) },
-  /* T) チーム対抗＝平均・人数が揃っている（α・docs/handoff/2026-09-12-team-score-average.md §10.2 P）:
-        team3 と**完全に同じ構成**＋ teamScoreMode:'avg'。差分の出どころを teamScoreMode だけに限定する。
-        ★同人数なら avg=sum/n は厳密な単調変換＝勝者・勝ち点・配分が team3 と同一になることを固定する
-        （teamGross [81.5,75.5,66.5] w[2] / teamNet [67.1,65.7,62.4] w[2] / wins [1.5,1.5,2]）。 */
-  teamAvgEven: { channel: 'a', game: baseGame({
-    teamScoreMode: 'avg',
-    teams: [
-      { id: 'T1', name: 'レッド', memberIds: ['p01', 'p02', 'p03', 'p04'] },
-      { id: 'T2', name: 'ブルー', memberIds: ['p05', 'p06', 'p07', 'p08'] },
-      { id: 'T3', name: 'グリーン', memberIds: ['p09', 'p10', 'p11', 'p12'] },
-    ],
-    participants: ALL.slice(),
-    scores: mkScores(ALL, (pi, h) => ((pi * 5 + h * 3 + (pi * h) % 4) % 6) - 2),
-    prizePool: 30000,
-    prizes: { niapinWinner: { 2: 'p01', 7: 'p05', 11: 'p09', 16: 'p02' }, draconWinner: { 4: 'p06' } },
-    points: { teamEventPts: { teamGross: 2, niadora: 3 } },
-    roulette: { cur: 4, reps: {
-      0: { T1: 'p01', T2: 'p05', T3: 'p09' }, 1: { T1: 'p02', T2: 'p06', T3: 'p10' },
-      2: { T1: 'p03', T2: 'p07' }, 3: { T1: 'p04', T2: 'p08', T3: 'p12' } } },
-    announced: { teamGross: true, holeByHole: true, niadora: true },
-    kanjiBadge: true,
-    kanjiRanks: { r1: { enabled: true, dir: 'down' }, r2: { enabled: true, dir: 'down' }, booby: { enabled: true, dir: 'up' } },
-    formats: { gross: true, net: true, teamGross: true, teamNet: true, holeByHole: true, roulette: true,
-      niadoraInd: true, niadoraTeam: true, stableford: false, olympic: false, callaway: false,
-      nassau: false, best2ball: false, vegas: false, match1v1: false },
-  }) },
-  /* U) チーム対抗＝平均・人数差で勝者が入れ替わる（α・同設計 §10.2 Q）:
-        ghostMember と**完全に同じ構成**＋ teamScoreMode:'avg'（T1 は p04 がゴースト＝実質3名）。
-        合計では T1 が勝つ（[238,302,266] w[0]）が、平均では T3 が勝つ（[79.3,75.5,66.5] w[2]・wins [1,1,3]）
-        ＝Issue #171 の実害（3名チームが人数の少なさだけで優勝）が解消することを固定する。
-        ゴースト除外（#151）と平均の併用も同時に検出する。 */
-  teamAvgUneven: { channel: 'a', game: baseGame({
-    teamScoreMode: 'avg',
+  /* U) ★旧バックアップの残骸（α・docs/handoff/2026-09-19-team-avg-only.md §7.2）:
+        ghostMember と**完全に同じ構成**＋ teamScoreMode:'sum'（＝2026-09-19 以前に保存された JSON 相当。
+        T1 は p04 がゴースト＝実質3名）。合計モードは廃止されたので、この死んだフィールドが残っていても
+        期待値は ghostMember と**完全一致**する（teamGross [79.3,75.5,66.5] w[2] / wins [1,1,3]）。
+        合計へ戻す分岐が再導入されたら（[238,302,266] w[0] になって）必ず落ちる。 */
+  teamLegacySum: { channel: 'a', game: baseGame({
+    teamScoreMode: 'sum',   // ★廃止フィールドの残骸。migrate は delete しない・計算は参照しない（設計 §3）
     teams: [
       { id: 'T1', name: 'レッド', memberIds: ['p01', 'p02', 'p03', 'p04'] },
       { id: 'T2', name: 'ブルー', memberIds: ['p05', 'p06', 'p07', 'p08'] },
@@ -493,12 +469,11 @@ const CASES = {
       niadoraInd: true, niadoraTeam: true, stableford: false, olympic: false, callaway: false,
       nassau: false, best2ball: false, vegas: false, match1v1: false },
   }) },
-  /* V) ★平均の母数＝「1H以上入力済み」メンバー（β・同設計 §10.2 R / §3）:
+  /* V) ★平均の母数＝「1H以上入力済み」メンバー（α・2026-09-12-team-score-average.md §3 / 2026-09-19-team-avg-only.md §7.3）:
         T1 は4名登録だが p04 が1打も未入力（effGross=0 / netScore=0）。母数を登録4名にした誤実装なら
         teamGross [59.5,75.5] w[0]（＝人類に不可能なスコア）になる。正しくは238÷3で [79.3,75.5] w[1]。
-        合計モードとも勝者が逆（合計は [238,302] w[0]）＝母数の取り違えを必ず落とす。 */
+        廃止前の合計モードとも勝者が逆（合計は [238,302] w[0]）＝母数の取り違えを必ず落とす。 */
   teamAvgUnentered: { channel: 'a', game: baseGame({
-    teamScoreMode: 'avg',
     teams: [ { id: 'T1', name: 'レッド', memberIds: ['p01', 'p02', 'p03', 'p04'] },
              { id: 'T2', name: 'ブルー', memberIds: ['p05', 'p06', 'p07', 'p08'] } ],
     participants: ALL.slice(0, 8),

@@ -65,9 +65,6 @@ function migrate(s){
     if(g.periaDblPar===undefined) g.periaDblPar=false;      // §11.22（既存ゲームは従来挙動のまま）
     if(g.periaAllowNeg===undefined) g.periaAllowNeg=false;
     if(g.courseRef===undefined) g.courseRef=null;   // コースライブラリへの弱参照（計算からは非参照・2026-09-06-course-master.md §4.1）
-    // ★既存コンペは合計のまま＝過去の結果を後から書き換えない（設計 docs/handoff/2026-09-12-team-score-average.md §0/§5.2）。
-    // 'avg' 以外（未知値・手編集）はすべて合計扱い＝保守的。バックアップ JSON のインポート時も同じ補完が走る
-    if(g.teamScoreMode===undefined) g.teamScoreMode='sum';
     if(g.announced===undefined) g.announced={};   // 種目別の発表済みフラグ（winpoints-reveal §4.2）。救済補完はしない（D10・既存ゲームは全種目未発表スタート＝ユーザー了承済み）
   });
 }
@@ -119,7 +116,6 @@ function newGame(){
     par:[4,4,3,4,5,4,4,3,4, 4,4,3,4,5,4,4,3,4],
     hidden:Array(18).fill(false),
     periaCoef:0.8, periaCap:null, periaDblPar:false, periaAllowNeg:false,   // §11.22 幹事会社方式オプション（既定OFF＝従来と同一）
-    teamScoreMode:'avg',   // チーム対抗グロス/ネットは1人あたり平均で勝負（人数差の不公平を消す・2026-09-12-team-score-average.md §0）
     womenEvery:{enabled:false},
     kanjiBadge:false,   // 次回幹事バッジ表示（既定OFF・§11.16 / 2026-08-29-host-option.md）
     kanjiRanks:{r1:{enabled:false,dir:'down'},r2:{enabled:true,dir:'down'},booby:{enabled:true,dir:'up'}},   // 対象順位＋順位ごと方向（§11.17）
