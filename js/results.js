@@ -205,6 +205,23 @@ function renderIndGame(g, parts, key){
 /* ★2026-09-12 セット別開封（2026-09-12-niadora-reveal-per-set.md §5/§6）: 開封（マスク）粒度は
    ホール単位 → 旗単位 (h,s) へ。2セット時は行が唯一のタップ対象になり、セル全体の onclick は外れる。
    tools バーには twoSets:true のときだけ「OUT/IN 全表示（全非表示）」の一括チップが最大2個増える。 */
+/* ★2026-09-19 #204: 文字列の見た目の幅を em 単位で概算する（全角=1 / 半角=0.55 / 半角空白=0.3）。
+   用途は「1行に収まる font-size の上限」を CSS 側で決めるための材料だけ（--nch＝勝者名 / --kch＝区分ラベル）で、
+   計算仕様（§3）・データには一切関与しない。日本語名では文字数と一致する（道下理恵子=5.0）。
+   フォントメトリクスを測らない＝再描画のたびに DOM 計測をしない（描画1回ぶんの文字列生成で閉じる）。 */
+function npdcEmW(s){
+  let w=0;
+  for(const c of String(s)){
+    const u=c.codePointAt(0);
+    if(u===32) w+=0.3;                                                     // 半角空白
+    else if(u===0x3000) w+=1;                                              // 全角空白
+    else if((u>=0x1100&&u<=0x115F)||(u>=0x2E80&&u<=0xA4CF)||(u>=0xAC00&&u<=0xD7A3)
+      ||(u>=0xF900&&u<=0xFAFF)||(u>=0xFE30&&u<=0xFE6F)||(u>=0xFF00&&u<=0xFF60)
+      ||(u>=0xFFE0&&u<=0xFFE6)||(u>=0x1F300&&u<=0x1FAFF)) w+=1;            // 全角（CJK・ハングル・全角記号・絵文字）
+    else w+=0.55;                                                          // 半角（英数・カナ記号以外）
+  }
+  return Math.max(1, Math.round(w*10)/10);
+}
 function renderPrizeHero(g, withTeam){
   const NP=niapinHolesOf(g), DC=draconHolesOf(g);
   const cells=[...NP.map(h=>({h,kind:'np'})),...DC.map(h=>({h,kind:'dc'}))].sort((a,b)=>a.h-b.h);
@@ -222,18 +239,24 @@ function renderPrizeHero(g, withTeam){
   const tools=`<div class="cardtools mt8">${chips}</div>`;
   const cell=({h,kind})=>{
     const plOf=s=>{ const pid=prizeWinnerOf(g,kind,h,s); return pid ? state.players.find(x=>x.id===pid) : null; };
-    const top=`<div class="npdc-top"><span class="npdc-hole">${h+1}<small>H</small></span><span class="npdc-kind">${kind==='np'?t('term.niapin'):t('term.dracon')}</span></div>`;
+    /* 区分ラベル（ニアピン／ドラコン）。--kch＝ラベルの見た目の幅（em）を渡し、CSS 側で
+       「1行に収まる上限」を font-size の min() に足す（#204・言語で分岐せず同じ式。en は語が長いぶん自動で小さくなる） */
+    const kl=kind==='np'?t('term.niapin'):t('term.dracon');
+    const top=`<div class="npdc-top"><span class="npdc-hole">${h+1}<small>H</small></span><span class="npdc-kind" style="--kch:${npdcEmW(kl)}">${kl}</span></div>`;
     /* 勝者名（伏せ中は ？？？）＋チーム名の行。
        ★2026-09-12 #156: 勝者未登録（p=null）＝「該当なし」。伏せ中は他のホールと同じ ？？？ で、
        開封すると — が出る（＝該当者なしと分かる）。以前は未登録だけ最初から — を出していたため
        「このホールは該当者なし」が開封前に割れていた（ネタバレ）。g.prizes 側は無変更（__none__ のような値は足さない） */
+    /* ★2026-09-19 #204: 勝者名に --nch（名前の見た目の幅・em）を渡す。CSS 側はこれで
+       「セル幅に1行で収まる font-size の上限」を決める＝5文字以上の名前が語中で折り返さない。
+       伏せ札（？？？）も同じ扱い＝開封の前後で行数が変わらない（カードの高さが跳ねない） */
     const body=(p,m)=>{
-      if(m) return `<div class="npdc-name"><span class="mask">？？？</span></div>`;
+      if(m) return `<div class="npdc-name" style="--nch:3"><span class="mask">？？？</span></div>`;
       if(!p) return `<div class="npdc-name empty">—</div>`;     // 開封済みの「該当なし」
       let tmRow='';
       if(withTeam){ const T=(g.teams||[]).find(T=>T.memberIds.includes(p.id));   // 伏せ中はチーム名も出さない（正体が漏れるため＝上で return 済み）
         if(T) tmRow=`<div class="npdc-team" style="color:${tmColor(T.name)}">${esc(T.name)}</div>`; }
-      return `<div class="npdc-name">${esc(p.name)}</div>${tmRow}`; };
+      return `<div class="npdc-name" style="--nch:${npdcEmW(p.name)}">${esc(p.name)}</div>${tmRow}`; };
     if(S===1)                                            // 既定（1セット）: セル全体が1本の旗＝タップ単位
       return `<div class="npdc-cell ${kind}" onclick="togglePzCell(${h})">${top}${body(plOf(1),pzMasked(h))}</div>`;
     /* ★2026-09-12 セット別開封（reveal-per-set §5.2）: 伏せは旗単位。タップ対象は行（.npdc-row）だけで、
@@ -243,10 +266,18 @@ function renderPrizeHero(g, withTeam){
       const inner=`<div class="npdc-set">${prizeSetLabel(s)}</div>${body(plOf(s),pzMasked(h,s))}`;
       return `<div class="npdc-row" onclick="togglePzCell(${h},${s})">${inner}</div>`; }).join('');
     return `<div class="npdc-cell ${kind} split">${top}${rows}</div>`; };
-  /* ★2026-09-12 #159（ipad-landscape §6.1）: 高密度モード（@media min-width:1024 and min-aspect-ratio:4/3）の
-     CSS フック。.npdc-card=カード余白の圧縮対象／.two=2セット（セル1つが約2倍高いので列の最小幅を変える）。
+  /* ★2026-09-12 #159（ipad-landscape §6.1）: 高密度モード（現 @media min-width:1024 and max-height:1340）の
+     CSS フック。.npdc-card=カード余白の圧縮対象／.two=2セット（セル1つが約2倍高い）。
      class が増えるだけでロジック・onclick・セル数・行数・テキストは不変 */
-  return `<div class="card npdc-card"><div class="npdc-hero${S===2?' two':''}">${cells.map(cell).join('')}</div>${tools}</div>`;
+  /* ★2026-09-19 #204: 列数は「枚数を行で均等割り」して JS で決める（--nd-cols）。
+     1行あたり最大 MAXCOL 列 → 必要な行数 → その行数で割り切れる列数、の順で求めるので
+     8枚=4列×2行 / 6枚=3×2 / 10枚=5×2 / 16枚=4×4 / 3枚=3×1 になり、5+3 のような半端な最終行が出ない。
+     CSS 側（≥768px）は repeat(var(--nd-cols),1fr)。2セット（.two）も同じ列数で扱う＝
+     以前の .two 専用の列指定（4列固定／横一列）は撤去した（枚数依存の割れ方をここ1箇所に集約するため）。
+     <768px は従来どおり2列固定（スマホは列数を増やさない）＝この変数を参照しない。 */
+  const MAXCOL=5, nCell=cells.length;
+  const ndRows=Math.max(1,Math.ceil(nCell/MAXCOL)), ndCols=Math.max(1,Math.ceil(nCell/ndRows));
+  return `<div class="card npdc-card"><div class="npdc-hero${S===2?' two':''}" style="--nd-cols:${ndCols}">${cells.map(cell).join('')}</div>${tools}</div>`;
 }
 
 // 左パネル：全18ホール＋OUT/IN小計＋Gross/HDCP/Net を合体した1枚のスコアカード（横スクロールなし）

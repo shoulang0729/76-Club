@@ -267,8 +267,9 @@
   .result-sticky .card{margin-bottom:0}
   .result-sticky .card+.card{margin-top:6px}
   /* ニアドラ ヒーロー表示（個人戦＞ニアドラ。§5.1.1・投影トークン共用）
-     列数固定: 〜767px=2列 / ≥768px=4列（モック承認時のユーザー修正） */
-  .npdc-hero{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}
+     列数: 〜767px=2列固定 / ≥768px=--nd-cols（JS が枚数から均等割りで決める・#204。既定4はこの定義）。
+     --nd-cols はデザイントークンではなくレイアウト変数（:root ではなくこの部品に置く。実値はインライン style で上書き） */
+  .npdc-hero{--nd-cols:4;display:grid;grid-template-columns:repeat(2,1fr);gap:10px}
   .npdc-cell{border:2px solid var(--line);border-radius:var(--r-sm);background:var(--card);
     padding:10px 12px;text-align:center;cursor:pointer;container-type:inline-size}
   .npdc-cell.np{border-color:var(--info-line)}
@@ -276,14 +277,25 @@
   .npdc-top{display:flex;justify-content:center;align-items:baseline;gap:8px;flex-wrap:wrap;row-gap:2px}
   .npdc-hole{font-size:var(--f-rl-hole);font-weight:var(--w-bold);line-height:1;color:var(--ink)}
   .npdc-hole small{font-size:.35em;font-weight:var(--w-bold)}
-  /* 区分ラベルはホール番号と同格の大きさ（投影で区分が読めるように）。セル幅に収まる範囲で拡大し
-     上限=--f-rl-hole（23cqw≒4文字が1行に収まるサイズ。cqw 非対応環境は --f-rl-name にフォールバック）。
-     収まらない場合は番号の下の行へ折返し（.npdc-top の flex-wrap） */
-  .npdc-kind{font-size:var(--f-rl-name);font-size:min(var(--f-rl-hole),23cqw);
-    font-weight:var(--w-bold);letter-spacing:.02em;line-height:1.1;min-width:0;overflow-wrap:break-word}
+  /* 区分ラベルは投影で区分が読める大きさ（セル幅に収まる範囲で拡大。cqw 非対応環境は --f-rl-name にフォールバック）。
+     位置は番号の下の行（.npdc-top の2行目）。
+     ★2026-09-19 #204: 上限を2つ追加し、行の位置を固定した。
+     ① 92cqw/--kch … --kch＝ラベルの見た目の幅（em・JS が渡す）なので「ラベル1本がセル幅の92%に収まる」
+        font-size が上限になる＝言語で分岐せずに en（Nearest the Pin）の2行折返しが消える。
+     ② .75×--f-rl-name … §11.14「主役は勝者名」の序列（勝者名 > ホール番号 > 区分）をどの幅でも保つための上限。
+        勝者名が狭い列で縮む（下の 90cqw/--nch）ぶん、区分だけが相対的に目立つのを防ぐ。
+     ③ flex:1 0 100% … 区分は必ず番号の下の行（.npdc-top の2行目）。従来は「入れば同じ行／入らなければ折返し」で
+        幅とラベル長しだいに行数が変わり、②で小さくした結果 @media 境界（h=1340/1360）でも行数が変わって
+        セル高が 41.6px 跳んだ。構造を全幅・全高さで固定すれば跳ねない（#194 の"境界で跳ばない"を保つ） */
+  .npdc-kind{--kch:4;font-size:var(--f-rl-name);
+    font-size:min(var(--f-rl-hole),23cqw,calc(92cqw / var(--kch,4)),calc(.75 * var(--f-rl-name)));
+    flex:1 0 100%;font-weight:var(--w-bold);letter-spacing:.02em;line-height:1.1;min-width:0;overflow-wrap:break-word}
   .np .npdc-kind{color:var(--prid)}  .dc .npdc-kind{color:var(--red)}
-  .npdc-name{font-size:var(--f-rl-name);font-weight:var(--w-bold);line-height:1.15;margin-top:4px;
-    overflow-wrap:anywhere;min-height:1.15em}
+  /* 勝者名＝主役（§11.14）。★2026-09-19 #204: 上限に 90cqw/--nch を追加（--nch＝名前の見た目の幅・em を JS が渡す）。
+     「名前1つがセル幅の90%に1行で収まる」サイズを超えない＝5文字以上の名前が2行に割れない。
+     語中で切る overflow-wrap:anywhere も撤去（1行に収まる前提なので不要。長い欧文名は語間で折返す） */
+  .npdc-name{--nch:4;font-size:var(--f-rl-name);font-size:min(var(--f-rl-name),calc(90cqw / var(--nch,4)));
+    font-weight:var(--w-bold);line-height:1.15;margin-top:4px;overflow-wrap:normal;min-height:1.15em}
   /* 開封済みの「該当なし」（—）。#156 以降はこの行／セルもタップで開閉できる＝カーソルはセル・行側の pointer のまま */
   .npdc-name.empty{color:var(--sub);font-size:var(--f-title);font-weight:var(--w-med)}
   /* 勝者の所属チーム併記（チーム戦ニアドラタブのみ・#87 指示⑤）: 勝者名の下の小ラベル・チームカラー */
@@ -306,7 +318,7 @@
   .pz2-row select{flex:1;min-width:0}
   .pz-set{flex:0 0 34px;font-size:13px;font-weight:var(--w-bold);letter-spacing:.06em;color:var(--sub)}
   @media(min-width:768px){
-    .npdc-hero{grid-template-columns:repeat(4,1fr)}
+    .npdc-hero{grid-template-columns:repeat(var(--nd-cols,4),1fr)}   /* 枚数から均等割りした列数（#204。8枚=4列×2行） */
     #view-result .subtab-games button{font-size:14px;padding:0 14px}
     #view-result .subtab-games button.on{font-size:19px}   /* 旧 #view-result .card h2 = 19px と同値＝見出しの視覚的重みを引き継ぐ（heading-unify §8.2） */
   }
@@ -629,15 +641,13 @@
      iPad 縦（1024×1366・1032×1376）は max-height の外／820×1180 は min-width の外＝現行 main と完全一致。
      投影トークン --f-rl-* の定義値は変更していない（使用側で包むだけ・§11.14）。 */
   @media (min-width:1024px) and (max-height:1340px){
-    /* ① 列（§4.3）: 列の最小幅そのものを高さランプにする。h=1340px では 23%＝どの幅でも4列＝main の
-          repeat(4,1fr) と同値。高さが減るほど最小幅が縮み、h≤1100px で 220px＝#159 と同値になる。
-          内側の min(220px,23%) は、狭いコンテナで下限が 23% を上回って3列に落ちるのを防ぐ下限側のガード */
-    .npdc-hero{grid-template-columns:repeat(auto-fit,minmax(clamp(min(220px,23%),calc(35vh - 167px),23%),1fr));
-      gap:clamp(8px,calc(.8667vh - 1.573px),10px)}
-    /* 2セットは1セルが約2倍高い＝8ホールを横一列にできるのは iPad 横向き級の高さだけ。中間の列数
-          （7列/6列/5列）では 8個のセルが 7+1 / 6+2 / 5+3 に割れて高さも見栄えも不利なので、
-          2セットは main と同じ4列固定と、横一列（下の ≤1100px）の2状態に絞る */
-    .npdc-hero.two{grid-template-columns:repeat(4,1fr)}
+    /* ① 列（§4.3）: ★2026-09-19 #204 で高さ連動をやめ、全高さで --nd-cols（枚数からの均等割り）に統一した。
+          旧実装は列の最小幅を高さランプにしていたが、幅が広い/高さが低いほど列が増えるため 8枚が 5+3・7+1 に
+          割れ（1366×1024 実測 5列＝セル248px で「道下理恵子」が2行に折返す）、ユーザー指摘の「ダサい」原因だった。
+          列数を枚数で決めると高さに依存しない＝この軸では跳ねない（高さ連動は下の余白・文字サイズだけが担う）。
+          2セット（.two）も同じ列数（専用指定は撤去）: 1セルは約2倍高いが、横一列に伸ばすより
+          4列×2行のほうが列が広く勝者名を大きく出せる（1366×1024 実測 名前 40.9px→48px・高さはほぼ同じ） */
+    .npdc-hero{gap:clamp(8px,calc(.8667vh - 1.573px),10px)}
     /* ② カード・セルの余白（#view-result .card は ID 詳細度なので同じ前置きが要る） */
     #view-result .card.npdc-card{padding:clamp(10px,calc(2.6vh - 18.72px),16px);
       margin-bottom:clamp(8px,calc(1.7333vh - 11.15px),12px)}
@@ -645,13 +655,19 @@
     /* ③ ホール番号は"識別子"。主役は勝者名（§11.14 原則1）。高さが減るほど #159 の 40px へ寄せ、
           狭い列では 26cqw で列幅にも追従する（cqw の基準は .npdc-cell の container-type:inline-size） */
     .npdc-hole{font-size:min(var(--f-rl-hole),max(min(40px,26cqw),calc(22.5vh - 223.5px)))}
-    /* ④ 区分（ニアピン/ドラコン）。main では 4文字が必ず番号の下の行へ折返す＝折返しの ON/OFF が
-          高さで突然切替わると段差になるので、h>1100px では flex-basis:100% で"常に下の行"に固定し、
-          文字サイズだけを連続に増減させる。h≤1100px は #159 どおり番号と同じ行（下の入れ子で解除） */
+    /* ④ 区分（ニアピン/ドラコン）。折返しの ON/OFF が高さで突然切替わると段差になるので"常に番号の下の行"に
+          固定し、文字サイズだけを連続に増減させる（★2026-09-19 #204 で flex-basis:100% は main 側へ移動＝全幅共通） */
     .npdc-top{column-gap:clamp(6px,calc(.8667vh - 3.573px),8px);row-gap:clamp(0px,calc(.8667vh - 9.573px),2px)}
-    .npdc-kind{flex:1 0 100%;font-size:min(var(--f-rl-hole),23cqw,max(min(var(--f-name),14cqw),calc(25.833vh - 268.17px)))}
-    /* ⑤ 勝者名＝主役。main の --f-rl-name を上限に、狭い列では 30cqw で追従（#159 と同型） */
-    .npdc-name{font-size:min(var(--f-rl-name),max(30cqw,calc(20vh - 218px)));
+    /*    ★2026-09-19 #204: 高密度側の値を --f-name（=17px@1024・実測 1366×1024 で 17px）から 26px へ引き上げる
+          （ユーザー要望「区分の文字を大きく」）。26px＝ホール番号40pxの65%で、§11.14 の序列
+          「勝者名(48) > ホール番号(40) > 区分(26)」を保つ。幅側の上限（23cqw と 92cqw/--kch）は main と共通なので
+          en（Nearest the Pin）も1行に収まる。行の位置（番号の下）は main 側の flex:1 0 100% で全幅共通。
+          h≥1340 側は従来どおり main と同値に飽和＝境界で跳ばない（ランプ 25.833vh は無変更） */
+    .npdc-kind{font-size:min(var(--f-rl-hole),23cqw,calc(92cqw / var(--kch,4)),calc(.75 * var(--f-rl-name)),
+      max(26px,calc(25.833vh - 268.17px)))}
+    /* ⑤ 勝者名＝主役。main の --f-rl-name を上限に、狭い列では 30cqw で追従（#159 と同型）。
+          ★2026-09-19 #204: main と同じ 90cqw/--nch（1行に収まる上限）も併せて効かせる */
+    .npdc-name{font-size:min(var(--f-rl-name),calc(90cqw / var(--nch,4)),max(30cqw,calc(20vh - 218px)));
       margin-top:clamp(0px,calc(1.7333vh - 19.15px),4px)}
     .npdc-name.empty{font-size:min(var(--f-title),max(12cqw,calc(6.708vh - 73.29px)))}
     /* ⑥ OUT/IN ラベル・チーム名（チーム名だけは高密度側が"大きい"＝#159 ユーザー要望③なので max/min が逆） */
@@ -661,20 +677,24 @@
     .npdc-row+.npdc-row{margin-top:clamp(5px,calc(.43333vh + .213px),6px);padding-top:clamp(5px,calc(.43333vh + .213px),6px)}
     /* ⑦ ここから下は"連続量にできない再レイアウト"（行・列の構造そのものが変わる＝中間値が存在しない）。
           効かせる範囲を h≤1100px に限定する（#159 は同じ内容を 4:3 以上の全 PC 幅に効かせていた）。
-          この範囲の描画結果は #159 と完全同値:
-          ・2セットのホールを横一列へ（列の最小幅 112px＝#159 と同値）
+          この範囲の描画結果は #159 と同値（★2026-09-19 #204 で列＝枚数均等割り／区分＝常に番号の下の行 に差し替え）:
           ・OUT/IN を勝者名と同じ行へ（1行あたり -約17px。チーム名だけ flex-basis:100% で次行へ回す）
-          ・区分を番号と同じ行へ戻す（④の flex-basis:100% を解除）
           ・チーム勝敗ヒーロー .nd-hero を横並びにして連携UIを同居（.tp-nd/.tp-ovh はチーム総合・大学対抗でも
-            使うので、必ず .nd-hero スコープ内だけに効かせる＝他タブ非接触） */
+            使うので、必ず .nd-hero スコープ内だけに効かせる＝他タブ非接触）
+          ★2026-09-19 #204: 「区分を番号と同じ行へ戻す」（旧 .npdc-kind{flex:0 1 auto}）は撤去した。
+          区分を 17px→26px に拡大するとこの行だけ h=1100/1120 の境界で構造が変わる（行が1本増える）ぶんの
+          段差が 24.0px→29.3px に悪化する＝#194 の「境界で跳ばない」に反するため、全高さで"番号の下の行"に統一。
+          結果、境界の段差は 29.3px→0.7px に縮み（1640px 幅・1セット8枚の実測）、区分は行幅いっぱいを使えるので
+          ja/zh/en とも同じ 26px に収まる（同じ行に載せる場合は en だけ 20px 級に落ちていた）。 */
     @media (max-height:1100px){
-      .npdc-hero.two{grid-template-columns:repeat(auto-fit,minmax(112px,1fr))}
-      .npdc-kind{flex:0 1 auto}
       .npdc-row{display:flex;flex-wrap:wrap;align-items:baseline;justify-content:center;column-gap:6px}
       .npdc-set{flex:0 0 auto}
       /* ★設計 §5.2-⑥ は flex:0 1 auto だが、flex-basis:auto だと勝者名の flex 基礎サイズ＝max-content に
-         なり、行に載らない。基礎サイズ 0 にして残り幅へ伸ばす（名前は箱の中で折返す） */
+         なり、行に載らない。基礎サイズ 0 にして残り幅へ伸ばす（名前は箱の中で折返す）。
+         ★2026-09-19 #204: この行では OUT/IN ラベル＋列間隔のぶん名前の箱がセル幅より狭い（約14cqw ぶん）ので、
+         1行に収める上限を 90cqw→74cqw/--nch に締める（2セットの勝者名が2行に割れないため） */
       .npdc-name{flex:1 1 0;min-width:0}
+      .npdc-row .npdc-name{font-size:min(var(--f-rl-name),calc(74cqw / var(--nch,4)),max(30cqw,calc(20vh - 218px)))}
       .npdc-team{flex:1 0 100%}
       #view-result .card.nd-hero{display:flex;align-items:center;gap:12px;padding:10px;margin-bottom:8px}
       .card.nd-hero .rl-standing{flex:1 1 auto;margin-top:0}
