@@ -175,7 +175,15 @@ function renderIndGame(g, parts, key){
     // マスター g.kanjiBadge で ON/OFF（既定OFF・2026-08-29-host-option.md §2。OFF は判定自体を行わず hlMap=null）
     const kpids = g.kanjiBadge ? nextKanji(g) : [];
     const hl = kpids.length ? {} : null; kpids.forEach(pid=>hl[pid]=t('term.organizer'));
-    card=rankCardNS('', parts, pid=>netScore(g,pid), 'asc', v=>v, 'net', hl); rule='rule.net'; }
+    /* ★2026-09-19 暫定HDCP（2026-09-19-provisional-hdcp.md §7①）: 表示中の誰かのHDCPが暫定なら
+       フッタ行左端のタグスロットに「暫定HD n/18H」を出す。暫定かどうかの判定は calc.js の periaProv＝
+       periaHdcp と同じ periaParts を見る（表示側で partial を書き直すと #157 型の二重管理になる）。
+       18H全開かつ全員18H入力済みなら periaProv=false＝タグも注記も出ない（確定表示は従来どおり） */
+    /* 開封数の併記は「まだ開けていないから暫定」のときだけ。全開なのに暫定＝未入力の選手が居るケース
+       （設計 §3.6 の A案）で「暫定HD 18/18H」と出ると矛盾して読めるので、その場合は数字を出さない */
+    const provTag = periaProv(g,parts)
+      ? `<span class="tag tagtie">${t('hd.prov')}${revealHoles<18?' '+revealHoles+'/18H':''}</span>` : '';
+    card=rankCardNS(provTag, parts, pid=>netScore(g,pid), 'asc', v=>v, 'net', hl); rule='rule.net'; }
   else if(key==='stb'){ card=leaderboard('', parts, pid=>stablefordPts(g,pid), 'desc', v=>v+'pt', 'stb'); rule='rule.stableford'; }
   else if(key==='oly'){ card=leaderboard('', parts, pid=>olympicPts(g,pid), 'desc', v=>v+'pt', 'oly'); rule='rule.olympic'; }
   else if(key==='cal'){ card=leaderboard('', parts, pid=>callawayNet(g,pid),'asc',v=>v,'cal'); rule='rule.callaway'; }
@@ -353,7 +361,7 @@ function renderScorecard(g, parts, teams, deco){
       <span class="tgl ${show.totals?'on':'off'}" onclick="toggleShow('totals')">${t('sc.totalsTgl')} ${show.totals?t('btn.show'):t('btn.hide')}</span>
     </div>
     <table class="sc2${uvSel?' uvsc':''}">${SC_COLGROUP}${head}${parRow}${body}</table>
-    <div class="muted">${note} ${t('sc.noteCols')}${n<18?t('sc.noteOpen'):''}</div>
+    <div class="muted">${note} ${t('sc.noteCols')}${n<18?t('sc.noteOpen'):''}${periaProv(g,parts)?' '+t('sc.noteProvHd'):''}</div>
   </div></details>`;
 }
 
