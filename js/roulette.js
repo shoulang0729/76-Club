@@ -33,8 +33,15 @@ function rlFlash(g,h,pick){ const teams=rTeams(g);
   teams.forEach((t,i)=>{ const el=document.getElementById('rl-panel-'+t.id); if(!el)return;
     el.classList.remove('fwin','flose','ftie');
     if(ok) el.classList.add(allTie?'ftie':(sc[i]===mn?'fwin':'flose')); }); }
-function rlBeginSpin(teamIds){ if(rl.timer)clearInterval(rl.timer); rl.spinning=true; rl.spinTeams=teamIds.slice(); rl.challengeFrom=null; renderResult(); rl.timer=setInterval(rlTick,75); }
-function rlStop(){ rlStopTimer(); const g=curGame(); const R=g.roulette; const h=R.cur; R.reps[h]=R.reps[h]||{};
+/* STOP 誤爆の防止（2026-09-20-roulette-undo.md §8）: START と STOP は .rl-main の同じ位置・同じ大きさに出るので、
+   START を押した指の2度目のタップがそのまま STOP を踏む。スピン開始から 800ms は STOP を受け付けない
+   （rlTick は 75ms 刻み＝約10コマ。ボタンは disabled で描くので既存の button.btn:disabled{opacity:.4} が効く） */
+const RL_STOP_LOCK_MS=800;
+function rlBeginSpin(teamIds){ if(rl.timer)clearInterval(rl.timer); rl.spinning=true; rl.spinTeams=teamIds.slice(); rl.challengeFrom=null;
+  if(rl.lockTimer)clearTimeout(rl.lockTimer);
+  rl.stopLock=true; rl.lockTimer=setTimeout(()=>{ rl.stopLock=false; rl.lockTimer=null; const b=document.getElementById('rl-main'); if(b)b.disabled=false; }, RL_STOP_LOCK_MS);
+  renderResult(); rl.timer=setInterval(rlTick,75); }
+function rlStop(){ if(rl.stopLock)return; rlStopTimer(); const g=curGame(); const R=g.roulette; const h=R.cur; R.reps[h]=R.reps[h]||{};
   rl.spinTeams.forEach(tid=>{ const prev=R.reps[h][tid]; R.reps[h][tid]=rlDraw(g,tid, rl.spinTeams.length===1?prev:null); });
   rl.spinTeams=[]; save(); renderResult(); }
 function rlStartInitial(){ const g=curGame(); rlBeginSpin(rTeams(g).map(t=>t.id)); }
@@ -172,7 +179,8 @@ function renderRouletteParts(g){
       <div class="rl-act">${act}</div>
     </div>`; }).join('');
   let mainBtn;
-  if(rl.spinning) mainBtn=`<button class="btn danger wide rl-main" onclick="rlStop()">${t('rl.stop')}</button>`;
+  // id と disabled は STOP ロック（§8）用。再描画が挟まってもロック中は押せない状態が保たれる
+  if(rl.spinning) mainBtn=`<button class="btn danger wide rl-main" id="rl-main" ${rl.stopLock?'disabled':''} onclick="rlStop()">${t('rl.stop')}</button>`;
   else if(!drawn) mainBtn=`<button class="btn wide rl-main" onclick="rlStartInitial()">${t('rl.start')}</button>`;
   else mainBtn=`<button class="btn wide rl-main" ${rlCanAdvance(g)?'':'disabled'} onclick="rlNextHole()">${t('rl.confirmNext')}</button>`;
   const devMenu=`<details class="rl-dev"><summary>${t('rl.dev')}</summary><div class="in">

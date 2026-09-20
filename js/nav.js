@@ -2,8 +2,11 @@
 const views = { home:'view-home', basic:'view-basic', course:'view-course', players:'view-players', score:'view-score', result:'view-result' };
 let activeTab='home';   // 起動時はトップ（§11.12 B）。init.js で golfCompe_seenTop を見て上書き
 let revealHoles=0;             // 個人戦で開封済みのホール数(0-18)。既定=0（未開封＝発表前は何も見せない・#97）
-let rl={ spinning:false, spinTeams:[], timer:null, challengeFrom:null };  // ルーレットの実行時状態（非保存）
-function rlStopTimer(){ if(rl.timer){clearInterval(rl.timer);rl.timer=null;} rl.spinning=false; }
+/* ルーレットの実行時状態（非保存＝揮発）。stopLock/lockTimer は STOP 誤爆防止（2026-09-20-roulette-undo.md §8）:
+   スピン開始から RL_STOP_LOCK_MS だけ STOP を受け付けない。表示状態なので localStorage には入れない */
+let rl={ spinning:false, spinTeams:[], timer:null, challengeFrom:null, stopLock:false, lockTimer:null };
+function rlStopTimer(){ if(rl.timer){clearInterval(rl.timer);rl.timer=null;} rl.spinning=false;
+  if(rl.lockTimer){clearTimeout(rl.lockTimer);rl.lockTimer=null;} rl.stopLock=false; }
 /* 1 on 1 ホール自動オープンの実行時状態（2026-09-12-m1-autoplay.md §4.1・非保存＝揮発。
    key=再生中の組キー（m1Key）／timer=setTimeout ID。ハンドルは常に1本＝同時に2組は走らない（§4.5）。
    rl / rlStopTimer と同じ場所に置くのは、go() と setResGrp/setResGame から呼べる位置だから（§4.1）。 */
