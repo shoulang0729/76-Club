@@ -91,6 +91,9 @@ const REFS_GAME = Object.assign({}, TEAM3_GAME, {
     2: { T1: 'p03', T2: 'p07', T3: 'p11' }, 3: { T1: 'p04', T2: 'p08', T3: 'p12' } } },
 });
 
+// ルーレット取り消しケース（X）の代表巡回用メンバー表（teams の memberIds と同じ並び）
+const RL_MEM = { T1: ['p01', 'p02', 'p03', 'p04'], T2: ['p05', 'p06', 'p07', 'p08'], T3: ['p09', 'p10', 'p11', 'p12'] };
+
 const CASES = {
   // A) 個人戦フルセット（β・12名・p12 は前半9Hのみ入力=経過）: ペリア/エブリ/ステーブル/オリンピック/
   //    キャロウェイ/握り(ナッソー)/NPDC個人配点/payout/nextKanji(既定=2位下・ブービー上)
@@ -503,6 +506,34 @@ const CASES = {
       roulette: false, niadoraInd: false, niadoraTeam: false, stableford: false, olympic: false, callaway: false,
       nassau: false, vegas: false, match1v1: false, univMatch: false, customMatch: false },
   }) },
+  /* X) ★ルーレットの1ホール取り消し（α・docs/handoff/2026-09-20-roulette-undo.md §11.1）:
+        チーム構成・スコア式は team3 と同一（差分の出どころを roulette だけに限定）。ハーフ境界の直前 cur=8 で、
+        reps[0..8] 済み・pool は0..7の代表入り・remChange 全0（rlCanAdvance の left=8-cur=0 を満たす実状態）・
+        remChallenge は 2/0/1 とバラす（＝§11.3 で失効する「前半の余り」を持たせる）。
+        driver 側で rlMark → rlAdvance → rlApplyUndo を回し、①ラウンドトリップ（before と完全一致）
+        ②ハーフ境界の再付与（cur 9・remChange=changeN・remChallenge=challengeM）③勝ち点の増減
+        ④現在ホールの代表差し替えでは won 不変 ⑤選手消失ガード ⑥別コンペではボタンが出ない、を固定する。
+        pool の push を戻し忘れる／remChallenge の前半余りを取りこぼす／cur を戻し忘れる実装は必ず落ちる。 */
+  rlUndoHalf: { channel: 'a', rlUndo: true, game: baseGame({
+    teams: [
+      { id: 'T1', name: 'レッド', memberIds: ['p01', 'p02', 'p03', 'p04'] },
+      { id: 'T2', name: 'ブルー', memberIds: ['p05', 'p06', 'p07', 'p08'] },
+      { id: 'T3', name: 'グリーン', memberIds: ['p09', 'p10', 'p11', 'p12'] },
+    ],
+    participants: ALL.slice(),
+    scores: mkScores(ALL, (pi, h) => ((pi * 5 + h * 3 + (pi * h) % 4) % 6) - 2),
+    roulette: { cur: 8,
+      // 各チームの代表はホールごとにメンバーを巡回（h%4）。pool には確定済み 0..7 の代表がそのまま入っている
+      reps: Object.fromEntries([...Array(9).keys()].map(h => [h,
+        { T1: RL_MEM.T1[h % 4], T2: RL_MEM.T2[h % 4], T3: RL_MEM.T3[h % 4] }])),
+      pool: Object.fromEntries(Object.entries(RL_MEM).map(([tid, m]) => [tid, [...Array(8).keys()].map(h => m[h % 4])])),
+      remChange: { T1: 0, T2: 0, T3: 0 },          // ★前半終了直前は rlCanAdvance(left=0) により必ず全0（設計 §2）
+      remChallenge: { T1: 2, T2: 0, T3: 1 } },     // ★こちらは使い切り必須でない＝前半の余りが残る（失効するのはここだけ）
+    announced: { roulette: true },
+    formats: { gross: true, net: true, roulette: true, teamGross: false, teamNet: false, holeByHole: false,
+      niadoraInd: false, niadoraTeam: false, stableford: false, olympic: false, callaway: false,
+      nassau: false, best2ball: false, vegas: false, match1v1: false, univMatch: false, customMatch: false },
+  }) },
 };
 
 /* ============ vm 読込と実行 ============ */
@@ -514,7 +545,7 @@ const sandbox = {
   localStorage: { getItem: () => null, setItem: () => {}, removeItem: () => {} },
   window: { matchMedia: () => ({ matches: false, addEventListener() {} }), addEventListener() {} },
   __CASES: JSON.stringify(Object.fromEntries(Object.entries(CASES).map(([k, c]) =>
-    [k, { channel: c.channel, reveal: !!c.reveal,
+    [k, { channel: c.channel, reveal: !!c.reveal, rlUndo: !!c.rlUndo,
       state: { players: c.players || PLAYERS, games: [c.game], currentGameId: c.game.id } }]))),
 };
 const driver = `
@@ -590,6 +621,38 @@ for (const [name, cs] of Object.entries(JSON.parse(__CASES))) {
         r.uvNet[n]  = g.participants.map(pid => uvNetA(v, pid)); });
     }
     globalThis.__RESULTS[name].reveal = r;
+  }
+  /* ★2026-09-20 ルーレットの1ホール取り消し（docs/handoff/2026-09-20-roulette-undo.md §11.1）:
+     rlUndo:true のケースだけ追加ブロックを出力する（既存ケースの形は不変＝期待値の差分ゼロを維持）。
+     使うのは DOM も confirm も save も呼ばない純関数だけ（rlMark/rlAdvance/rlApplyUndo/rlStandings）。 */
+  if (cs.rlUndo) {
+    const cl = o => JSON.parse(JSON.stringify(o));
+    const before = cl(g.roulette), wonBefore = rlStandings(g).won;
+    rlMark(g, 'next', []);                       // ← 状態を変える直前にスナップショット
+    rlAdvance(g);                                // ← rlNextHole の状態遷移部分（pool push → cur++ → 後半の再付与）
+    const afterAdvance = cl(g.roulette), wonAfterAdvance = rlStandings(g).won;
+    const applied = rlApplyUndo(g);              // ← 取り消し（代入1回）
+    const afterUndo = cl(g.roulette), wonAfterUndo = rlStandings(g).won;
+    // A6: 現在ホール(cur)の代表を別人に差し替えても勝ち点は動かない（rlStandings は h<cur ＝現在ホールを数えない）
+    const cur = g.roulette.cur;
+    g.roulette.reps[cur] = Object.fromEntries(teamsOf(g).map(T => { const m = teamMembers(g, T);
+      return [T.id, m[(cur + 2) % m.length]]; }));
+    const wonAfterRedrawCurrentHole = rlStandings(g).won;
+    g.roulette = cl(before);                     // 差し替えを戻す（以降の検査を before 基準に揃える）
+    // A8: snap が参照する選手が state.players から消えていたら復元しない（削除済み選手を蘇らせない）
+    rlMark(g, 'next', []);
+    const keep = state.players;
+    state.players = state.players.filter(p => p.id !== 'p01');
+    const staleGuard = rlApplyUndo(g);
+    state.players = keep;
+    // A9: 別コンペ（gid 不一致）ではボタン自体が出ない
+    rl.undo.gid = 'OTHER-GAME';
+    const undoKindOtherGame = rlUndoKind(g);
+    rl.undo = null;
+    globalThis.__RESULTS[name].rlUndo = { before, afterAdvance, afterUndo, applied,
+      roundTrip: JSON.stringify(afterUndo) === JSON.stringify(before),
+      wonBefore, wonAfterAdvance, wonAfterUndo, wonAfterRedrawCurrentHole,
+      staleGuard, undoKindOtherGame };
   }
 }`;
 vm.runInContext(src + '\n' + driver, vm.createContext(sandbox));
