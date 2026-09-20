@@ -7,18 +7,78 @@ let m1Opened=new Map();      // 一組ずつモードのオープン済みカー
    投影原則（正本 §11.14）適用第1号: 大型UP表示が主役。 */
 // オープン演出（§13.2/§14.1）: 表示状態のみを更新（save() しない＝localStorage 非保存）
 function m1Key(a,b){ return a+':'+b; }
-function m1SetMode(mode){ if(mode!==m1RevealMode) m1Opened.clear(); m1RevealMode=mode; renderResult(); }   // モード切替で組状態リセット（§14.1）
-function m1OpenCard(k){ m1Opened.set(k,0); renderResult(); }   // オープン直後=0開封（全ホール伏せ・§14.1）
-function m1OpenNext(){ const g=curGame(); if(!g)return;
+/* ★自動再生の停止点（2026-09-12-m1-autoplay.md §4.3(a) #4〜#8）: 開封に関わる手動操作はすべて冒頭で m1AutoStop()。
+   「手動は常に自動に勝つ」（§6.2）＝リセット/前へ/次へ/全開・別カードを開く・一括開封・すべて伏せる・モード切替で必ず止まる。 */
+function m1SetMode(mode){ m1AutoStop(); if(mode!==m1RevealMode) m1Opened.clear(); m1RevealMode=mode; renderResult(); }   // モード切替で組状態リセット（§14.1）
+function m1OpenCard(k){ m1AutoStop(); m1Opened.set(k,0); renderResult(); }   // オープン直後=0開封（全ホール伏せ・§14.1）
+function m1OpenNext(){ m1AutoStop(); const g=curGame(); if(!g)return;
   const k=m1ValidPairs(g).map(([a,b])=>m1Key(a,b)).find(x=>!m1Opened.has(x));   // 未オープンの先頭＝登録リスト順
   if(k){ m1Opened.set(k,0); renderResult(); } }
-function m1OpenAllCards(){ const g=curGame(); if(!g)return;
+function m1OpenAllCards(){ m1AutoStop(); const g=curGame(); if(!g)return;
   m1ValidPairs(g).forEach(([a,b])=>m1Opened.set(m1Key(a,b),18)); renderResult(); }   // 演出スキップ＝全開
-function m1CoverAll(){ m1Opened.clear(); renderResult(); }
+function m1CoverAll(){ m1AutoStop(); m1Opened.clear(); renderResult(); }
 // 組ローカルのホール開封（一組ずつモード・カード内バー §14.2）
-function m1Holes(k,op){ const c=m1Opened.get(k)||0;
+function m1Holes(k,op){ m1AutoStop(); const c=m1Opened.get(k)||0;
   m1Opened.set(k, op==='reset'?0 : op==='prev'?Math.max(0,c-1) : op==='next'?Math.min(18,c+1) : 18);
   renderResult(); }
+
+/* ============ ホール自動オープン演出（docs/handoff/2026-09-12-m1-autoplay.md・一組ずつモード専用 §5.1）============
+   タイマーの状態（m1Auto / m1AutoStop）は js/nav.js（rl と同じ場所）。ここは演出ロジックのみ。
+   §3 計算には非接触＝js/calc.js は1行も触らない（m1HoleWin を読むだけ）。開封状態は揮発＝localStorage に保存しない。 */
+const M1_AUTO_MS={ step:1000, hold:3000, rest:200 };   // 通常 / ため / 決着後（§6.3 ハードコード＝設定UIなし）
+/* 開封開始ホール（1..18）。開封順 OUT/IN（Issue #140）は未実装のため、現状は全組 OUT=1H 固定＝開封順は 1→18。
+   #140 が入ったら本定数の参照箇所を m1StartOf(g,k) に差し替えるだけで、自動再生は開封順へ自動追従する（§2・§3.3）。 */
+const M1_START_OUT=1;
+/* 演出専用（§3）: その組の「決定ホール」の開封順 index（0-based）＝最終結果（A勝ち/B勝ち/AS）が確定する最初のホール。
+   決着 = 残りの“勝敗のつくホール”をすべて相手が取ってもリードを守り切れる（|d|>rem）
+          または 残りの“勝敗のつくホール”が 0 本（＝18H 決着 / AS / 末尾未入力もこの1本の式で畳める・§3.2）。
+   勝敗のつくホールが1本も無い（全ホール未入力）組は null＝ため無し。計算・配点には一切使わない（§11）。 */
+function m1ClinchAt(g,a,b,s){
+  const w=[]; let dec=0;
+  for(let k=0;k<18;k++){ const x=m1HoleWin(g,a,b,((s-1)+k)%18); w.push(x); if(x!=null) dec++; }   // ((s-1)+k)%18 = 開封順 index → 実ホール index（§2）
+  if(!dec) return null;
+  let d=0, rem=dec;
+  for(let k=0;k<18;k++){
+    if(w[k]==='A') d++; else if(w[k]==='B') d--;
+    if(w[k]!=null) rem--;                     // rem = k より後ろの“勝敗のつくホール”本数
+    if(rem===0 || Math.abs(d)>rem) return k;
+  }
+  return null;                                // 到達しない（rem は必ず 0 になる）
+}
+function m1PairOf(k){ const g=curGame(); return g? (m1ValidPairs(g).find(([a,b])=>m1Key(a,b)===k)||null) : null; }
+/* 開封順 index j のホールを開くまでの待ち時間（§4.4）。first=押下直後だけ通常区間を 0 にする（＝即反応）。
+   ただし j===D なら first でも 3.0秒を返す＝「ため」は必ず守られる（§10-7）。 */
+function m1AutoDelay(g,a,b,s,j,first){
+  const D=m1ClinchAt(g,a,b,s);
+  if(D!=null && j===D) return M1_AUTO_MS.hold;   // 3000: 決定ホールの「ため」
+  if(D!=null && j>D)   return M1_AUTO_MS.rest;   //  200: 決着後の消化
+  return first ? 0 : M1_AUTO_MS.step;            // 1000
+}
+function m1AutoTick(){
+  m1Auto.timer=null;                             // 自分は発火済み
+  const g=curGame(), k=m1Auto.key;
+  /* 自己終了ガード（§4.3(b)）: 停止点を1つ書き忘れた経路でも最大1tick で必ず止まる */
+  const alive = g && k && activeTab==='result' && resGrp==='team' && resGame.team==='m1'
+             && m1RevealMode==='one' && m1Opened.has(k)
+             && m1ValidPairs(g).some(([a,b])=>m1Key(a,b)===k);
+  if(!alive){ m1AutoStop(); return; }
+  const p=m1PairOf(k), s=M1_START_OUT;
+  const c=Math.min(18,(m1Opened.get(k)||0)+1);
+  m1Opened.set(k,c);
+  if(c>=18) m1AutoStop();                        // 18 で終了（次の timer を張らない）
+  else m1Auto.timer=setTimeout(m1AutoTick, m1AutoDelay(g,p[0],p[1],s,c,false));
+  renderResult();                                // 停止状態を反映してから描く（ボタンが ▶再生 に戻る）
+}
+function m1AutoPlay(k){                          // ▶再生 / ■停止 のトグル
+  if(m1Auto.key===k){ m1AutoStop(); renderResult(); return; }    // 走行中の同じ組 → 停止
+  m1AutoStop();                                  // ★多重起動防止（rlBeginSpin と同じ作法・§4.5）
+  const g=curGame(); if(!g||m1RevealMode!=='one'||!m1Opened.has(k)) return;
+  const p=m1PairOf(k); if(!p) return;
+  const c=m1Opened.get(k)||0; if(c>=18) return;   // 全開の組は再生しない（ボタンも disabled）
+  m1Auto.key=k;
+  m1Auto.timer=setTimeout(m1AutoTick, m1AutoDelay(g,p[0],p[1],M1_START_OUT,c,true));
+  renderResult();                                // 押した瞬間に ■停止 と脈打ちを出す
+}
 
 /* §8.3 D15: 返り値 {head, body}。head=チームサマリカード＋共通開封バーカード（.result-sticky 同居＝固定）・body=対戦カード群。
    ガード時（emptyFmt / need2Teams / 組合せなし）は {head:'', body:空状態カード}＝空状態は固定しない。中身/挙動は §13〜§15 のまま不変 */
@@ -94,18 +154,24 @@ function renderMatch1v1Parts(g){
     // 暫定タグ: 一組ずつ=c<18 で常に表示（0/18H で進捗ゼロが分かる §14.2）／一括=従来（revealHoles<18 かつ played>0）
     const prov=one ? (c<18?`<div class="mt6"><span class="tag tagtie">${c}/18H</span></div>`:'')
       : ((n<18&&r.played>0)?`<div class="mt6"><span class="tag tagtie">${n}/18H</span></div>`:'');
-    // カード内開封バー（一組ずつのみ・既存キー流用＝新キーなし。disabled 境界 0/18）
+    /* 自動再生（m1-autoplay §4・§7）: 走行中のカードだけが「次に開く列の脈打ち」と「ため」のタグを持つ。
+       m1Auto.key!==k（＝自動再生を使っていない）のときは playing=false → 下の出力は ▶再生 ボタン1個の追加のみ（受け入れ条件 A1）。 */
+    const playing=one && m1Auto.key===k;
+    const D=playing? m1ClinchAt(g,a,b,M1_START_OUT) : null;        // 決定ホール（開封順 index）
+    const nx=(playing&&c<18)? ((M1_START_OUT-1)+c)%18 : -1;        // 次に開く列の実ホール index（-1=付けない）
+    // カード内開封バー（一組ずつのみ・既存キー流用＝新キーは再生/停止トグル1個のみ。disabled 境界 0/18）
     const cardbar=one?`<div class="reveal-bar m1-cardbar">
       <button class="btn gray sm" onclick="m1Holes('${k}','reset')" ${c<=0?'disabled':''}>${t('btn.reset')}</button>
       <button class="btn gray sm" onclick="m1Holes('${k}','prev')" ${c<=0?'disabled':''}>${t('sc.prev')}</button>
       <button class="btn gold sm" onclick="m1Holes('${k}','next')" ${c>=18?'disabled':''}>${t('sc.next')}</button>
+      <button class="btn ${playing?'gray':'gold'} sm" onclick="m1AutoPlay('${k}')" ${c>=18?'disabled':''}>${playing?'■ '+t('m1.pause'):'▶ '+t('m1.play')}</button>
       <button class="btn gray sm" onclick="m1Holes('${k}','all')" ${c>=18?'disabled':''}>${t('btn.all')}</button>
-      <span class="tag tagtie">${c>=18?t('sc.allHoles'):c+'/18H'}</span></div>`:'';
+      <span class="tag tagtie">${c>=18?t('sc.allHoles'):c+'/18H'}</span>${(D!=null&&c===D)?`<span class="tag">${t('m1.hold')}</span>`:''}</div>`:'';
     const row=(pid,me,col)=>`<tr><td class="nm" style="color:${col}">${nameOf(pid)}</td>${H.map(i=>{
-      const w=m1HoleWin(gc,a,b,i); const cls=w===me?'rwin':w==='H'?'rtie':'';
+      const w=m1HoleWin(gc,a,b,i); const cls=(w===me?'rwin':w==='H'?'rtie':'')+(i===nx?' m1-nx':'');
       const val=adjHole(gc,pid,i); return `<td class="${cls}">${val==null?'':val}</td>`; }).join('')}</tr>`;
     return `<div class="card">${hero(big+prov)}${cardbar}
-      <table class="sc2">${colg}<tr><th class="nm"></th>${H.map(i=>`<th>${i+1}</th>`).join('')}</tr>
+      <table class="sc2">${colg}<tr><th class="nm"></th>${H.map(i=>`<th${i===nx?' class="m1-nx"':''}>${i+1}</th>`).join('')}</tr>
       ${row(a,'A',colA)}${row(b,'B',colB)}</table></div>`;
   }).join('');
   return {head: top + bar, body: cards + ruleBox('rule.match1v1')};
