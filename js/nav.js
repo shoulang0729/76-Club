@@ -3,8 +3,10 @@ const views = { home:'view-home', basic:'view-basic', course:'view-course', play
 let activeTab='home';   // 起動時はトップ（§11.12 B）。init.js で golfCompe_seenTop を見て上書き
 let revealHoles=0;             // 個人戦で開封済みのホール数(0-18)。既定=0（未開封＝発表前は何も見せない・#97）
 /* ルーレットの実行時状態（非保存＝揮発）。stopLock/lockTimer は STOP 誤爆防止（2026-09-20-roulette-undo.md §8）:
-   スピン開始から RL_STOP_LOCK_MS だけ STOP を受け付けない。表示状態なので localStorage には入れない */
-let rl={ spinning:false, spinTeams:[], timer:null, challengeFrom:null, stopLock:false, lockTimer:null };
+   スピン開始から RL_STOP_LOCK_MS だけ STOP を受け付けない。表示状態なので localStorage には入れない。
+   undo は「直前の1操作」の取り消し用スナップショット（同 §5.1・最大1件・メモリのみ＝リロードで消える）。
+   ★golfCompe_v1 には絶対に入れない: 保存すると過去コンペを後から書き換える経路ができてしまう（同 §4.1） */
+let rl={ spinning:false, spinTeams:[], timer:null, challengeFrom:null, stopLock:false, lockTimer:null, undo:null };
 function rlStopTimer(){ if(rl.timer){clearInterval(rl.timer);rl.timer=null;} rl.spinning=false;
   if(rl.lockTimer){clearTimeout(rl.lockTimer);rl.lockTimer=null;} rl.stopLock=false; }
 /* 1 on 1 ホール自動オープンの実行時状態（2026-09-12-m1-autoplay.md §4.1・非保存＝揮発。

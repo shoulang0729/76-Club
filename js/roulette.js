@@ -44,27 +44,58 @@ function rlBeginSpin(teamIds){ if(rl.timer)clearInterval(rl.timer); rl.spinning=
 function rlStop(){ if(rl.stopLock)return; rlStopTimer(); const g=curGame(); const R=g.roulette; const h=R.cur; R.reps[h]=R.reps[h]||{};
   rl.spinTeams.forEach(tid=>{ const prev=R.reps[h][tid]; R.reps[h][tid]=rlDraw(g,tid, rl.spinTeams.length===1?prev:null); });
   rl.spinTeams=[]; save(); renderResult(); }
-function rlStartInitial(){ const g=curGame(); rlBeginSpin(rTeams(g).map(t=>t.id)); }
-function rlChange(tid){ const g=curGame(); const R=g.roulette; if((R.remChange[tid]||0)<=0)return; R.remChange[tid]--; save(); rlBeginSpin([tid]); }
+function rlStartInitial(){ const g=curGame(); const ids=rTeams(g).map(t=>t.id); rlMark(g,'spin',ids); rlBeginSpin(ids); }
+function rlChange(tid){ const g=curGame(); const R=g.roulette; if((R.remChange[tid]||0)<=0)return; rlMark(g,'spin',[tid]); R.remChange[tid]--; save(); rlBeginSpin([tid]); }
 function rlChallengeStart(fromTid){ const g=curGame(); const R=g.roulette; if((R.remChallenge[fromTid]||0)<=0)return;
   const others=rTeams(g).filter(t=>t.id!==fromTid);
   if(others.length===1){ rlChallengeDo(fromTid, others[0].id); } else { rl.challengeFrom=fromTid; renderResult(); } }
-function rlChallengeDo(fromTid, targetTid){ const g=curGame(); const R=g.roulette; if((R.remChallenge[fromTid]||0)<=0)return; R.remChallenge[fromTid]--; rl.challengeFrom=null; save(); rlBeginSpin([targetTid]); }
+function rlChallengeDo(fromTid, targetTid){ const g=curGame(); const R=g.roulette; if((R.remChallenge[fromTid]||0)<=0)return; rlMark(g,'spin',[targetTid]); R.remChallenge[fromTid]--; rl.challengeFrom=null; save(); rlBeginSpin([targetTid]); }
 function rlCancelChallenge(){ rl.challengeFrom=null; renderResult(); }
 function rlHoleDrawn(g){ const reps=g.roulette.reps[g.roulette.cur]||{}; return rTeams(g).every(t=>reps[t.id]); }
 /* 使い切り必須の判定はハーフ単位（§11.3）：前半=9番(index8)終了まで／後半=18番(index17)終了までに残チェンジ0 */
 function rlCanAdvance(g){ if(!rlHoleDrawn(g))return false; const cur=g.roulette.cur;
   const left = cur<=8 ? 8-cur : 17-cur;
   return rTeams(g).every(t=>(g.roulette.remChange[t.id]||0)<=left); }
-function rlNextHole(){ const g=curGame(); const R=g.roulette; if(!rlCanAdvance(g)){toast(t('toast.useChange'));return;}
+/* 取り消し用スナップショット（2026-09-20-roulette-undo.md §5.2）: 状態を変える操作の直前に必ず呼ぶ。
+   最大1件・揮発（rl.undo）＝保存しない。kind は 'spin'（抽選のやり直し）/'next'（1ホール戻す） */
+function rlMark(g,kind,teams){ rl.undo={ gid:g.id, kind, h:g.roulette.cur, teams:(teams||[]).slice(), snap:JSON.parse(JSON.stringify(g.roulette)) }; }
+/* rlNextHole の状態遷移部分だけを切り出した純関数（同 §5.2）。DOM も save も呼ばないので回帰ハーネスの vm から直接呼べる。
+   中身は切り出し前の3文をそのまま移しただけ（pool へ代表を push → cur++ → 後半開始で再付与）＝挙動不変 */
+function rlAdvance(g){ const R=g.roulette;
   const reps=R.reps[R.cur]||{}; rTeams(g).forEach(t=>{ R.pool[t.id]=[...(R.pool[t.id]||[]), reps[t.id]]; });
   R.cur=Math.min(18,R.cur+1);
   // OUT終了→後半開始：チェンジ/チャレンジをハーフ分再付与（上書き＝前半の余りは失効・§11.3）
-  if(R.cur===9) rTeams(g).forEach(t=>{ R.remChange[t.id]=R.changeN; R.remChallenge[t.id]=R.challengeM; });
+  if(R.cur===9) rTeams(g).forEach(t=>{ R.remChange[t.id]=R.changeN; R.remChallenge[t.id]=R.challengeM; }); }
+function rlNextHole(){ const g=curGame(); if(!rlCanAdvance(g)){toast(t('toast.useChange'));return;}
+  rlMark(g,'next',[]); rlAdvance(g);
   rl.challengeFrom=null; save(); renderResult(); }
 function rlReset(){ if(!confirm(t('confirm.rlReset')))return; const g=curGame(); const R=g.roulette;
   R.reps={};R.pool={};R.remChange={};R.remChallenge={};R.cur=0; rTeams(g).forEach(t=>{R.remChange[t.id]=R.changeN;R.remChallenge[t.id]=R.challengeM;});
-  rl.challengeFrom=null; rlStopTimer(); rl.spinTeams=[]; save(); renderResult(); }
+  rl.challengeFrom=null; rl.undo=null; rlStopTimer(); rl.spinTeams=[]; save(); renderResult(); }
+/* ===== 直前の1操作の取り消し（2026-09-20-roulette-undo.md §5）=====
+   逆操作ではなくスナップショット方式: rlDraw の pool リセットやハーフ境界の再付与といった
+   「rlNextHole が何を副作用に持つか」を知らずに済み、復元は代入1回＝過去の結果を壊す経路が構造的に無い。
+   深さは1手だけ・gid 一致の進行中コンペのみ・リロードで消える（§4.1・§5.3） */
+// 今出すべきボタンの種別（'spin'=抽選のやり直し / 'next'=1ホール戻す / null=出さない）。別コンペ・スピン中は null
+function rlUndoKind(g){ const u=rl.undo; return (u&&g&&u.gid===g.id&&!rl.spinning)?u.kind:null; }
+/* 純関数（DOM/confirm/save を呼ばない＝回帰ハーネスから直接呼べる）。ガードは §5.4 の2つ:
+   ① gid 不一致（別コンペ・リロード後）② snap が参照する選手が state.players に居ない（復元で削除済み選手を蘇らせない） */
+function rlApplyUndo(g){ const u=rl.undo; if(!u||!g||u.gid!==g.id)return false;
+  const alive=pid=>pid==null||!!state.players.find(x=>x.id===pid); const s=u.snap;
+  for(const hh in (s.reps||{})){ const rp=s.reps[hh]||{}; for(const tid in rp) if(!alive(rp[tid]))return false; }
+  for(const tid in (s.pool||{})) if(!(s.pool[tid]||[]).every(alive))return false;
+  g.roulette=JSON.parse(JSON.stringify(s)); return true; }
+function rlUndo(){ const g=curGame(); const kind=rlUndoKind(g); if(!kind)return;
+  if(!confirm(t(kind==='spin'?'confirm.rlUndoSpin':'confirm.rlUndoHole')))return;
+  const teams=rl.undo.teams.slice();
+  if(!rlApplyUndo(g)){ rl.undo=null; toast(t('toast.rlUndoStale')); renderResult(); return; }
+  save();
+  // 'spin' は rl.undo を残す＝気に入るまで何度でも「そのスピンの直前」に戻せる。'next' は1回きり（同じ復元の再適用は無意味）
+  if(kind==='spin') rlBeginSpin(teams);
+  else { rl.undo=null; rl.challengeFrom=null; renderResult(); } }
+// .rl-head の右端グループ（リセットの左・§9）。margin-left:auto は「その行で最初に出る右寄せ要素」に付ける
+function rlUndoBtn(g){ const k=rlUndoKind(g);
+  return k?`<button class="btn gray sm" style="margin-left:auto" onclick="rlUndo()">${t(k==='spin'?'rl.undoSpin':'rl.undoHole')}</button>`:''; }
 function rlStandings(g){ const teams=rTeams(g); const won=teams.map(()=>0); let pending=0;
   for(let h=0; h<g.roulette.cur; h++){ const reps=g.roulette.reps[h]; if(!reps)continue;
     const sc=teams.map(t=>{const pid=reps[t.id];return pid!=null?rlHoleScore(g,pid,h):null;});
@@ -138,8 +169,10 @@ function renderRouletteParts(g){
     }</div>`;
     /* 連携ボタン（2026-08-30 ユーザー確定・自動確定廃止）: 18H終了後も進行中と同じ tpAnnounceUI を
        リセットの右（右端）に設置＝未連携なら「結果を連携する」・連携済みなら取り消し可（他種目と同じ可逆動作） */
+    // §7.3: 18H終了後も「1ホール戻す」を出す（ここは現状 rlReset=18H全消し しか戻す手段が無い＝被害が最大のケース）
+    const undoBtn=rlUndoBtn(g);
     return {head:`<div class="rlwrap">
-      <div class="card rl-play">${standRow}<div class="rl-head"><button class="btn gray sm" style="margin-left:auto" onclick="rlReset()">${t('btn.reset')}</button>${tpAnnounceUI(g,'roulette',true)}</div></div></div>`,
+      <div class="card rl-play">${standRow}<div class="rl-head">${undoBtn}<button class="btn gray sm"${undoBtn?'':' style="margin-left:auto"'} onclick="rlReset()">${t('btn.reset')}</button>${tpAnnounceUI(g,'roulette',true)}</div></div></div>`,
       body:`<div class="rlwrap">${rlScorecard(g)}</div>`};
   }
 
@@ -188,12 +221,13 @@ function renderRouletteParts(g){
       <select style="flex:1;max-width:52%" onchange="rlForceRep('${tm.id}',this.value)"><option value="">${t('rl.pickRep')}</option>${teamMembers(g,tm).map(pid=>{const p=state.players.find(x=>x.id===pid);return `<option value="${pid}" ${reps[tm.id]===pid?'selected':''}>${esc(p&&p.name)}</option>`}).join('')}</select></div>`).join('')}
     <hr>${teams.map(tm=>`<div class="row between" style="margin:2px 0"><span style="color:${rColor(tm.name)};min-width:64px">${esc(tm.name)}</span><span><button class="btn gray sm" onclick="rlRefund('${tm.id}','change')">${t('rl.refundChange',{n:R.remChange[tm.id]||0})}</button> <button class="btn gray sm" onclick="rlRefund('${tm.id}','challenge')">${t('rl.refundChallenge',{n:R.remChallenge[tm.id]||0})}</button></span></div>`).join('')}
   </div></details>`;
+  const undoBtn=rlUndoBtn(g);   // 幹事の訂正操作。競技アクション（.rl-act のチェンジ/チャレンジ）とは視覚的に分ける（§9）
   const head=`<div class="rlwrap">
     <div class="card rl-play">
       <div class="rl-head"><div class="rl-hole">${h+1}<small>H</small></div><div class="rl-par">Par ${g.par[h]}</div>
         ${holeRes}
         ${rl.challengeFrom?`<span class="muted">${t('rl.pickOpp')} <button class="btn gray sm" onclick="rlCancelChallenge()">${t('btn.cancel')}</button></span>`:''}
-        <button class="btn gray sm" style="margin-left:auto" onclick="rlReset()">${t('btn.reset')}</button>${tpAnnounceUI(g,'roulette',true)}</div>
+        ${undoBtn}<button class="btn gray sm"${undoBtn?'':' style="margin-left:auto"'} onclick="rlReset()">${t('btn.reset')}</button>${tpAnnounceUI(g,'roulette',true)}</div>
       <div class="rl-panels">${panels}</div>
       <div class="rl-ctrl">
         <div class="rl-info">${(!rl.spinning&&drawn)?holeInfo:'&nbsp;'}</div>
