@@ -99,8 +99,10 @@ function m1EditCard(g){
   const mkSel=(id,ids,cnt)=>{ const def=ids.find(pid=>!appeared.has(pid))||ids[0];   // 既定=未出場の先頭（全員出場済みなら先頭）
     return `<select id="${id}">${ids.map(pid=>`<option value="${pid}"${pid===def?' selected':''}>${nameOf(pid)}${cnt[pid]?` ×${cnt[pid]}`:''}</option>`).join('')}</select>`; };
   const rows=raw.map((p,i)=>{ const [a,b]=p; const invalid=!pairs.includes(p);   // 無効組=赤字＋タグ・×で削除可（§13.1）
+    const st=m1StartOf(g,m1Key(a,b));   // スタートホール（1=OUT / 10=IN・2026-09-11-m1-start-side.md §4.3(b)）
     return `<div class="row mt6"><span${invalid?' style="color:var(--red)"':''}>#${i+1} ${nameOf(a)} vs ${nameOf(b)}</span>
       ${invalid?`<span class="tag" style="background:var(--danger-bg);color:var(--red)">${t('m1.invalidPair')}</span>`:''}
+      <span class="muted">${t('m1.start')}</span><span class="seg"><button class="${st===10?'':'on'}" onclick="m1SetStart(${i},1)">OUT</button><button class="${st===10?'on':''}" onclick="m1SetStart(${i},10)">IN</button></span>
       <button class="btn gray sm" onclick="m1MovePair(${i},-1)" ${i===0?'disabled':''}>↑</button>
       <button class="btn gray sm" onclick="m1MovePair(${i},1)" ${i===raw.length-1?'disabled':''}>↓</button>
       <button class="btn gray sm" onclick="m1DelPair(${i})">×</button></div>`; }).join('');
@@ -116,18 +118,27 @@ function m1AddPair(){ const g=curGame(); if(!g)return;
   const T=m1Teams(g); if(T.length!==2)return;
   const selA=document.getElementById('m1selA'), selB=document.getElementById('m1selB');
   if(!selA||!selB)return; const a=selA.value, b=selB.value; if(!a||!b)return;
-  const m=g.match1v1||(g.match1v1={teamA:null,teamB:null,pairs:[]});
+  const m=g.match1v1||(g.match1v1={teamA:null,teamB:null,pairs:[],starts:{}});
   if((m.pairs||[]).some(([x,y])=>x===a&&y===b)){ toast(t('m1.dupPair')); return; }   // 重複カードのみ弾く。同一選手の複数回は可
   if(!m1Valid(g)){ m.teamA=T[0].id; m.teamB=T[1].id; }   // 初回追加（有効な保存がない）時に現在の2チームで確定（以後 §4.3 の stale 判定が機能）
   m.pairs.push([a,b]); save(); renderPlayers(); }
 function m1DelPair(idx){ const g=curGame(); if(!g||!g.match1v1)return;
+  const p=g.match1v1.pairs[idx];
+  if(p && g.match1v1.starts) delete g.match1v1.starts[m1Key(p[0],p[1])];   // 孤児キーを残さない（§2.2・A10）
   g.match1v1.pairs.splice(idx,1); save(); renderPlayers(); }
+/* スタートホールの切替（§4.3(b)）: 既定 OUT(=1) はデータに書かない＝旧データ・既定運用は starts が空のまま */
+function m1SetStart(idx,s){ const g=curGame(); if(!g||!g.match1v1)return;
+  const p=(g.match1v1.pairs||[])[idx]; if(!p)return;
+  if(!g.match1v1.starts) g.match1v1.starts={};
+  const k=m1Key(p[0],p[1]);
+  if(s>1) g.match1v1.starts[k]=s; else delete g.match1v1.starts[k];
+  save(); renderPlayers(); }
 function m1MovePair(idx,dir){ const g=curGame(); if(!g||!g.match1v1)return;
   const p=g.match1v1.pairs, j=idx+dir; if(j<0||j>=p.length)return;
   [p[idx],p[j]]=[p[j],p[idx]]; save(); renderPlayers(); }   // 並び順＝カード表示順＝「次の組」のめくり順
 function m1ClearAll(){ const g=curGame(); if(!g||!g.match1v1)return;
   if(!confirm(t('m1.confirmClear')))return;
-  g.match1v1={teamA:null,teamB:null,pairs:[]}; m1Opened.clear(); save(); renderPlayers(); }   // m1Opened=js/results.js の揮発表示状態（クリック時点で読込済み）
+  g.match1v1={teamA:null,teamB:null,pairs:[],starts:{}}; m1Opened.clear(); save(); renderPlayers(); }   // m1Opened=js/results.js の揮発表示状態（クリック時点で読込済み）
 function addPlayer(){
   const n=document.getElementById('pName').value.trim(); if(!n) return toast(t('toast.enterName'));
   state.players.push({id:uid(),name:n,gender:document.getElementById('pGender').value,

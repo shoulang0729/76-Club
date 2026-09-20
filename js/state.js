@@ -52,7 +52,8 @@ function migrate(s){
     if(!g.vegas) g.vegas={ flip:true, cap:'doublePar' };
     else { if(g.vegas.flip===undefined) g.vegas.flip=true; if(!g.vegas.cap) g.vegas.cap='doublePar'; }
     if(g.formats && g.formats.match1v1===undefined) g.formats.match1v1=false;   // 1 on 1 マッチプレー（§11.13）
-    if(!g.match1v1) g.match1v1={ teamA:null, teamB:null, pairs:[] };
+    if(!g.match1v1) g.match1v1={ teamA:null, teamB:null, pairs:[], starts:{} };
+    if(!g.match1v1.starts || typeof g.match1v1.starts!=='object') g.match1v1.starts={};   // 組ごとのスタートホール（1-based・キーなし=OUT=1H。2026-09-11-m1-start-side.md §2.4）
     if(g.formats && g.formats.univMatch===undefined) g.formats.univMatch=false;   // 大学対抗（§11.20・2026-08-30-univ-match.md）
     if(!g.univ) g.univ={every:false}; else if(g.univ.every===undefined) g.univ.every=false;   // 大学対抗設定（エブリ適用オプション・既定OFF）
     if(g.formats && g.formats.customMatch===undefined) g.formats.customMatch=false;   // 任意対決（§11.21・2026-08-31-custom-match.md）
@@ -128,7 +129,7 @@ function newGame(){
     points:defaultPoints(), prizePool:0, roulette:newRoulette(),
     vegas:{ flip:true, cap:'doublePar' },   // ラスベガス設定（§11.11）
     univ:{ every:false },   // 大学対抗設定（エブリ適用オプション・既定OFF＝規定準拠。§11.20）
-    match1v1:{ teamA:null, teamB:null, pairs:[] },   // 1 on 1 マッチプレーの抽選結果（§11.13）
+    match1v1:{ teamA:null, teamB:null, pairs:[], starts:{} },   // 1 on 1 マッチプレーの抽選結果（§11.13。starts=組ごとのスタートホール §2.2）
     custom:{ name:'', pts:{} },   // 任意対決（§11.21・幹事入力ポイントのみで勝敗。name 空＝i18n 既定名）
     announced:{},   // 種目別の発表済みフラグ（データ＝幹事の記録。演出の開封状態〔揮発〕とは別物・winpoints-reveal §4.1）
     formats:{ gross:true, net:true, niadoraInd:true, niadoraTeam:true, teamGross:true, teamNet:true, holeByHole:true, roulette:true,
