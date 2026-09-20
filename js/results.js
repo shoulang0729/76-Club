@@ -39,8 +39,8 @@ function togglePzSet(s){ const g=curGame(); if(!g||prizeSetCount(g)<s) return;  
   const F=pzFlags(g,s); if(!F.length) return;
   const toOpen=F.some(([h,ss])=>pzMasked(h,ss));                  // 1本でも伏せ → 全開ける
   F.forEach(([h,ss])=>pzSetMasked(h,ss,!toOpen)); renderResult(); }
-function setResGrp(grp){ if(!(grp==='team'&&resGame.team==='roulette')) rlStopTimer(); resGrp=grp; renderResult(); }
-function setResGame(k){ if(k!=='roulette') rlStopTimer();
+function setResGrp(grp){ if(!(grp==='team'&&resGame.team==='roulette')) rlStopTimer(); if(!(grp==='team'&&resGame.team==='m1')) m1AutoStop(); resGrp=grp; renderResult(); }
+function setResGame(k){ if(k!=='roulette') rlStopTimer(); if(k!=='m1') m1AutoStop();
   resGame[resGrp]=k;
   if(resGrp==='ind' && (k==='gross'||k==='net')) scSortInd=k;                       // §3 D8: スコア表の並べ替え自動追従
   if(resGrp==='team'&& (k==='gross'||k==='net'||k==='hbh')) scSortTeam=k;           // §3 D8

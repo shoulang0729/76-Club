@@ -480,6 +480,10 @@
     max-height:calc(100dvh - var(--hdr-h,50px) - 3*var(--h-tabrow) - 18px);overflow-y:auto;overscroll-behavior:contain}
   .sc2 .cur{background:var(--acc-bg) !important;color:var(--strong) !important}   /* 現在ホール列：黄地でも文字は最濃色に */
   .sc2 th.cur{background:var(--acc-bg-strong) !important;color:var(--strong) !important}
+  /* 1 on 1 自動再生で「次に開く列」（2026-09-12-m1-autoplay.md §7.1）。.cur と同じトークン＝同じ意味「いま注目する列」。
+     新規トークン・新規 @keyframes は作らず、既存 --acc-bg / --acc-bg-strong と @keyframes rlblink を流用する。 */
+  .sc2 .m1-nx{background:var(--acc-bg);animation:rlblink .45s infinite alternate}
+  .sc2 th.m1-nx{background:var(--acc-bg-strong)}
   .sc2 .adopt{outline:2px solid var(--sub);outline-offset:-2px;font-weight:var(--w-bold);color:var(--strong) !important}
   .sc2 .rwin{background:var(--win-bg-strong) !important;font-weight:var(--w-bold);color:var(--win-ink) !important}   /* 勝ち：濃緑文字で高コントラスト */
   .sc2 .rtie{background:var(--tie-bg) !important;font-weight:var(--w-bold);color:var(--tie-ink) !important}   /* 引分：濃橙文字 */
