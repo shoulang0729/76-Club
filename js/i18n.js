@@ -178,6 +178,7 @@ ja: {
   'm1.modeAll':'全組一括','m1.modeOne':'一組ずつ','m1.open':'オープン','m1.openNext':'次の組',
   'm1.openAllCards':'全組オープン','m1.coverAll':'すべて伏せる',
   'm1.play':'再生','m1.pause':'停止','m1.hold':'このホールで決まる',
+  'm1.start':'スタート','m1.startTag':'{h}Hスタート',
   'pts.m1win':'1 on 1 勝利（1勝あたり）','pts.m1draw':'1 on 1 引分（両者）',
   'rule.match1v1':'<b>1 on 1</b>：幹事が2チーム間で組んだ1対1マッチプレー。各ホールの少ない方が1UP、同打数はハーフ。18Hの通算UP差で勝敗（同数は引き分け）。スコアはエブリ適用後。同一選手が複数回出場することもある（全員1回以上の出場を推奨）。',
   /* 任意対決（customMatch・§11.21・docs/handoff/2026-08-31-custom-match.md §7） */
@@ -408,6 +409,7 @@ zh: {
   'm1.modeAll':'全部公开','m1.modeOne':'逐组公开','m1.open':'公开','m1.openNext':'下一组',
   'm1.openAllCards':'公开全部','m1.coverAll':'全部盖上',
   'm1.play':'播放','m1.pause':'暂停','m1.hold':'这一洞定胜负',
+  'm1.start':'开球洞','m1.startTag':'从{h}H开球',
   'pts.m1win':'1 on 1 获胜（每胜1场）','pts.m1draw':'1 on 1 平局（双方）',
   'rule.match1v1':'<b>1 on 1</b>：由干事在两队之间编排的一对一比洞赛。每洞杆数少者得1UP，平洞不计。以18洞累计UP差定胜负（相同为平局）。使用每洞让杆后成绩。同一选手可出场多次（建议全员至少出场1次）。',
   /* 任意対決（customMatch・§11.21） */
@@ -636,6 +638,7 @@ en: {
   'm1.modeAll':'All at once','m1.modeOne':'One by one','m1.open':'Open','m1.openNext':'Next match',
   'm1.openAllCards':'Open all','m1.coverAll':'Cover all',
   'm1.play':'Play','m1.pause':'Pause','m1.hold':'Match point',
+  'm1.start':'Start','m1.startTag':'Starts at {h}H',
   'pts.m1win':'1 on 1 win (per win)','pts.m1draw':'1 on 1 draw (each)',
   'rule.match1v1':'<b>1 on 1</b>: organizer-arranged head-to-head match play between the two teams; fewer strokes wins the hole (1UP), ties are halved. Decided by total UP over 18H (equal = tie). Uses Every-adjusted scores. A player may appear in multiple matches (everyone playing at least once is recommended).',
   /* 任意対決（customMatch・§11.21） */

@@ -7,6 +7,23 @@ let m1Opened=new Map();      // 一組ずつモードのオープン済みカー
    投影原則（正本 §11.14）適用第1号: 大型UP表示が主役。 */
 // オープン演出（§13.2/§14.1）: 表示状態のみを更新（save() しない＝localStorage 非保存）
 function m1Key(a,b){ return a+':'+b; }
+/* ======== 開封順（OUT/IN スタート・docs/handoff/2026-09-11-m1-start-side.md §3）========
+   スタートホール s（1-based）の組について、開封順 k(0-based) ↔ 実ホール index i(0-based) は
+     holeAt(k,s) = ((s-1)+k)%18   /   m1Off(i,s) = (i-(s-1)+18)%18   （互いに逆写像）
+   s=1（OUT・既定）は恒等写像＝従来の 1H→18H と完全一致。§3 計算には非接触（js/calc.js は読むだけ）。 */
+function m1Off(i,s){ return (i-(s-1)+18)%18; }
+/* 1 on 1 専用のマスク（js/results.js の viewGameN は共用＝1文字も触らない・§3.2）。
+   s=1 では viewGameN にそのまま委譲＝既定の出力は現行とバイト一致。 */
+function m1ViewGameN(g,n,s){
+  if(!(s>1)) return viewGameN(g,n);          // OUT / 未設定 / 不正値 → 従来どおり
+  if(n>=18) return g;
+  const scores={};
+  g.participants.forEach(pid=>{ const a=g.scores[pid]||[]; scores[pid]=a.map((v,i)=> m1Off(i,s)<n ? v : null); });
+  return Object.assign({}, g, {scores});
+}
+/* ペアのスタートホール解決（★将来 #132／組概念と統合するときに差し替える唯一の場所・§7.2）。
+   k=m1Key(a,b)。starts にキーが無い＝OUT(1H)＝既存データ・旧バックアップの既定。 */
+function m1StartOf(g,k){ const s=((g.match1v1||{}).starts||{})[k]; return (s>=1&&s<=18)?s:1; }
 /* ★自動再生の停止点（2026-09-12-m1-autoplay.md §4.3(a) #4〜#8）: 開封に関わる手動操作はすべて冒頭で m1AutoStop()。
    「手動は常に自動に勝つ」（§6.2）＝リセット/前へ/次へ/全開・別カードを開く・一括開封・すべて伏せる・モード切替で必ず止まる。 */
 function m1SetMode(mode){ m1AutoStop(); if(mode!==m1RevealMode) m1Opened.clear(); m1RevealMode=mode; renderResult(); }   // モード切替で組状態リセット（§14.1）
@@ -26,9 +43,8 @@ function m1Holes(k,op){ m1AutoStop(); const c=m1Opened.get(k)||0;
    タイマーの状態（m1Auto / m1AutoStop）は js/nav.js（rl と同じ場所）。ここは演出ロジックのみ。
    §3 計算には非接触＝js/calc.js は1行も触らない（m1HoleWin を読むだけ）。開封状態は揮発＝localStorage に保存しない。 */
 const M1_AUTO_MS={ step:1000, hold:3000, rest:200 };   // 通常 / ため / 決着後（§6.3 ハードコード＝設定UIなし）
-/* 開封開始ホール（1..18）。開封順 OUT/IN（Issue #140）は未実装のため、現状は全組 OUT=1H 固定＝開封順は 1→18。
-   #140 が入ったら本定数の参照箇所を m1StartOf(g,k) に差し替えるだけで、自動再生は開封順へ自動追従する（§2・§3.3）。 */
-const M1_START_OUT=1;
+/* 開封開始ホール（1..18）は組ごとの m1StartOf(g,k)（#140）。自動再生・「ため」・次列の脈打ちは
+   すべてこの s を起点にした巡回順で効く（全組 OUT の既定では s=1＝従来どおり 1→18）。 */
 /* 演出専用（§3）: その組の「決定ホール」の開封順 index（0-based）＝最終結果（A勝ち/B勝ち/AS）が確定する最初のホール。
    決着 = 残りの“勝敗のつくホール”をすべて相手が取ってもリードを守り切れる（|d|>rem）
           または 残りの“勝敗のつくホール”が 0 本（＝18H 決着 / AS / 末尾未入力もこの1本の式で畳める・§3.2）。
@@ -62,7 +78,7 @@ function m1AutoTick(){
              && m1RevealMode==='one' && m1Opened.has(k)
              && m1ValidPairs(g).some(([a,b])=>m1Key(a,b)===k);
   if(!alive){ m1AutoStop(); return; }
-  const p=m1PairOf(k), s=M1_START_OUT;
+  const p=m1PairOf(k), s=m1StartOf(g,k);
   const c=Math.min(18,(m1Opened.get(k)||0)+1);
   m1Opened.set(k,c);
   if(c>=18) m1AutoStop();                        // 18 で終了（次の timer を張らない）
@@ -76,7 +92,7 @@ function m1AutoPlay(k){                          // ▶再生 / ■停止 のト
   const p=m1PairOf(k); if(!p) return;
   const c=m1Opened.get(k)||0; if(c>=18) return;   // 全開の組は再生しない（ボタンも disabled）
   m1Auto.key=k;
-  m1Auto.timer=setTimeout(m1AutoTick, m1AutoDelay(g,p[0],p[1],M1_START_OUT,c,true));
+  m1Auto.timer=setTimeout(m1AutoTick, m1AutoDelay(g,p[0],p[1],m1StartOf(g,k),c,true));
   renderResult();                                // 押した瞬間に ■停止 と脈打ちを出す
 }
 
@@ -106,9 +122,9 @@ function renderMatch1v1Parts(g){
   // チーム対抗サマリ（表示のみ・配点には使わない。一組ずつモードではオープン済みカードの現在開封数のみ集計 §14.2）
   let top=`<div class="card">`;
   if(v && pairs.length){
-    const rs=one
-      ? pairs.filter(([a,b])=>m1Opened.has(m1Key(a,b))).map(([a,b])=>m1Result(viewGameN(g,m1Opened.get(m1Key(a,b))||0),a,b))
-      : pairs.map(([a,b])=>m1Result(gAll,a,b));
+    const rs=one   // 組ごとのスタートから何ホール目まで回ったか（§4.4。全組 OUT では gAll/viewGameN のまま＝現行と同一）
+      ? pairs.filter(([a,b])=>m1Opened.has(m1Key(a,b))).map(([a,b])=>m1Result(m1ViewGameN(g,m1Opened.get(m1Key(a,b))||0,m1StartOf(g,m1Key(a,b))),a,b))
+      : pairs.map(([a,b])=>{ const s=m1StartOf(g,m1Key(a,b)); return m1Result(s===1?gAll:m1ViewGameN(g,n,s),a,b); });
     const wA=rs.filter(r=>r.played&&r.diff>0).length, wB=rs.filter(r=>r.played&&r.diff<0).length, dr=rs.filter(r=>r.played&&r.diff===0).length;
     top+=`<div class="m1-teamsum">
       <span style="color:${tmColor(v.A.name)}">${esc(v.A.name)}</span> <b>${wA}</b> – <b>${wB}</b> <span style="color:${tmColor(v.B.name)}">${esc(v.B.name)}</span>
@@ -136,29 +152,33 @@ function renderMatch1v1Parts(g){
      専用フッタ行を作ると sticky 固定領域が +33〜52px 増え、320×568 で可視領域が足りなくなるため
      （results-regroup §8.3 の実測）。操作バーは sticky ブロックの最下段＝ブロック単位で見れば既に「右下」。 */
   // 対戦カード（1試合=1カード・登録リスト順）: hero=大型UP表示（§13.3）＋[一組ずつ: カード内開封バー §14.2]＋ホール表（値=adjHole・勝ち=rwin・ハーフ=rtie・未開封=空欄）
-  const H=[...Array(18).keys()];
-  const colg=`<colgroup><col class="cnm">${H.map(()=>'<col class="ch">').join('')}</colgroup>`;
+  const H0=[...Array(18).keys()];
+  const colg=`<colgroup><col class="cnm">${H0.map(()=>'<col class="ch">').join('')}</colgroup>`;
   const colA=tmColor(v.A.name), colB=tmColor(v.B.name);
   const cards=pairs.map(([a,b])=>{
     const k=m1Key(a,b);
+    const s=m1StartOf(g,k);                    // この組のスタートホール（1=OUT / 10=IN）
+    const H=s===1? H0 : H0.map(x=>((s-1)+x)%18);   // 列＝その組の巡回順（§4.1 案Y。見出しは実ホール番号 i+1）
     const hero=c=>`<div class="m1-hero"><div class="m1-nm" style="color:${colA}">${nameOf(a)}</div><div class="m1-mid">${c}</div><div class="m1-nm" style="color:${colB}">${nameOf(b)}</div></div>`;   // 中央要素=.m1-mid（3カラムグリッドの中央固定・#103）
     if(!isOpen(a,b))   // 伏せ状態（一組ずつ・未オープン §13.2）: 名前は見える・結果とホール表は隠す
       return `<div class="card">${hero(`<button class="btn gold" onclick="m1OpenCard('${k}')">${t('m1.open')}</button>`)}</div>`;
     const c=one? (m1Opened.get(k)||0) : 18;      // 一組ずつ=組ローカル開封数（オープン直後0）
-    const gc=one? viewGameN(g,c) : gAll;         // 表示・判定の基準ゲーム（§14.1。revealHoles は一組ずつでは関与しない）
+    const gc=one? m1ViewGameN(g,c,s) : (s===1?gAll:m1ViewGameN(g,n,s));   // 表示・判定の基準ゲーム（§14.1／§3.3。revealHoles は一組ずつでは関与しない）
     const r=m1Result(gc,a,b);
     const big = !r.played ? `<div class="m1-big n">—</div>`   // 機能色維持＋文字併記: 勝ち=緑＋矢印（リード側を指す）/ AS=橙 / 未プレー=sub
       : r.diff>0 ? `<div class="m1-big w">◀ ${t('m1.up',{n:r.diff})}</div>`
       : r.diff<0 ? `<div class="m1-big w">${t('m1.up',{n:-r.diff})} ▶</div>`
       : `<div class="m1-big d">${t('m1.as')}</div>`;
     // 暫定タグ: 一組ずつ=c<18 で常に表示（0/18H で進捗ゼロが分かる §14.2）／一括=従来（revealHoles<18 かつ played>0）
-    const prov=one ? (c<18?`<div class="mt6"><span class="tag tagtie">${c}/18H</span></div>`:'')
-      : ((n<18&&r.played>0)?`<div class="mt6"><span class="tag tagtie">${n}/18H</span></div>`:'');
+    const ptag=one ? (c<18?`<span class="tag tagtie">${c}/18H</span>`:'')
+      : ((n<18&&r.played>0)?`<span class="tag tagtie">${n}/18H</span>`:'');
+    const stag=s>1?`<span class="tag">${t('m1.startTag',{h:s})}</span>`:'';   // IN 組だけ（列並びが違うことの明示・§4.2）。OUT では出力ゼロ＝現行と同一
+    const prov=(ptag||stag)?`<div class="mt6">${ptag}${stag}</div>`:'';
     /* 自動再生（m1-autoplay §4・§7）: 走行中のカードだけが「次に開く列の脈打ち」と「ため」のタグを持つ。
        m1Auto.key!==k（＝自動再生を使っていない）のときは playing=false → 下の出力は ▶再生 ボタン1個の追加のみ（受け入れ条件 A1）。 */
     const playing=one && m1Auto.key===k;
-    const D=playing? m1ClinchAt(g,a,b,M1_START_OUT) : null;        // 決定ホール（開封順 index）
-    const nx=(playing&&c<18)? ((M1_START_OUT-1)+c)%18 : -1;        // 次に開く列の実ホール index（-1=付けない）
+    const D=playing? m1ClinchAt(g,a,b,s) : null;        // 決定ホール（開封順 index・その組の巡回順で数える）
+    const nx=(playing&&c<18)? ((s-1)+c)%18 : -1;        // 次に開く列の実ホール index（-1=付けない）
     // カード内開封バー（一組ずつのみ・既存キー流用＝新キーは再生/停止トグル1個のみ。disabled 境界 0/18）
     const cardbar=one?`<div class="reveal-bar m1-cardbar">
       <button class="btn gray sm" onclick="m1Holes('${k}','reset')" ${c<=0?'disabled':''}>${t('btn.reset')}</button>
