@@ -231,6 +231,9 @@
      カード見出し（.card h2）と同格の見た目にする。枠・余白・マーカーは既存 details 規則を流用＝新規は本行のみ。
      子セレクタなので入れ子の素の <details>（幹事メニュー内の「データ点検」）には効かない＝階層が見た目で分かれる */
   details.gsec>summary{font-family:"Noto Serif JP","Noto Serif",serif;font-size:var(--f-title);color:var(--strong)}
+  /* 結果表画像のプレビュー（2026-09-23-result-image-export.md §7.2・§8）: 生成した PNG を details 内に常設表示。
+     長押し（右クリック）で保存できる最後の手段を兼ねるので幅いっぱい。新規トークンは足さない（既存の参照のみ） */
+  .sheet-prev{display:block;width:100%;height:auto;border:1px solid var(--line);border-radius:var(--r-md);background:var(--card)}
   .rule{background:var(--surface-2);border:1px solid var(--line);border-left:3px solid var(--acc);border-radius:var(--r-sm);padding:8px 10px;font-size:var(--f-small);color:var(--ink);margin:6px 0}
   .prizewin{background:var(--card);border:1px solid var(--line);border-top:3px solid var(--acc)}
   .payoutcard{background:var(--card);border:1px solid var(--line);border-top:3px solid var(--acc)}
