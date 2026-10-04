@@ -606,6 +606,19 @@ for (const [name, cs] of Object.entries(JSON.parse(__CASES))) {
      厳密一致しない pid の配列。期待値は**全ケース []**。§3.1 を触って確定値を動かすと必ず非空になる。 */
   globalThis.__RESULTS[name].legacyParity = g.participants.filter(pid =>
     enteredCount(g, pid) === 18 && !Object.is(periaHdcp(g, pid), periaHdcpLegacy(g, pid)));
+  /* ★2026-09-12 隠しホール開示演出（docs/handoff/2026-09-12-hidden-hole-reveal.md §12.2）:
+     ① identityHdcp/identityNet＝全開示が既存 periaHdcp/netScore と**厳密一致**（全選手 AND）。
+        hrHdcpAt の早期リターン（k>=N）が壊れたら false になる＝1つでも false ならマージ不可。
+     ② steps＝k を 0 / N/2 / N で振った暫定HDCP・暫定ネットのスナップショット（開示順＝ホール番号昇順）。 */
+  const HH = g.hidden.map((h, i) => h ? i : -1).filter(i => i >= 0);
+  const R = k => new Set(HH.slice(0, k));
+  globalThis.__RESULTS[name].hiddenReveal = {
+    N: HH.length,
+    identityHdcp: g.participants.every(pid => Object.is(hrHdcpAt(g, pid, R(HH.length)), periaHdcp(g, pid))),
+    identityNet:  g.participants.every(pid => Object.is(hrNetAt (g, pid, R(HH.length)), netScore (g, pid))),
+    steps: [0, Math.floor(HH.length / 2), HH.length].map(k =>
+      Object.fromEntries(g.participants.map(pid => [pid, [hrHdcpAt(g, pid, R(k)), hrNetAt(g, pid, R(k))]]))),
+  };
   /* ★2026-09-19 暫定HDCP（同設計 §8.2）新種スナップショット: 開封 n を振った HDCP/ネットの系列。
      期待値ファイルの肥大を避けるため reveal:true のケースだけ（indBasic/team3/univOn/periaOpts）。 */
   if (cs.reveal) {

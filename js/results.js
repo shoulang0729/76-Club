@@ -10,6 +10,10 @@ let pzMode='show'; let pzExcept=new Set();
    （localStorage 非保存・再描画をまたいで維持）。表ごとに独立: 'ind'=個人戦・'team'=チーム別。既定=閉（#97） */
 let scOpen={ind:false,team:false};
 function scOpenToggle(k,open){ scOpen[k]=open; }
+/* 隠しホール開示演出の進行状態（docs/handoff/2026-09-12-hidden-hole-reveal.md §5・§11.14 原則4＝揮発・localStorage 非保存）。
+   order＝開示順に並べた「隠しホールの index」／count＝開示済み本数／
+   sig＝紐づけ中のデータ署名（ゲーム切替・隠しホール変更で自動リセット）／prevRank＝順位変動矢印用（PR2 で使用） */
+let hrState={ gid:null, sig:'', order:[], count:0, seq:'hole', prevRank:null };
 /* 旗キー（§3.2）。s 省略時=1＝1セット運用（従来の「1ホール=旗1本」）。kind を含めないのは
    NP 対象ホール(Par3)と DC 対象ホール(Par5)が素で排他だから（上の既存前提）。 */
 function pzKey(h,s){ return h+':'+(s||1); }
@@ -55,6 +59,10 @@ function resGameTabs(grp,g){ const F=chFormats(g); const T=[];
     if(F.olympic)    T.push(['oly',   t('term.olympic')]);
     if(F.callaway)   T.push(['cal',   t('term.callaway')]);
     if(F.nassau)     T.push(['nas',   t('pts.nassauTotal')]);
+    /* 隠しホール開示演出（hidden-hole-reveal §9.1・§11）: β限定。BETA_FMT は g.formats のキー配列＝
+       フォーマットでない演出は入れられないので CHANNEL を直接ゲートにする。F.net（ネット採用中）と
+       隠しホールが1本以上あることを条件にする＝押せないタブを出さない */
+    if(CHANNEL==='b' && F.net && g.hidden.some(Boolean)) T.push(['reveal', t('result.sub.reveal')]);
   } else if(grp==='team'){
     T.push(['overall', t('result.sub.overall')]);                // 常時（空状態は §5.2）
     // ★2026-09-12 #157: 'nd' タブの表示条件は calc.js の共有ヘルパーを呼ぶ（teamWinPoints と同じ集合＝項数はヘルパー側が正）。
@@ -198,6 +206,7 @@ function renderIndGame(g, parts, key){
     return renderPrizeHero(g)
       + `<details class="prize-edit mt10"${pzCfgOpen?' open':''} ontoggle="pzCfgToggle(this.open)"><summary>${t('prize.recTitle')}</summary><div class="in">${renderPrizes(g)}</div></details>`;
   }
+  if(key==='reveal') return renderHiddenReveal(g,parts);   // 隠しホール開示演出（hidden-hole-reveal §9.6）
   // 進捗バナーは全廃（順位確定=#87・暫定順位=2026-08-30 Sレーン②）。進捗はスコア表と statusBadge で読める
   /* rankCardNS / leaderboard の第1引数は「見出し文字列」から「フッタ行左端に置くタグHTML」へ変更
      （heading-unify §10.1）。タイトルはゲームタブ名が兼ねるので渡さない＝タブと同じ文字列を二重に出さない。
@@ -449,3 +458,61 @@ function rankCardNS(tagHtml, pids, valFn, dir, fmt, table, hlMap){
   return `<div class="card tight wide">${body}${tools}</div>`;
 }
 
+
+/* ============ 隠しホール開示演出（docs/handoff/2026-09-12-hidden-hole-reveal.md）============
+   ダブルペリアの隠しホールを1本ずつ開示し、そのたびに暫定HDCP・暫定ネット順位が動く演出。
+   計算は js/calc.js の hrHdcpAt/hrNetAt の2関数だけを呼ぶ（§3.6 の seam＝暫定値の定義を差し替えても
+   この描画・状態・i18n は無変更で済む）。g.hidden は読むだけ＝書き換えない（§4.2）。
+   ★PR1（§13）は素朴な表。ヒーロー／大型表示／順位変動矢印／18ホール帯は PR2。 */
+/* 開示順（§6.2）: 既定＝ホール番号昇順。shuffle は Fisher–Yates（一様。sort(()=>Math.random()-0.5) は非一様なので使わない）。
+   抽選順は pickHidden12 が boolean 配列しか返さないので復元不可能（§6.1） */
+function hrBuildOrder(g){
+  const H=g.hidden.map((h,i)=>h?i:-1).filter(i=>i>=0);
+  if(hrState.seq!=='shuffle') return H;
+  const a=H.slice();
+  for(let i=a.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [a[i],a[j]]=[a[j],a[i]]; }
+  return a;
+}
+/* データ変更への追従（§5.2・clibSync と同型）: ゲーム切替／コースタブで隠しホールを引き直す・手で増減すると
+   進行を 0 にリセットする（幽霊状態を作らない） */
+function hrSync(g){
+  const sig=g.hidden.map(h=>h?1:0).join('');
+  if(g.id!==hrState.gid || sig!==hrState.sig){
+    hrState.gid=g.id; hrState.sig=sig; hrState.count=0; hrState.prevRank=null;
+    hrState.order=hrBuildOrder(g);
+  }
+}
+function hrRevealed(){ return new Set(hrState.order.slice(0,hrState.count)); }
+/* 現在の暫定順位（§5.3 の prevRank 退避用。前進操作のときだけ退避する＝戻す/リセットで矢印を出さない） */
+function hrRankSnapshot(){
+  const g0=curGame(); if(!g0) return null;
+  const g=viewGame(g0); const parts=g0.participants.filter(pid=>state.players.find(x=>x.id===pid));
+  const R=hrRevealed(); const out={};
+  ranked(parts,pid=>hrNetAt(g,pid,R),'asc').forEach(r=>out[r.pid]=r.rank);
+  return out;
+}
+function hrNext(){ hrState.prevRank=hrRankSnapshot(); hrState.count=Math.min(hrState.order.length,hrState.count+1); renderResult(); }
+function hrBack(){ hrState.prevRank=null; hrState.count=Math.max(0,hrState.count-1); renderResult(); }
+function hrAll(){ hrState.prevRank=hrRankSnapshot(); hrState.count=hrState.order.length; renderResult(); }
+function hrReset(){ hrState.prevRank=null; hrState.count=0; renderResult(); }
+/* 開示タブ本体（PR1＝素朴な表）。g は renderResult が作った viewGame 済みのビューゲーム＝
+   スコア開封（revealHoles）との合成は自動（§7.2）。見出し <h2> は置かない（タブ名が兼ねる・§9.1） */
+function renderHiddenReveal(g, parts){
+  hrSync(g);
+  const N=hrState.order.length, k=Math.min(hrState.count,N);
+  const R=hrRevealed();
+  const prog=`<div class="muted">${t('hr.progress',{k,n:N})}</div>`;
+  const tools=`<div class="cardtools mt8">
+    <button class="btn sec sm" onclick="hrReset()">${t('btn.reset')}</button>
+    <button class="btn sec sm" onclick="hrBack()">${t('hr.back')}</button>
+    <button class="btn gold sm" onclick="hrNext()">${t('hr.next')}</button>
+    <button class="btn sec sm" onclick="hrAll()">${t('hr.openAll')}</button></div>`;
+  if(parts.every(pid=>enteredCount(g,pid)===0))
+    return `<div class="card">${prog}<div class="empty">${t('hr.emptyScore')}</div>${tools}</div>`;
+  const rows=ranked(parts,pid=>hrNetAt(g,pid,R),'asc');
+  const nameOf=pid=>{const p=state.players.find(x=>x.id===pid);return esc(p&&p.name);};
+  const body=`<table class="lb"><tr><th class="c-pos">${t('col.rank')}</th><th>${t('col.player')}</th><th class="c-val">${t('hr.provNet')}</th><th class="c-val">${t('hr.provHdcp')}</th></tr>
+    ${rows.map(r=>`<tr class="rank ${r.rank===1?'rank1':''}"><td class="c-pos">${r.rank}</td><td class="nmc">${nameOf(r.pid)}</td><td class="c-val"><b>${r.v}</b></td><td class="c-val">${hrHdcpAt(g,r.pid,R)}</td></tr>`).join('')}</table>`;
+  return `<div class="card tight wide">${prog}${body}${tools}
+    <div class="muted mt8">${t('hr.note')}</div></div>`;
+}
