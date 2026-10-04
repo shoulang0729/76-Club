@@ -422,3 +422,33 @@ function nextKanji(g){
   return [...new Set(T.filter(([i])=>i>=0&&i<N).map(([i,d])=>resolve(i,d)).filter(Boolean))];
 }
 
+/* ---- 隠しホール開示演出（docs/handoff/2026-09-12-hidden-hole-reveal.md §3.4/§4.1）----
+   表示専用の暫定値。既存 §3 計算には一切触れない（関数プレフィックス hr で分離＝既存のどの関数からも呼ばれない）。
+   R = 開示済みホール index の Set。k>=N（全開示）は既存 periaHdcp/netScore をそのまま返す＝現行と完全一致。
+   k<N は「開示済み k ホールの実測＋未開示 (N−k) ホールをその選手の入力済み全ホール平均で仮置き」した見込み値
+   （§3.3 の実測で4変種を比較して採用した B'。素のビューは 12ステップ中7ステップが無反応で演出にならない）。 */
+function hrHdcpAt(g,pid,R){
+  const cap=(v,i)=> g.periaDblPar? Math.min(v,2*g.par[i]) : v;
+  let N=0,k=0,kr=0,sum=0;
+  g.hidden.forEach((hid,i)=>{ if(!hid)return; N++;
+    if(R.has(i)){ kr++; const v=adjHole(g,pid,i); if(v!=null){ sum+=cap(v,i); k++; } } });
+  if(N===0) return null;                       // 隠しホール未設定＝演出対象外
+  /* ★全開示＝既存関数そのもの（早期リターン）。判定は kr（開示した隠しホールの本数・入力有無を問わない）で行う。
+     設計 §4.1 の擬似コードは k（実測が入った本数）で判定していたが、それだと経過ラウンド（未入力ホールあり）や
+     revealHoles<18 では全部開示しても k<N のまま＝見込み値が返り、設計自身の不変条件（§0-3「k≧N は現行と
+     構造的に完全一致」・§7.2 の表「revealHoles=9 × k=N は periaHdcp(viewGameN(g,9)) と完全に同じ値」・
+     §14 の identityHdcp/identityNet 全ケース true）が成立しない（実測: 9H入力の選手で 16.4 ≠ periaHdcp 9.2）。
+     2026-09-19 の暫定HDCP（periaHdcp 自身が h*K/k と n/18 按分で経過を外挿する）が本設計より後なので
+     擬似コードが追いついていない箇所。kr 判定なら「開示を全部終えた瞬間に現行の表示値へ着地する」。 */
+  if(kr>=N) return periaHdcp(g,pid);
+  let tot=0,cnt=0;
+  for(let i=0;i<18;i++){ const v=adjHole(g,pid,i); if(v!=null){ tot+=cap(v,i); cnt++; } }
+  if(!cnt) return null;                        // 1ホールも入力なし＝順位対象外（ranked が落とす）
+  const est=sum+(N-k)*(tot/cnt);
+  let hd=(est*1.5 - parTotal(g))*g.periaCoef;
+  if(hd<0)hd=0;                                // ★暫定中は periaAllowNeg を必ず無効（§3.5。1本開示で −53.6 等の暴走を構造的に防ぐ）
+  if(g.periaCap!=null && hd>g.periaCap)hd=g.periaCap;
+  return Math.round(hd*10)/10;
+}
+function hrNetAt(g,pid,R){ const hd=hrHdcpAt(g,pid,R); if(hd==null)return null;
+  return Math.round((effGross(g,pid)-hd)*10)/10; }
