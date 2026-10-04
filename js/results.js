@@ -139,7 +139,7 @@ function renderStanding(g, parts){
       return `<tr class="rank ${i===0&&r.pt>0?'rank1':''}"><td>${r.pt>0?(i+1):'-'}</td>${tmCell(r.pid)}<td class="tal">${esc(p.name)}</td><td><b>${r.pt}</b>pt</td>${pool?`<td><b>¥${r.yen.toLocaleString()}</b></td>`:''}</tr>`}).join('')}
     </table>
     <div class="cardtools mt8">${statusBadge(g)}</div></div>`;
-  if(!hasTeams) return main;
+  if(!hasTeams) return main + sheetImgBox(g);   // 結果表画像の details（§8。チーム設定なしでも出す）
   // (b) チーム別合計: 個人行（prows）の合算のみ。未所属はポイント/配分額が付いたときだけ行を出す
   const agg=new Map();
   prows.forEach(r=>{ const T=teamOf(r.pid); const k=T?T.id:'_none';
@@ -150,7 +150,41 @@ function renderStanding(g, parts){
     ${trows.map(a=>{ const nm=a.T?`<b style="color:${tmColor(a.T.name)}">${esc(a.T.name)}</b>`:t('standing.noTeam');
       return `<tr class="rank"><td class="tal">${nm}</td><td><b>${a.pt}</b>pt</td>${pool?`<td><b>¥${a.yen.toLocaleString()}</b></td>`:''}</tr>`; }).join('')}
     </table></div>`;
-  return main + teamCard;
+  return main + teamCard + sheetImgBox(g);   // 結果表画像の details は配分タブの最下部（§8）
+}
+
+/* ============ 結果表1枚画像（docs/handoff/2026-09-23-result-image-export.md）の UI と合成点 ============
+   描画・保存は js/share.js。こちらの責務は (a) モデルの合成 (b) details の HTML (c) 鮮度キー の3つだけ。
+   ★なぜ合成をここでやるか: js/share.js は state も計算モジュールも読まない規律（設計 §6.1 のレイヤ図・
+     §12.3 の grep）。「いまどのゲームか」を知っているのは画面側なので、合成と鮮度キーは画面側に置く。
+   ★details の開閉（sheetImgOpen）は揮発＝localStorage に入れない（§8・tpEvPtsOpen と同方式）。 */
+let sheetImgOpen=false;
+function sheetImgToggle(open){ sheetImgOpen=open; }
+/* 画像の鮮度キー（§7.2「古い画像を配らせない」）: 画像の中身に影響しうるデータ＝ゲーム1件まるごと＋
+   参加者の氏名。発表演出の揮発状態（開封数・目隠し・タブ）は入れない（§3＝画像は常に全内容）。
+   設計は「連携トグル / ゲーム切替 / スコア保存で破棄」と列挙しているが、同じ結果をこの1本で満たせる
+   （各操作は必ず再描画を通るので、キーが変わった瞬間にプレビューが消える）＝他モジュールに手を入れない。 */
+function sheetImgSig(g){ return JSON.stringify([g, state.players.map(p=>[p.id,p.name])]); }
+/* 画像モデルの合成（js/share.js の sheetImgMake から呼ばれる。ボタンを押した瞬間にだけ計算する）。
+   ★生ゲーム（curGame()）を渡す＝viewGame を通さない（開封途中でも18ホール全部を描く・§3） */
+function sheetImgInput(){
+  const g=curGame(); if(!g) return null;
+  const M=Object.assign({}, sheetModel(g), {tp: g.teams.length? tpShareModel(g): null});
+  return {model:M, sig:sheetImgSig(g)};
+}
+/* 配分タブ最下部の details（既定=閉）。4段構え＝常設注記・未連携警告・作成ボタン・必ずプレビュー（§3/§8） */
+function sheetImgBox(g){
+  const S=sheetImgFresh(sheetImgSig(g));                     // 元データが変わっていたらプレビューは捨てる
+  const tp=g.teams.length? tpShareModel(g): null;
+  const pend=tp? (tp.prog.N-tp.prog.n): 0;
+  const warn=pend? `<div class="mt6" style="color:var(--red)">${t('img.warnPending',{n:pend})}<span class="tag tagtie">${t('team.annProg',{n:tp.prog.n,N:tp.prog.N})}</span></div>`:'';
+  const prev=S? `<img class="sheet-prev mt8" src="${S.url}" alt="">
+    <div class="muted mt6">${t('img.hint',{w:S.w,h:S.h})}${S.k<1?' ・ '+t('img.scaled'):''}</div>
+    <div class="cardtools mt8"><button class="btn sec sm" onclick="sheetImgSave()">${t('img.save')}</button></div>`:'';
+  return `<details class="mt10"${sheetImgOpen?' open':''} ontoggle="sheetImgToggle(this.open)"><summary>${t('img.title')}</summary><div class="in">
+    <div class="muted">${t('img.note')}</div>${warn}
+    <div class="cardtools mt8"><button class="btn gold sm" onclick="sheetImgMake()">${t('img.make')}</button></div>
+    ${prev}</div></details>`;
 }
 
 // 個人戦グループ（§5.1）: key ごとに バナー＋当該順位カード（上）＋共通スコアカード（下）＋当該ルール1行
