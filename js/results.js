@@ -464,7 +464,8 @@ function rankCardNS(tagHtml, pids, valFn, dir, fmt, table, hlMap){
    計算は js/calc.js の hrHdcpAt/hrNetAt の2関数だけを呼ぶ（§3.6 の seam＝暫定値の定義を差し替えても
    この描画・状態・i18n は無変更で済む）。g.hidden は読むだけ＝書き換えない（§4.2）。
    ★PR2（§13）でヒーロー／大型順位表／順位変動矢印／18ホール帯／操作の details 化まで入った。
-   開示順スイッチ・revealHoles<18 の警告バー・ルール箱は PR3。 */
+   ★PR3（§13）で開示順スイッチ（§6.2）・revealHoles<18 の警告バー（§7.3）・ルール箱を追加＝#161 完結。
+   PR3 も描画と hrSetSeq だけ＝計算（hrHdcpAt/hrNetAt）は PR1 から1行も変わっていない。 */
 /* 開示順（§6.2）: 既定＝ホール番号昇順。shuffle は Fisher–Yates（一様。sort(()=>Math.random()-0.5) は非一様なので使わない）。
    抽選順は pickHidden12 が boolean 配列しか返さないので復元不可能（§6.1） */
 function hrBuildOrder(g){
@@ -496,6 +497,17 @@ function hrNext(){ hrState.prevRank=hrRankSnapshot(); hrState.count=Math.min(hrS
 function hrBack(){ hrState.prevRank=null; hrState.count=Math.max(0,hrState.count-1); renderResult(); }
 function hrAll(){ hrState.prevRank=hrRankSnapshot(); hrState.count=hrState.order.length; renderResult(); }
 function hrReset(){ hrState.prevRank=null; hrState.count=0; renderResult(); }
+/* 開示順の切替（§5.3 / §6.2・PR3）。order を引き直すので開示済み集合の意味が変わる＝必ず count を 0 に戻す
+   （途中で順序だけ差し替えると「開示済み」と画面の進捗が食い違う）。同じモードの再クリックは no-op＝
+   再描画で順序が変わらないという §6.2 の規律を守る（進行中の誤タップで進捗を消さない） */
+function hrSetSeq(v){
+  if(hrState.seq===v) return;
+  hrState.seq=v;
+  const g0=curGame();
+  hrState.order = g0 ? hrBuildOrder(g0) : [];   // hidden は viewGame で変わらない（viewGameN は scores だけ差し替え）
+  hrState.count=0; hrState.prevRank=null;
+  renderResult();
+}
 /* 開示タブ本体（PR2＝投影演出・§9.2／§18）。g は renderResult が作った viewGame 済みのビューゲーム＝
    スコア開封（revealHoles）との合成は自動（§7.2）。見出し <h2> は置かない（タブ名が兼ねる・§9.1）。
    ★PR2 で変えたのは描画だけ。状態（hrState/hrSync/hr* 操作）と計算（hrHdcpAt/hrNetAt）は PR1 から不変。
@@ -520,14 +532,28 @@ function renderHiddenReveal(g, parts){
     Array.from({length:b-a},(_,j)=>hrCell(a+j)).join('')}</div></div>`;
   const band=`<div class="card hr-holescard"><div class="hr-holes">${hrSet('OUT',0,9)}${hrSet('IN',9,18)}</div>
     <div class="muted mt6">${t('hr.holeNote')}</div></div>`;
+  /* 開示順スイッチ（§6.2・PR3）: 既存 .scsw（2択スイッチ）と .scsw-wrap をそのまま流用＝新規 CSS 0。
+     .scsw-wrap の margin-left:auto は block 親の中では 0 に解決されるので左寄せのまま並ぶ */
+  const seqBtn=(v,label)=>`<button class="${hrState.seq===v?'on':''}" onclick="hrSetSeq('${v}')">${label}</button>`;
+  const seqSw=`<div class="mt8"><span class="scsw-wrap"><span class="scsw-l">${t('hr.seq')}</span><span class="scsw">${
+    seqBtn('hole',t('hr.seqHole'))}${seqBtn('shuffle',t('hr.seqShuffle'))}</span></span></div>`;
   /* ④ 幹事の操作（§11.14 原則3＝控えめ・既定=閉）。§18 B8: .gold は主役の「次を開く」1個だけ・他3つは .btn sec sm */
   const ctl=`<details class="hr-ctl mt10"><summary>${t('hr.ctl')}</summary><div class="in"><div class="cardtools">
     <button class="btn sec sm" onclick="hrReset()">${t('btn.reset')}</button>
     <button class="btn sec sm" onclick="hrBack()">${t('hr.back')}</button>
     <button class="btn gold sm" onclick="hrNext()">${t('hr.next')}</button>
-    <button class="btn sec sm" onclick="hrAll()">${t('hr.openAll')}</button></div></div></details>`;
+    <button class="btn sec sm" onclick="hrAll()">${t('hr.openAll')}</button></div>${seqSw}</div></details>`;
+  /* revealHoles<18 の警告バー（§7.3・PR3）: タブ冒頭に1本だけ。★自動で revealHoles=18 にはしない＝
+     他タブの見え方も変える破壊的操作をワンタップの明示操作（既存 openAllHoles）に限定する（§7.3-3・§16 Q4）。
+     §18 B1: 新規クラスは作らず既存 .reveal-bar を流用し、危険系は既存トークン（--danger-bg/--danger-line）だけ使う */
+  const warn = revealHoles<18 ? `<div class="reveal-bar" style="background:var(--danger-bg);border-color:var(--danger-line)">
+    <span>⚠ ${t('hr.warnScore',{n:revealHoles})}</span>
+    <button class="btn sec sm" onclick="openAllHoles()">${t('hr.openScores')}</button></div>` : '';
+  const rule=ruleBox('rule.hiddenReveal');
+  /* 空状態（§9.3）。revealHoles=0（#97 の既定）だと全マスクでここに来るので、原因と是正手段を示す
+     警告バーを上に併置しておく＝空状態だけだと幹事が詰まる */
   if(parts.every(pid=>enteredCount(g,pid)===0))
-    return hero+`<div class="card"><div class="empty">${t('hr.emptyScore')}</div></div>`+band+ctl;
+    return warn+hero+`<div class="card"><div class="empty">${t('hr.emptyScore')}</div></div>`+band+ctl+rule;
   /* ② 暫定ネット順位（この画面の主役）。順位変動は hrState.prevRank との差＝記号＋変動幅の数字を必ず併記し、
      上昇=--win（緑）/ 下降=--ink（通常色）/ 変化なし=− を .muted 色。★赤（--danger）は危険の意味に予約済みなので使わない（§18 B10）。
      prevRank が null（初期表示・戻す・リセット直後）は矢印を出さない＝「順位が戻った」誤読を避ける（§5.3） */
@@ -552,6 +578,6 @@ function renderHiddenReveal(g, parts){
   const rest=rows.slice(HR_TOP);
   const more=rest.length?`<details class="hr-more mt10"><summary>${t('hr.showRest',{n:HR_TOP+1})}</summary>
     <div class="in">${tbl(rest)}</div></details>`:'';
-  return hero+`<div class="card hr-rankcard">${tbl(rows.slice(0,HR_TOP))}
-    <div class="muted mt8">${t('hr.note')}</div></div>`+more+band+ctl;
+  return warn+hero+`<div class="card hr-rankcard">${tbl(rows.slice(0,HR_TOP))}
+    <div class="muted mt8">${t('hr.note')}</div></div>`+more+band+ctl+rule;
 }
