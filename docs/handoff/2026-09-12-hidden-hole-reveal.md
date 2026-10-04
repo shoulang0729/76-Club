@@ -118,7 +118,9 @@ B' が演出として優れている理由（実測から読めること）:
 
 ```
 N  = 隠しホール本数 = g.hidden.filter(Boolean).length
-R  = 開示済み隠しホールの index 集合（|R∩隠し| = k）
+R  = 開示済み隠しホールの index 集合
+kr = |R ∩ 隠し|                      ← 開示した隠しホール本数（入力の有無を問わない）  ※2026-10-04 訂正で導入
+k  = |R ∩ 隠し ∩ 入力済み|           ← そのうち実測が入っている本数
 c(i) = g.periaDblPar ? min(adjHole(g,pid,i), 2*g.par[i]) : adjHole(g,pid,i)     ← periaHdcp と同一規則（§11.12 H・§11.22）
 avg  = Σ_{i=0..17, 入力済み} c(i) / 入力済みホール数                            ← その選手の「平均的なホール」
 Σ_est = Σ_{i∈R かつ hidden かつ 入力済み} c(i) + (N − k) × avg
@@ -126,7 +128,11 @@ HDCP_est = round1( clamp( (Σ_est × 1.5 − parTotal(g)) × g.periaCoef ) )    
 NET_est  = round1( effGross(g,pid) − HDCP_est )
 ```
 
-**ただし k ≧ N（全開示）のときは `periaHdcp(g,pid)` / `netScore(g,pid)` をそのまま返す（早期リターン）。**
+**ただし kr ≧ N（全開示）のときは `periaHdcp(g,pid)` / `netScore(g,pid)` をそのまま返す（早期リターン）。**
+
+> ★2026-10-04 訂正（§19-A）: 早期リターンの判定は **`kr`（開示本数）** で行う。`k`（実測が入った本数）で判定すると、
+> 経過ラウンドや `revealHoles<18` では全部開示しても `k<N` のままで早期リターンに入らず、§0 表#3・§7.2・§12.2／§14 の
+> 恒等性が壊れる。Σ_est の `(N − k)`（仮置き本数）のほうは従来どおり `k` を使う（開示済みでも未入力なら実測が無いので仮置き側）。
 
 ### 3.5 暫定中は `periaAllowNeg` を必ず無効にする（★実装必須・バグ源）
 
@@ -161,14 +167,15 @@ return periaHdcp(Object.assign({},g,{hidden:g.hidden.map((h,i)=>h&&R.has(i)), pe
 ```js
 /* ---- 隠しホール開示演出（§11.25・docs/handoff/2026-09-12-hidden-hole-reveal.md §3.4）----
    表示専用の暫定値。既存 §3 計算には一切触れない（関数プレフィックス hr で分離）。
-   R = 開示済みホール index の Set。k>=N（全開示）は既存関数をそのまま返す＝現行と完全一致。 */
+   R = 開示済みホール index の Set。kr>=N（全開示）は既存関数をそのまま返す＝現行と完全一致。
+   ★2026-10-04 訂正（§19-A）: 判定は kr（開示本数・入力有無を問わない）。k（実測が入った本数）ではない。 */
 function hrHdcpAt(g,pid,R){
   const cap=(v,i)=> g.periaDblPar? Math.min(v,2*g.par[i]) : v;
-  let N=0,k=0,sum=0;
+  let N=0,k=0,kr=0,sum=0;
   g.hidden.forEach((hid,i)=>{ if(!hid)return; N++;
-    if(R.has(i)){ const v=adjHole(g,pid,i); if(v!=null){ sum+=cap(v,i); k++; } } });
+    if(R.has(i)){ kr++; const v=adjHole(g,pid,i); if(v!=null){ sum+=cap(v,i); k++; } } });
   if(N===0) return null;                       // 隠しホール未設定＝演出対象外
-  if(k>=N)  return periaHdcp(g,pid);           // ★全開示＝既存関数そのもの（早期リターン）
+  if(kr>=N) return periaHdcp(g,pid);           // ★全開示＝既存関数そのもの（早期リターン・判定は kr＝開示本数）
   let tot=0,cnt=0;
   for(let i=0;i<18;i++){ const v=adjHole(g,pid,i); if(v!=null){ tot+=cap(v,i); cnt++; } }
   if(!cnt) return null;                        // 1ホールも入力なし＝順位対象外（ranked が落とす）
@@ -185,6 +192,9 @@ function hrNetAt(g,pid,R){ const hd=hrHdcpAt(g,pid,R); if(hd==null)return null;
 - `adjHole` を経由するので **§11.12 H（エブリ適用後基準）を自動的に満たす**。
 - `periaDblPar` のカットは**仮置きの平均側にも適用**する（`cap()` を両方で使う）＝ §11.22 ①の規律と同順。
 - 返り値 `null` は「順位対象外」。既存 `ranked()` が `r.v!=null` で落とす（`js/calc.js:70`）。
+- **早期リターンの判定は `kr`（開示本数）で行う**（★2026-10-04 訂正・§19-A）。`k`（実測が入った本数）で判定すると、
+  経過ラウンド・`revealHoles<18` で §7.2 ／ §14 の恒等性が壊れる（2026-09-19 の暫定HDCP仕様＝`periaHdcp` 自身が
+  `h*K/k` と `n/18` 按分で経過を外挿するようになったことへの追随）。PM 独立検証で **26ケース中4ケース**が false になることを確認済み。
 
 ### 4.2 変えないもの（明示）
 
@@ -459,7 +469,7 @@ if(CHANNEL==='b' && F.net && g.hidden.some(Boolean)) T.push(['reveal', t('result
 
 ---
 
-## 10. i18n（ja / zh / en 同時・新規14キー）
+## 10. i18n（ja / zh / en 同時・新規20キー）★2026-10-04 更新（§19-B）
 
 既存キーを最大限流用する（`btn.reset` / `btn.all` / `sc.prev` / `col.rank` / `col.player` / `col.hd` / `col.net` / `term.net` は再利用）。
 
@@ -479,10 +489,19 @@ if(CHANNEL==='b' && F.net && g.hidden.some(Boolean)) T.push(['reveal', t('result
 | `hr.warnScore` | スコアが {n}/18H しか開封されていません。暫定ハンデは開封済みホールだけで計算されます。 | 成绩仅揭晓了 {n}/18 洞，临时差点仅按已揭晓的洞计算。 | Only {n}/18 holes are revealed. The provisional handicap uses revealed holes only. |
 | `hr.openScores` | スコアを全部開く | 揭晓全部成绩 | Reveal all scores |
 | `hr.emptyScore` | スコアが1ホールも入力されていません | 尚未输入任何成绩 | No scores entered yet |
-| `rule.hiddenReveal` | **隠しホール開示**：ダブルペリアの隠しホールを1つずつ発表します。開くたびに暫定ハンデとネット順位が計算し直され、全部開くと確定順位になります。 | **隐藏洞揭晓**：逐个公布双派利亚的隐藏洞。每揭晓一个都会重新计算临时差点与净杆排名，全部揭晓后即为最终排名。 | **Hidden Hole Reveal**: reveals the Double Peria hidden holes one at a time. Each reveal recomputes the provisional handicap and net ranking; the last one gives the final standings. |
+| `hr.openAll` | 全部開く | 全部揭晓 | Reveal all |
+| `hr.ctl` | 開示の操作 | 揭晓操作 | Reveal controls |
+| `hr.delta` | 変動 | 变动 | Move |
+| `hr.showRest` | {rank}位以降を表示 | 显示第{rank}名以后 | Show #{rank} and below |
+| `hr.holeNote` | ■＝開示済みの隠しホール ／ ？＝未開示（隠しかどうか不明） | ■＝已揭晓的隐藏洞 ／ ？＝未揭晓（是否为隐藏洞未知） | ■ = revealed hidden hole / ? = not revealed yet (hidden or not is unknown) |
+| `rule.hiddenReveal` | <b>隠しホール開示</b>：ダブルペリアの隠しホールを1つずつ発表します。開くたびに暫定ハンデとネット順位が計算し直され、全部開くと確定順位になります。 | <b>隐藏洞揭晓</b>：逐个公布双派利亚的隐藏洞。每揭晓一个都会重新计算临时差点与净杆排名，全部揭晓后即为最终排名。 | <b>Hidden Hole Reveal</b>: reveals the Double Peria hidden holes one at a time. Each reveal recomputes the provisional handicap and net ranking; the last one gives the final standings. |
 
 - `hr.up` / `hr.down` は作らない（▲2 / ▼1 / − の記号＋数字で表現＝言語非依存）。
 - `node tools/verify.mjs` の「未使用キー」検査に落ちないよう、**追加キーは必ず全部参照する**（`hr.final` は k=N のときヒーローに出すタグ）。
+- **★2026-10-04 追記（§19-B）**: 下5キー（`hr.openAll` / `hr.ctl` / `hr.delta` / `hr.showRest` / `hr.holeNote`）は、
+  §9.2 のレイアウト図に描かれているのに当初の表に無かったぶん。`hr.showRest` の `{rank}` は `HR_TOP+1`（＝7）を JS が渡す
+  （定数を文言にハードコードしない）。`hr.holeNote` は §11.14 原則2（色だけに頼らず文字併記）の担保。
+- `rule.*` は**全て `<b>…</b>` 形式**（`js/i18n.js` に Markdown の `**` を変換する関数は無い＝§18 B4）。
 
 ---
 
@@ -542,7 +561,7 @@ globalThis.__RESULTS[name].hiddenReveal = {
 |---|---|---|---|
 | **PR1: 計算と最小UI** | `hrHdcpAt`/`hrNetAt`（§4.1）／`hrState`＋`hrSync`＋操作関数（§5）／`resGameTabs` にβゲートのタブ追加（§9.1）／**素朴な表**での暫定ネット順位表示と4ボタン／i18n 最低限（`result.sub.reveal`・`hr.progress`・`hr.next`・`hr.back`・`hr.provHdcp`・`hr.provNet`・`hr.note`・`hr.emptyScore`）／regress 新セクション（§12.2） | `js/calc.js` `js/results.js` `js/i18n.js` `tools/regress.mjs` `tools/regress-expected.json` `index.html`(`?v=`) | これだけで**演出として機能する**（見た目が素朴なだけ）。回帰証明もこの PR で完結する |
 | **PR2: 投影演出** | ヒーローカード（ホール番号・進捗ドット）／大型順位表（`--f-rl-*`）／順位変動矢印（`prevRank`）／18ホール帯／`<details>` 操作バー化／狭幅対応／i18n 追加（`hr.final`） | `js/results.js` `styles.css` `js/i18n.js` `index.html`(`?v=`) | PR1 の表示を置き換えるだけ。計算・状態は不変 |
-| **PR3: 仕上げ** | 開示順スイッチ（`hr.seq*`・§6.2）／`revealHoles<18` の警告バー＋「スコアを全部開く」（§7.3）／`ruleBox('rule.hiddenReveal')` | `js/results.js` `js/i18n.js` `styles.css` `index.html`(`?v=`) | 既定（ホール順・警告なし）で PR2 は完成しているため、無くても壊れない |
+| **PR3: 仕上げ** | 開示順スイッチ（`hr.seq*`・§6.2）／`revealHoles<18` の警告バー＋「スコアを全部開く」（§7.3）／`ruleBox('rule.hiddenReveal')` | `js/results.js` `js/i18n.js` `index.html`(`?v=`) ※`styles.css` は不要だった（§18 B1 の既存クラス流用で新規CSSゼロ・実測） | 既定（ホール順・警告なし）で PR2 は完成しているため、無くても壊れない |
 
 **直列/並列**: 3本とも `js/results.js` を触るので**直列**。他 Issue（`js/players.js`/`js/roulette.js` 系）とは並列可。`js/i18n.js`・`styles.css` は他タスクと競合しやすいので、着手前に `origin/main` へリベースすること。
 
@@ -660,4 +679,52 @@ globalThis.__RESULTS[name].hiddenReveal = {
 
 - **PR1〜PR3 の分割（§13）は変えない**。上記はすべて PR1（最小UI）または PR2（投影演出＋CSS）の中で吸収する。
 - §3 の計算仕様・`js/calc.js` の既存関数・localStorage キー・タブ/モジュール構成への接触は**引き続きゼロ**（本節は表示のみ）。
-- i18n 新規キーは **15**（B3 の `hr.openAll` を含む）。ja/zh/en 同時追加。
+- i18n 新規キーは **20**（B3 の `hr.openAll` ＋ §19-B の4キーを含む・2026-10-04 更新）。ja/zh/en 同時追加。
+
+---
+
+## 19. ★正誤（2026-10-04・PR1 #211 / PR2 #212 / PR3 #213 の実装結果から）
+
+本節は実装で判明した設計書自身の誤り・不足の記録。**該当箇所（§3.4 / §4.1 / §10 / §13 / §18.3）は既に修正済み**で、本節はその経緯を残すもの。
+
+### 19-A. §4.1 擬似コードの誤り：早期リターンの判定は `k` ではなく `kr`
+
+当初の擬似コードは `if(k>=N) return periaHdcp(g,pid);` としていたが、`k` は `v!=null` の内側でインクリメントされており「**開示済み かつ 入力済み**」を数えている。したがって未入力ホールが1つでもあると（＝経過ラウンド、または `revealHoles<18` でスコア側がマスクされているとき）、**全ホールを開示しても `k<N` のまま**で早期リターンに入らず、見込み値が返る。
+
+これは設計書自身の以下の記述と矛盾する:
+
+| 節 | 記述 | `k>=N` だとどうなるか |
+|---|---|---|
+| §0 表 #3 | 「k≧N は `return periaHdcp(g,pid)` の早期リターン＝現行と構造的に完全一致」 | 未入力があると早期リターンに入らない |
+| §7.2 の表 | 「`revealHoles=9` × 全開示は `periaHdcp(viewGameN(g0,9),pid)` と完全に同じ値」 | 一致しない |
+| §12.2 / §14 | `identityHdcp` / `identityNet` が全ケース true（1つでも false ならマージ不可） | 経過ラウンドのケースで false |
+
+**原因**: 本設計（2026-09-12）より**後**の 2026-09-19 の暫定HDCP仕様（`periaHdcp` 自身が `h*K/k` と `n/18` 按分で経過ラウンドを外挿するようになった）に、§4.1 の擬似コードが追いついていなかった。`periaHdcp` 側が独自に経過を扱うようになった以上、「全部開示したら `periaHdcp` に丸投げする」境界は**入力の有無とは無関係**に決めなければならない。
+
+**訂正**: 開示本数だけを数える `kr` を導入し、早期リターンを `kr>=N` にする。`k`（実測が入った本数）は見込み値 `est = sum + (N−k)×avg` にそのまま使うので、両方を数える。意味論は「**開示を全部終えた瞬間に、現行の表示値へ必ず着地する**」。
+
+**検証**: PM が実装を一時的に `k>=N` に差し戻して `node tools/regress.mjs` を実行 → **26ケース中4ケース**（`indBasic` / `best2Absent` / `best2Short` / `teamAvgUnentered`）で `identityHdcp:false` / `identityNet:false`。9H入力の選手で `16.8 ≠ periaHdcp 10.4`、0H入力の参加者で `null ≠ 0`。`kr` 判定では全26ケース true。
+
+§3.4 は元から `|R∩隠し| = k` と定義していて「入力済み」条件を置いていなかったので、**§3.4 の文章のほうが正しく、§4.1 のコードだけが定義から外れていた**。ただし Σ_est の `(N − k)` は「入力済み」で数えた `k` が正しいため、§3.4 も記号を `kr` / `k` の2つに分ける形に明確化した。
+
+### 19-B. §10 の i18n キー表の不足（5キー）
+
+§9.2 のレイアウト図に描かれているのに §10 の表に無かった文言が5つあり、実装時に補った（`verify.mjs` の未使用キー検査を通すため全キー参照済み）。
+
+| キー | 出どころ（§9.2 の図） | 追加 PR |
+|---|---|---|
+| `hr.openAll` | 操作の4ボタン目（既存 `btn.all`「全部」では意味が足りない） | PR1（§18 B3 で決定済み・表への記載漏れ） |
+| `hr.ctl` | 操作 `<details>` の `<summary>` | PR2 |
+| `hr.delta` | 順位表5列目の `<th>` | PR2 |
+| `hr.showRest` | §18 A2 の「7位以降を表示」`<details>` の `<summary>` | PR2 |
+| `hr.holeNote` | 18ホール帯の凡例（§9.2 の★「未開示は"不明"」を画面上で言う行＝§11.14 原則2 の担保） | PR2 |
+
+§10 の見出しを「新規14キー」→「**新規20キー**」、§18.3 の「15」→「**20**」に更新した。`rule.hiddenReveal` の Markdown 太字記法 `**…**` は §18 B4 のとおり `<b>…</b>` に直した（既存 `rule.*` は全て `<b>` 形式で、`js/i18n.js` に `**` の変換関数は無い）。
+
+### 19-C. §13 の PR3 行の「触るファイル」
+
+`styles.css` を挙げていたが、**PR3 では不要だった**（§18 B1 の「新規クラスを作らない」＋既存 `.scsw` / `.scsw-wrap` / `.scsw-l` / `.reveal-bar` / `.mt8` の流用で新規 CSS ゼロ）。表から落とした。
+
+### 19-D. 設計どおりで逸脱のなかった箇所（確認用）
+
+§3.4 の計算定義／§3.5「暫定中は `periaAllowNeg` を必ず無効」／§5 の `hrState` 6フィールド／§5.2 の `hrSync`／§6.2 の Fisher–Yates／§7.3 の UI 規則／§9.1 の β ゲート／§13 の PR 分割（3本）— **すべて設計どおり**。§9.2 の寸法・レイアウトは §18 が上書きした範囲（B2・B5・B6・B7・B8）で実装しており、§18 と実装は一致している。
