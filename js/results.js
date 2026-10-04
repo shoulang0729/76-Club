@@ -463,7 +463,8 @@ function rankCardNS(tagHtml, pids, valFn, dir, fmt, table, hlMap){
    ダブルペリアの隠しホールを1本ずつ開示し、そのたびに暫定HDCP・暫定ネット順位が動く演出。
    計算は js/calc.js の hrHdcpAt/hrNetAt の2関数だけを呼ぶ（§3.6 の seam＝暫定値の定義を差し替えても
    この描画・状態・i18n は無変更で済む）。g.hidden は読むだけ＝書き換えない（§4.2）。
-   ★PR1（§13）は素朴な表。ヒーロー／大型表示／順位変動矢印／18ホール帯は PR2。 */
+   ★PR2（§13）でヒーロー／大型順位表／順位変動矢印／18ホール帯／操作の details 化まで入った。
+   開示順スイッチ・revealHoles<18 の警告バー・ルール箱は PR3。 */
 /* 開示順（§6.2）: 既定＝ホール番号昇順。shuffle は Fisher–Yates（一様。sort(()=>Math.random()-0.5) は非一様なので使わない）。
    抽選順は pickHidden12 が boolean 配列しか返さないので復元不可能（§6.1） */
 function hrBuildOrder(g){
@@ -495,24 +496,62 @@ function hrNext(){ hrState.prevRank=hrRankSnapshot(); hrState.count=Math.min(hrS
 function hrBack(){ hrState.prevRank=null; hrState.count=Math.max(0,hrState.count-1); renderResult(); }
 function hrAll(){ hrState.prevRank=hrRankSnapshot(); hrState.count=hrState.order.length; renderResult(); }
 function hrReset(){ hrState.prevRank=null; hrState.count=0; renderResult(); }
-/* 開示タブ本体（PR1＝素朴な表）。g は renderResult が作った viewGame 済みのビューゲーム＝
-   スコア開封（revealHoles）との合成は自動（§7.2）。見出し <h2> は置かない（タブ名が兼ねる・§9.1） */
+/* 開示タブ本体（PR2＝投影演出・§9.2／§18）。g は renderResult が作った viewGame 済みのビューゲーム＝
+   スコア開封（revealHoles）との合成は自動（§7.2）。見出し <h2> は置かない（タブ名が兼ねる・§9.1）。
+   ★PR2 で変えたのは描画だけ。状態（hrState/hrSync/hr* 操作）と計算（hrHdcpAt/hrNetAt）は PR1 から不変。
+   構成（上から）: ①ヒーロー（直近開示ホール＋進捗ドット）②暫定ネット順位（主役）③18ホール帯（従）④操作(details)。 */
+const HR_TOP=6;   /* 大型表示する人数（§18 A2）。7位以降は <details> に格納＝投影1画面に主役が収まる */
 function renderHiddenReveal(g, parts){
   hrSync(g);
   const N=hrState.order.length, k=Math.min(hrState.count,N);
   const R=hrRevealed();
-  const prog=`<div class="muted">${t('hr.progress',{k,n:N})}</div>`;
-  const tools=`<div class="cardtools mt8">
+  /* ① ヒーロー: 直近に開示したホール番号（--f-rl-hole）＋ k/N ＋ N マスの進捗ドット。
+     ドットは「塗り(--strong)/枠のみ(--line)」の形でも区別＝色だけに頼らない（§11.14 原則2） */
+  const last = k>0 ? hrState.order[k-1] : null;
+  const hero=`<div class="card hr-hero"><div class="hr-hero-top">
+    <div class="hr-hole">${last==null?'—':(last+1)+'<small>H</small>'}</div>
+    <div class="hr-prog">${t('hr.progress',{k,n:N})}${k>=N?`<span class="tag">${t('hr.final')}</span>`:''}</div></div>
+    <div class="hr-dots">${hrState.order.map((_,i)=>`<span class="hr-dot${i<k?' on':''}"></span>`).join('')}</div></div>`;
+  /* ③ 18ホール帯（§18 A3＝従のまま小さく）: ■＝開示済みの隠しホール／？＝未開示（隠しかどうか"不明"）。
+     全開示後は残りが「隠しでない」と確定するので ？ を消して無地にする（§9.2 の★）。
+     OUT/IN の小ラベルは §18 B9 で残す（狭幅2段のときどちらの段か判別するため）。OUT/IN はリテラル（既存 sc の表記と同じ＝新規キー0） */
+  const hrCell=i=>`<div class="hr-cell${R.has(i)?' open':''}"><span class="n">${i+1}</span><span class="m">${R.has(i)?'■':(k>=N?'':'？')}</span></div>`;
+  const hrSet=(lb,a,b)=>`<div class="hr-setwrap"><div class="hr-setlbl">${lb}</div><div class="hr-set">${
+    Array.from({length:b-a},(_,j)=>hrCell(a+j)).join('')}</div></div>`;
+  const band=`<div class="card hr-holescard"><div class="hr-holes">${hrSet('OUT',0,9)}${hrSet('IN',9,18)}</div>
+    <div class="muted mt6">${t('hr.holeNote')}</div></div>`;
+  /* ④ 幹事の操作（§11.14 原則3＝控えめ・既定=閉）。§18 B8: .gold は主役の「次を開く」1個だけ・他3つは .btn sec sm */
+  const ctl=`<details class="hr-ctl mt10"><summary>${t('hr.ctl')}</summary><div class="in"><div class="cardtools">
     <button class="btn sec sm" onclick="hrReset()">${t('btn.reset')}</button>
     <button class="btn sec sm" onclick="hrBack()">${t('hr.back')}</button>
     <button class="btn gold sm" onclick="hrNext()">${t('hr.next')}</button>
-    <button class="btn sec sm" onclick="hrAll()">${t('hr.openAll')}</button></div>`;
+    <button class="btn sec sm" onclick="hrAll()">${t('hr.openAll')}</button></div></div></details>`;
   if(parts.every(pid=>enteredCount(g,pid)===0))
-    return `<div class="card">${prog}<div class="empty">${t('hr.emptyScore')}</div>${tools}</div>`;
+    return hero+`<div class="card"><div class="empty">${t('hr.emptyScore')}</div></div>`+band+ctl;
+  /* ② 暫定ネット順位（この画面の主役）。順位変動は hrState.prevRank との差＝記号＋変動幅の数字を必ず併記し、
+     上昇=--win（緑）/ 下降=--ink（通常色）/ 変化なし=− を .muted 色。★赤（--danger）は危険の意味に予約済みなので使わない（§18 B10）。
+     prevRank が null（初期表示・戻す・リセット直後）は矢印を出さない＝「順位が戻った」誤読を避ける（§5.3） */
   const rows=ranked(parts,pid=>hrNetAt(g,pid,R),'asc');
-  const nameOf=pid=>{const p=state.players.find(x=>x.id===pid);return esc(p&&p.name);};
-  const body=`<table class="lb"><tr><th class="c-pos">${t('col.rank')}</th><th>${t('col.player')}</th><th class="c-val">${t('hr.provNet')}</th><th class="c-val">${t('hr.provHdcp')}</th></tr>
-    ${rows.map(r=>`<tr class="rank ${r.rank===1?'rank1':''}"><td class="c-pos">${r.rank}</td><td class="nmc">${nameOf(r.pid)}</td><td class="c-val"><b>${r.v}</b></td><td class="c-val">${hrHdcpAt(g,r.pid,R)}</td></tr>`).join('')}</table>`;
-  return `<div class="card tight wide">${prog}${body}${tools}
-    <div class="muted mt8">${t('hr.note')}</div></div>`;
+  const nameOf=pid=>{const p=state.players.find(x=>x.id===pid);return (p&&p.name)||'';};
+  const prev=hrState.prevRank;
+  const dl=r=>{ if(!prev||prev[r.pid]==null) return '';
+    const d=prev[r.pid]-r.rank;
+    return d>0?`<span class="hr-dl hr-up">▲${d}</span>`
+         : d<0?`<span class="hr-dl">▼${-d}</span>`
+         :      `<span class="hr-dl hr-flat">−</span>`; };
+  /* 選手名は .npdc-name と同じ自動縮小（--nch＝名前の見た目の幅・em を JS が渡し、CSS が 90cqw/--nch で上限を決める）＝
+     全角8文字のフルネームでも ellipsis にしない（§18 B7）。cqw の基準は .hr-nmw（container-type:inline-size） */
+  const row=r=>{ const nm=nameOf(r.pid); return `<tr class="rank">
+    <td>${posBadge(r.rank,r.rank===1)}</td>
+    <td class="tal"><div class="hr-nmw"><div class="hr-nm" style="--nch:${npdcEmW(nm)}">${esc(nm)}</div></div></td>
+    <td class="hr-net">${r.v}</td><td class="hr-hd">${hrHdcpAt(g,r.pid,R)}</td>
+    <td>${dl(r)}</td></tr>`; };
+  const COLS=`<colgroup><col class="c-pos"><col class="c-nm"><col class="c-net"><col class="c-hd"><col class="c-dl"></colgroup>`;
+  const HEAD=`<tr><th>${t('col.rank')}</th><th class="tal">${t('col.player')}</th><th>${t('hr.provNet')}</th><th class="c-hd-th">${t('hr.provHdcp')}</th><th>${t('hr.delta')}</th></tr>`;
+  const tbl=rs=>`<table class="lb hr-rank">${COLS}${HEAD}${rs.map(row).join('')}</table>`;
+  const rest=rows.slice(HR_TOP);
+  const more=rest.length?`<details class="hr-more mt10"><summary>${t('hr.showRest',{n:HR_TOP+1})}</summary>
+    <div class="in">${tbl(rest)}</div></details>`:'';
+  return hero+`<div class="card hr-rankcard">${tbl(rows.slice(0,HR_TOP))}
+    <div class="muted mt8">${t('hr.note')}</div></div>`+more+band+ctl;
 }

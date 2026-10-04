@@ -553,6 +553,76 @@
   .sc2.uvsc tr.uv-off td{color:var(--sub)}
   .sc2.uvsc .uv-tagsel{font-size:9px;padding:0 3px;margin-left:3px;vertical-align:1px}
   .uv-scn{font-size:10px;font-weight:var(--w-bold);margin-left:8px;opacity:.85}
+  /* ===== 隠しホール開示演出（docs/handoff/2026-09-12-hidden-hole-reveal.md §9.2 ＋ §18・投影原則 §11.14）=====
+     ★新しい色トークン／フォントサイズトークンは作らない（§9.5）。使うのは既存の
+     --strong/--ink/--sub/--line/--card/--win/--acc/--acc-bg/--acc-ink/--r-sm/--w-bold と
+     投影用 --f-rl-hole / --f-rl-name / --f-rl-score ＋ --f-title/--f-body/--f-small だけ＝
+     既存 @media（820/1024/1366px）の --f-rl-* 再定義に自動追従する。面の濃色ベタ塗りも新設しない。 */
+  /* ① ヒーロー: 直近に開示したホール番号（主役）＋ k/N ＋ 進捗ドット */
+  .hr-hero-top{display:flex;align-items:baseline;justify-content:space-between;gap:16px;flex-wrap:wrap;row-gap:2px}
+  .hr-hole{font-size:var(--f-rl-hole);font-weight:var(--w-bold);line-height:1;color:var(--strong);
+    font-variant-numeric:tabular-nums;white-space:nowrap}
+  .hr-hole small{font-size:var(--f-rl-name);font-weight:var(--w-bold);color:var(--sub);margin-left:3px}
+  .hr-prog{font-size:var(--f-rl-name);font-weight:var(--w-bold);line-height:1.1;color:var(--strong);
+    font-variant-numeric:tabular-nums}
+  .hr-prog .tag{vertical-align:middle}
+  .hr-dots{display:flex;flex-wrap:wrap;gap:10px;margin-top:14px}
+  /* 開示済み=塗り(--strong)／未開示=枠のみ(--line)＝色だけでなく「塗り/枠」の形でも区別できる（§11.14 原則2） */
+  .hr-dot{width:28px;height:28px;border-radius:8px;border:2px solid var(--line);background:var(--card);flex:0 0 auto}
+  .hr-dot.on{background:var(--strong);border-color:var(--strong)}
+  @media(min-width:1024px){ .hr-dot{width:36px;height:36px} }
+  @media(max-width:1023px){ .hr-hero-top{display:block} .hr-prog{margin-top:2px} }
+  /* ② 暫定ネット順位（この画面の主役）。列幅は colgroup＋table-layout:fixed で固定する */
+  .hr-rank{table-layout:fixed;width:100%}
+  .hr-rank th{color:var(--sub);font-size:var(--f-body);font-weight:var(--w-bold);padding:4px 8px}
+  .hr-rank td{padding:6px 8px;overflow:hidden}
+  /* c-pos は 2桁順位（10位〜）が --f-rl-name でも欠けない幅（640〜820px 帯で 8% だと溢れる・実測） */
+  .hr-rank col.c-pos{width:10%} .hr-rank col.c-nm{width:30%} .hr-rank col.c-net{width:24%}
+  .hr-rank col.c-hd{width:18%} .hr-rank col.c-dl{width:18%}
+  .hr-rank .rankno{font-size:var(--f-rl-name)}
+  /* 選手名は .npdc-name と同じ自動縮小（§18 B7）: --nch＝名前の見た目の幅(em・JS が渡す)で
+     「1行に収まる font-size の上限」を決める＝全角8文字でも ellipsis にしない。cqw の基準は .hr-nmw */
+  .hr-nmw{container-type:inline-size;min-width:0}
+  .hr-nm{--nch:4;font-size:var(--f-rl-name);font-size:min(var(--f-rl-name),calc(90cqw / var(--nch,4)));
+    font-weight:var(--w-bold);line-height:1.1;color:var(--strong);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .hr-net{font-size:var(--f-rl-score);font-weight:var(--w-bold);line-height:1;color:var(--strong);
+    font-variant-numeric:tabular-nums;white-space:nowrap}
+  .hr-hd{font-size:var(--f-title);font-weight:var(--w-bold);color:var(--sub);font-variant-numeric:tabular-nums}   /* 暫定HDCP は従＝小さく */
+  /* 変動: 上昇=--win（緑）／下降=--ink（通常色）／変化なし=− は --sub。記号だけでなく変動幅の数字を必ず併記する。
+     ★赤（--red/--danger-*）は「危険」の意味に予約済みなので順位下降に使わない（§18 B10） */
+  .hr-dl{font-size:var(--f-rl-name);font-weight:var(--w-bold);line-height:1;
+    font-variant-numeric:tabular-nums;white-space:nowrap;color:var(--ink)}
+  .hr-dl.hr-up{color:var(--win)}
+  .hr-dl.hr-flat{color:var(--sub)}
+  @media(max-width:640px){
+    /* ★列の落とし方（§18 B5）: th/td を display:none にすると後続セルが <col> の次のスロットへズレて
+       「変動」列が幅0になる。セルは残したまま col を 0 幅にし、中身（padding/font/罫線）だけ潰す */
+    .hr-rank col.c-hd{width:0}
+    .hr-rank .c-hd-th,.hr-rank .hr-hd{padding:0;font-size:0;line-height:0;overflow:hidden;border-left-width:0;border-right-width:0}
+    .hr-rank col.c-pos{width:12%} .hr-rank col.c-nm{width:32%}
+    .hr-rank col.c-net{width:30%} .hr-rank col.c-dl{width:26%}
+    .hr-rank td{padding:5px 2px} .hr-rank th{padding:4px 2px}
+    .hr-nm{white-space:normal;overflow-wrap:anywhere;line-height:1.05}
+    .hr-net{font-size:var(--f-rl-name)}   /* 375px では --f-rl-score(44px) が列に入らない＝1段下の既存トークンに落とす（§18 B6） */
+  }
+  /* ③ 18ホール帯（§18 A3＝従のまま小さく）。§18 B2: セルは 1fr＋aspect-ratio:1＋max-height:56px＝
+     1024px では実測49px・1366px 以上で 56px に達する（56px 固定だと 18×56=1008px で本文幅 968px に入らない）。
+     OUT/IN の小ラベルは §18 B9 で残す（狭幅で2段に折り返したときどちらの段か判別するため） */
+  .hr-holes{display:flex;gap:12px;align-items:flex-start}
+  .hr-setwrap{flex:1 1 0;min-width:0}
+  .hr-setwrap+.hr-setwrap{border-left:1px solid var(--line);padding-left:12px}
+  .hr-setlbl{font-size:var(--f-small);font-weight:var(--w-bold);color:var(--sub);letter-spacing:.08em;margin-bottom:4px}
+  .hr-set{display:grid;grid-template-columns:repeat(9,minmax(0,1fr));gap:4px}
+  .hr-cell{aspect-ratio:1;max-height:56px;display:flex;flex-direction:column;align-items:center;
+    justify-content:center;gap:2px;border:1px solid var(--line);border-radius:var(--r-sm);background:var(--card)}
+  .hr-cell .n{font-size:var(--f-small);font-weight:var(--w-bold);color:var(--sub);line-height:1}
+  .hr-cell .m{font-size:var(--f-title);font-weight:var(--w-bold);color:var(--sub);line-height:1}
+  /* ■=開示済みの隠しホール: 既存 .hidden-h と同じ淡地（--acc-bg）＋太枠。？=未開示（隠しかどうか不明） */
+  .hr-cell.open{background:var(--acc-bg);border:2px solid var(--acc)}
+  .hr-cell.open .n,.hr-cell.open .m{color:var(--acc-ink)}
+  @media(max-width:1023px){ .hr-holes{flex-direction:column;gap:8px}
+    .hr-setwrap+.hr-setwrap{border-left:0;padding-left:0}
+    .hr-setwrap{width:100%} .hr-cell{max-height:44px} }
   @media(min-width:820px){
     :root{--f-rl-hole:66px;--f-rl-name:40px;--f-rl-score:64px}
     .rlwrap{max-width:900px;margin:0 auto}
