@@ -123,8 +123,8 @@ function hjStopSpin(){
   hjSpin=null; hjSpinGeneration++;
   // Visibility changes may leave this same DOM on screen; make it resumable without a table redraw.
   if(g&&typeof document!=='undefined'&&typeof document.querySelector==='function'){
-    const button=document.querySelector('.hj-spin-button'), candidate=document.getElementById('hj-candidate');
-    if(candidate)candidate.textContent='—';
+    const button=document.querySelector('.hj-spin-button');
+    for(let i=0;i<4;i++){const candidate=document.getElementById('hj-candidate-'+i);if(candidate)candidate.textContent='—';}
     if(button){button.textContent=t('hj.start');button.setAttribute('onclick','hjStartSpin()');
       button.disabled=!hjHiddenShape(g)||g.honestJohn.hidden.filter(Boolean).length>=4;}
   }
@@ -136,23 +136,34 @@ function hjSpinCurrent(g,generation){
 function hjSpinTick(g,generation){
   if(!hjSpinCurrent(g,generation)){ if(hjSpin&&hjSpin.generation===generation)hjStopSpin(); return; }
   const options=Array.from({length:18},(_,i)=>i).filter(i=>!g.honestJohn.hidden[i]);
-  hjSpin.candidate=options[Math.floor(Math.random()*options.length)];
-  if(typeof document!=='undefined'){const el=document.getElementById('hj-candidate');if(el)el.textContent=(hjSpin.candidate+1)+'H';}
+  for(let i=options.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[options[i],options[j]]=[options[j],options[i]];}
+  const selected=hjDrawOrder(g).length;
+  hjSpin.candidates=options.slice(0,4-selected);
+  if(typeof document!=='undefined')hjSpin.candidates.forEach((candidate,i)=>{
+    const el=document.getElementById('hj-candidate-'+(selected+i));if(el)el.textContent=(candidate+1)+'H';
+  });
   hjSpin.timer=setTimeout(()=>hjSpinTick(g,generation),85);
 }
 function hjStartSpin(){
   const g=curGame(); if(!g||hjSpin||!hjHiddenShape(g)||hjDrawOrder(g).length>=4)return;
   const generation=++hjSpinGeneration;
-  hjSpin={game:g,generation,timer:null,candidate:null,signature:hjSignature(g,state)};
+  hjSpin={game:g,generation,timer:null,candidates:[],signature:hjSignature(g,state)};
   hjSpinTick(g,generation); renderResult();
 }
-function hjCommitSpin(generation){
+function hjCommitSpin(generation,step){
   if(!hjSpin||hjSpin.generation!==generation)return;
-  const {game:g,candidate,signature}=hjSpin;
+  const {game:g,candidates,signature}=hjSpin;
+  if(step!==hjDrawOrder(g).length)return; // A replaced STOP button cannot commit the next slot.
+  const candidate=candidates[0];
   const valid=hjSpinCurrent(g,generation)&&signature===hjSignature(g,state)&&Number.isInteger(candidate)&&
     hjHiddenShape(g)&&!g.honestJohn.hidden[candidate]&&hjDrawOrder(g).length<4;
-  hjStopSpin(); if(!valid){renderResult();return;}
-  g.honestJohn.hidden[candidate]=true; hjView(g).order.push(candidate); hjChanged();
+  if(!valid){hjStopSpin();renderResult();return;}
+  g.honestJohn.hidden[candidate]=true; hjView(g).order.push(candidate);
+  // Own confirmed-hole saves preserve this run; all external input edits still invalidate it.
+  hjSpin.candidates=candidates.slice(1);hjSpin.signature=hjSignature(g,state);
+  hjSignatures.set(g,hjSpin.signature);
+  if(step===3)hjStopSpin();
+  hjChanged();
 }
 function hjResetDraw(){ hjStopSpin(); hjClearHidden(); }
 
@@ -230,14 +241,14 @@ function renderTeamHonest(g){
   }).join('');
   const columns=['hj.declared','hj.raw','hj.adjusted','hj.difference','hj.penalty'];
   const heads=columns.map((key,i)=>`<th scope="col">${t(key)}${i>=2&&display.provisional?`<small> ${t('hj.provisional')}</small>`:''}<button class="btn sec sm hj-column-open" aria-pressed="${view.columns[i]}" onclick="hjToggleColumn(${i})">${view.columns[i]?t('hj.closeColumn'):t('hj.openColumn')}</button></th>`).join('');
-  const rows=display.rows.map(r=>`<tr class="hj-team-head"><th colspan="6" scope="rowgroup" style="color:var(--tm-${tmKey(r.t)});background:var(--tm-${tmKey(r.t)}-bg)">${esc(r.t.name)}</th></tr>`+r.members.map(p=>{
+  const rows=display.rows.map(r=>`<tr class="hj-team-head"><th colspan="6" scope="rowgroup" style="color:var(--bg);background:var(--tm-${tmKey(r.t)})">${esc(r.t.name)}</th></tr>`+r.members.map(p=>{
     const person=state.players.find(x=>x.id===p.pid);
     const nums=[p.declared,p.raw,p.adjusted,p.difference,p.penalty];
     return `<tr><th class="hj-name" scope="row">${esc(person.name)}</th>${nums.map((v,i)=>`<td>${view.columns[i]?(v===null?'—':v):mask}</td>`).join('')}</tr>`;
   }).join('')).join('');
   const selected=hjDrawOrder(g), spinning=hjSpin&&hjSpin.game===g;
-  const slots=Array.from({length:4},(_,i)=>`<div class="hj-slot"><small>${t('hj.drawNumber',{n:i+1})}</small><strong${spinning&&i===selected.length?' id="hj-candidate"':''}>${i<selected.length?(selected[i]+1)+'H':spinning&&i===selected.length?(hjSpin.candidate+1)+'H':'—'}</strong></div>`).join('');
-  const spinButton=spinning?`<button class="btn hj-spin-button" onclick="hjCommitSpin(${hjSpin.generation})">${t('hj.stop')}</button>`:
+  const slots=Array.from({length:4},(_,i)=>`<div class="hj-slot"><small>${t('hj.drawNumber',{n:i+1})}</small><strong${spinning&&i>=selected.length?' id="hj-candidate-'+i+'"':''}>${i<selected.length?(selected[i]+1)+'H':spinning?(hjSpin.candidates[i-selected.length]+1)+'H':'—'}</strong></div>`).join('');
+  const spinButton=spinning?`<button class="btn hj-spin-button" onclick="hjCommitSpin(${hjSpin.generation},${selected.length})">${t('hj.stop')}</button>`:
     `<button class="btn hj-spin-button" onclick="hjStartSpin()" ${selected.length>=4||!hjHiddenShape(g)?'disabled':''}>${t('hj.start')}</button>`;
   const controls=hjCanAnnounce(g)||ann?tpAnnounceUI(g,'honestJohn'):`<button class="btn gray sm" disabled>${t('team.announce')}</button>`;
   const note=!st.rows.length?t('team.emptyTeams'):!st.ready?t('hj.pending'):st.rows.length<2?t('hj.needTeams'):!ann?t('hj.unannounced'):'';

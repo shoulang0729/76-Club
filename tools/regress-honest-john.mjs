@@ -159,7 +159,7 @@ const provisional=vm.runInContext(`(()=>{
     pointsBlocked.push(teamWinPoints(g).wins.every(v=>v===0));
     if(count<4){hjStartSpin();const before=JSON.stringify(hjDisplayStanding(g));__timerHistory.at(-1)();
       candidateStable.push(before===JSON.stringify(hjDisplayStanding(g)));
-      hjSpin.candidate=count;hjCommitSpin(hjSpin.generation);}
+      hjSpin.candidates=[count,...hjSpin.candidates.filter(v=>v!==count)].slice(0,4-count);hjCommitSpin(hjSpin.generation,count);}
   }
   const columnsPreserved=JSON.stringify(hjView(g).columns)==='[false,false,true,true,true]';
   const finalReady=hjStanding(g).ready&&hjCanAnnounce(g);
@@ -187,14 +187,17 @@ console.log('Honest John provisional regression PASS: confirmed 0–4 arithmetic
 
 const draws=vm.runInContext(`(()=>{
   const x=fixture();x.honestJohn.hidden.fill(false);renderTeamHonest(x);
-  const dp=JSON.stringify(x.hidden), counts=[],unique=[];
+  const dp=JSON.stringify(x.hidden), counts=[],unique=[],remaining=[];
+  hjStartSpin();const generation=hjSpin.generation;
   for(let i=0;i<4;i++){
-    hjStartSpin();const generation=hjSpin.generation, candidate=hjSpin.candidate;
+    remaining.push(hjSpin.candidates.length);
     const callback=__timerHistory.at(-1), before=__renders;
     callback();const onlyCandidateUpdated=before===__renders;
-    const stopped=hjSpin.candidate;hjCommitSpin(generation);hjCommitSpin(generation);
+    const frameUnique=new Set(hjSpin.candidates).size===4-i&&hjSpin.candidates.every(v=>!x.honestJohn.hidden[v]);
+    const stopped=hjSpin.candidates[0];hjCommitSpin(generation,i);hjCommitSpin(generation,i);
     counts.push(x.honestJohn.hidden.filter(Boolean).length);
-    unique.push(onlyCandidateUpdated&&x.honestJohn.hidden[stopped]&&hjSpin===null);
+    unique.push(onlyCandidateUpdated&&frameUnique&&x.honestJohn.hidden[stopped]&&
+      (i===3?hjSpin===null:hjSpin&&hjSpin.generation===generation&&hjSpin.candidates.length===3-i));
   }
   const exactFour=hjHiddenValid(x)&&new Set(hjDrawOrder(x)).size===4;
   hjStartSpin();const finishedIdle=hjSpin===null;
@@ -204,30 +207,60 @@ const draws=vm.runInContext(`(()=>{
   hjStartSpin();const oldIdle=hjSpin===null;
   const partial=fixture();partial.honestJohn.hidden.fill(false);partial.honestJohn.hidden[8]=true;partial.honestJohn.hidden[13]=true;
   const loaded=JSON.parse(JSON.stringify(partial));state.games=[loaded];state.currentGameId=loaded.id;
-  hjStartSpin();const resumedCandidate=!loaded.honestJohn.hidden[hjSpin.candidate];
-  hjCommitSpin(hjSpin.generation);const resumedCount=loaded.honestJohn.hidden.filter(Boolean).length;
-  hjStartSpin();const stale=__timerHistory.at(-1), generation=hjSpin.generation;
+  hjStartSpin();const resumedCandidate=hjSpin.candidates.length===2&&hjSpin.candidates.every(v=>!loaded.honestJohn.hidden[v]);
+  hjCommitSpin(hjSpin.generation,2);const resumedCount=loaded.honestJohn.hidden.filter(Boolean).length;
+  hjStartSpin();const stale=__timerHistory.at(-1), staleGeneration=hjSpin.generation;
   const other=fixture();const before=JSON.stringify(other.honestJohn.hidden);
-  hjStopSpin();hjStopSpin();stale();hjCommitSpin(generation);
+  hjStopSpin();hjStopSpin();stale();hjCommitSpin(staleGeneration,3);
   const noCrossWrite=JSON.stringify(other.honestJohn.hidden)===before&&loaded.honestJohn.hidden.filter(Boolean).length===3&&hjSpin===null;
   hjClearHidden();hjStartSpin();const hiddenCallback=__timerHistory.at(-1), hiddenGeneration=hjSpin.generation;
-  document.hidden=true;hiddenCallback();hjCommitSpin(hiddenGeneration);document.hidden=false;
+  document.hidden=true;hiddenCallback();hjCommitSpin(hiddenGeneration,0);document.hidden=false;
   const backgroundSafe=other.honestJohn.hidden.filter(Boolean).length===0&&hjSpin===null;
   const resumeButton=document.querySelector('.hj-spin-button').onclickText==='hjStartSpin()';
   hjStartSpin();const oldCallback=__timerHistory.at(-1), oldGeneration=hjSpin.generation;
   hjStopSpin();hjStartSpin();const currentGeneration=hjSpin.generation;
-  oldCallback();hjCommitSpin(oldGeneration);
+  oldCallback();hjCommitSpin(oldGeneration,0);
   const newerSpinSafe=hjSpin&&hjSpin.generation===currentGeneration&&other.honestJohn.hidden.filter(Boolean).length===0;
   hjStopSpin();
   hjStartSpin();const removedCallback=__timerHistory.at(-1);state.games=[];hjBeforeSave(state);removedCallback();
   const deletedSafe=hjSpin===null;
-  return {counts,unique,exactFour,finishedIdle,independent,reloadClosed,oldFour,oldIdle,resumedCandidate,resumedCount,noCrossWrite,backgroundSafe,resumeButton,newerSpinSafe,deletedSafe};
+  const external=fixture();external.honestJohn.hidden.fill(false);renderTeamHonest(external);hjStartSpin();
+  hjCommitSpin(hjSpin.generation,0);const ownSaveContinues=hjSpin!==null;
+  external.scores.a[0]++;save();const externalSaveStops=hjSpin===null;
+  return {counts,unique,remaining,exactFour,finishedIdle,independent,reloadClosed,oldFour,oldIdle,resumedCandidate,resumedCount,noCrossWrite,backgroundSafe,resumeButton,newerSpinSafe,deletedSafe,ownSaveContinues,externalSaveStops};
 })()`,context);
 assert.deepEqual(Array.from(draws.counts),[1,2,3,4],'Each STOP commits exactly one hole, even on double click');
+assert.deepEqual(Array.from(draws.remaining),[4,3,2,1],'One START rotates all remaining slots throughout all four STOPs');
 assert.equal(draws.resumedCount,3,'Reloaded partial draw continues from the remaining holes');
-for(const key of ['exactFour','finishedIdle','independent','reloadClosed','oldFour','oldIdle','resumedCandidate','noCrossWrite','backgroundSafe','resumeButton','newerSpinSafe','deletedSafe'])assert.ok(draws[key],key);
+for(const key of ['exactFour','finishedIdle','independent','reloadClosed','oldFour','oldIdle','resumedCandidate','noCrossWrite','backgroundSafe','resumeButton','newerSpinSafe','deletedSafe','ownSaveContinues','externalSaveStops'])assert.ok(draws[key],key);
 assert.ok(draws.unique.every(Boolean),'Each draw excludes selected holes and ticks avoid full rerenders');
 console.log('Honest John roulette regression PASS: four unique stops, old/partial reload, stale callbacks and context cancellation');
+
+const reset=vm.runInContext(`(()=>{
+  const g=fixture();g.honestJohn.hidden.fill(false);
+  g.scores.a=[8,8,7,7,...Array(12).fill(4),6,6];
+  g.scores.b=[8,8,7,7,...Array(12).fill(6),3,3];
+  g.scores.c=[9,9,8,8,...Array(14).fill(4)];
+  g.scores.d=[9,9,8,8,...Array(13).fill(5),9];
+  g.honestJohn.declarations={a:70,b:85,c:65,d:81};
+  renderTeamHonest(g);hjView(g).columns=[true,false,true,true,true];
+  const inputs=JSON.stringify([g.scores,g.honestJohn.declarations]),columns=JSON.stringify(hjView(g).columns);
+  hjStartSpin();for(let step=0;step<4;step++){
+    hjSpin.candidates=[step,...hjSpin.candidates.filter(v=>v!==step)].slice(0,4-step);hjCommitSpin(hjSpin.generation,step);
+  }
+  g.announced.honestJohn=true;save();const final=hjDisplayStanding(g).rows.map(r=>r.total);
+  hjResetDraw();const html=renderTeamHonest(g), display=hjDisplayStanding(g);
+  return {final,reset:display.rows.map(r=>r.total),adjusted:hjDisplayPlayer(g,'a').adjusted,
+    preserved:inputs===JSON.stringify([g.scores,g.honestJohn.declarations])&&columns===JSON.stringify(hjView(g).columns),
+    cleared:!g.announced.honestJohn&&hjSpin===null&&hjDrawOrder(g).length===0&&g.honestJohn.hidden.every(v=>!v),
+    htmlCorrect:html.includes('>430</span>')&&html.includes('>520</span>')&&html.includes('<td>90</td>')&&
+      !html.includes('>150</span>')&&!html.includes('>160</span>')};
+})()`,context);
+assert.deepEqual(Array.from(reset.final),[150,160]);
+assert.deepEqual(Array.from(reset.reset),[430,520],'Reset recalculates every penalty and team total from zero confirmed holes');
+assert.equal(reset.adjusted,90,'Open adjusted column returns immediately to raw gross');
+assert.ok(reset.preserved&&reset.cleared&&reset.htmlCorrect,'Reset preserves every column choice and input while clearing draw/link state');
+console.log('Honest John numeric reset PASS: final 150/160 returns to raw-based 430/520 with adjusted column open');
 
 const invalidation=vm.runInContext(`(()=>{
   const changes=[g=>{g.scores.a[0]++;},g=>{g.par[0]++;},g=>{g.honestJohn.declarations.a++;},
