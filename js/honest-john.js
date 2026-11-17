@@ -236,11 +236,11 @@ function renderTeamHonest(g){
     const share=winner&&ev?`<span class="tag">${t('team.winpt')} +${tpShare(ev.w,ev.winners.length)}</span>`:'';
     const rank=visible?t('hj.rank',{n:r.rank}):'';
     const caption=[display.provisional?t('hj.provisional'):'',rank].filter(Boolean).join(' ');
-    return `<tr class="hj-total tsum"><th class="hj-name" scope="row">${esc(r.t.name)} ${t('col.total')}${caption?` <span class="tag">${caption}</span>`:''}</th>`+
+    return `<tr class="hj-total tsum" style="--hj-total-bg:var(--tm-${tmKey(r.t)}-bg)"><th class="hj-name" scope="row">${esc(r.t.name)} ${t('col.total')}${caption?` <span class="tag">${caption}</span>`:''}</th>`+
       hjDisplayTotals(r).map((v,i)=>`<td>${v===null?'—':v}${i===4?tag+share:''}</td>`).join('')+'</tr>';
   };
   const columns=['hj.declared','hj.raw','hj.adjusted','hj.difference','hj.penalty'];
-  const heads=columns.map((key,i)=>`<th scope="col">${t(key)}${i>=2&&display.provisional?`<small> ${t('hj.provisional')}</small>`:''}</th>`).join('');
+  const heads=columns.map(key=>`<th scope="col">${t(key)}</th>`).join('');
   const rows=display.rows.map(r=>`<tr class="hj-team-head"><th colspan="6" scope="rowgroup" style="color:var(--bg);background:var(--tm-${tmKey(r.t)})">${esc(r.t.name)}</th></tr>`+r.members.map(p=>{
     const person=state.players.find(x=>x.id===p.pid);
     const nums=[p.declared,p.raw,p.adjusted,p.difference,p.penalty];
