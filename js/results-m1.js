@@ -194,12 +194,12 @@ function renderMatch1v1Parts(g){
       <button class="btn ${playing?'gray':'gold'} sm" onclick="m1AutoPlay(${arg})" ${c>=18?'disabled':''}>${playing?'■ '+t('m1.pause'):'▶ '+t('m1.play')}</button>
       <button class="btn gray sm" onclick="m1Holes(${arg},'all')" ${c>=18?'disabled':''}>${t('btn.all')}</button>
       <span class="tag tagtie">${c>=18?t('sc.allHoles'):c+'/18H'}</span>${(D!=null&&c===D)?`<span class="tag">${t('m1.hold')}</span>`:''}</div>`:'';
-    const row=(pid,me,col,mean=false)=>`<tr><td class="nm" style="color:${col}">${mean?t('m1.average'):nameOf(pid)}</td>${H.map(i=>{
+    const row=(pid,me,col,mean=false,member=false)=>`<tr${member?' class="m1-member"':''}><td class="nm" style="color:${col}">${mean?t('m1.average'):nameOf(pid)}</td>${H.map(i=>{
       const w=m1HoleWin(gc,a,b,i); const cls=(w===me?'rwin':w==='H'?'rtie':'')+(i===nx?' m1-nx':'');
       const val=m1SideHole(gc,pid,i); return `<td class="${cls}">${val==null?'':val}</td>`; }).join('')}</tr>`;
     return `<div class="card">${hero(big+prov)}${cardbar}
       <table class="sc2">${colg}<tr><th class="nm"></th>${H.map(i=>`<th${i===nx?' class="m1-nx"':''}>${i+1}</th>`).join('')}</tr>
-      ${Array.isArray(a)?a.map(pid=>row(pid,'A',colA)).join(''):''}${row(a,'A',colA,Array.isArray(a))}${Array.isArray(b)?b.map(pid=>row(pid,'B',colB)).join(''):''}${row(b,'B',colB,Array.isArray(b))}</table></div>`;
+      ${Array.isArray(a)?a.map(pid=>row(pid,'A',colA,false,true)).join(''):''}${row(a,'A',colA,Array.isArray(a))}${Array.isArray(b)?b.map(pid=>row(pid,'B',colB,false,true)).join(''):''}${row(b,'B',colB,Array.isArray(b))}</table></div>`;
   }).join('');
   return {head: top + bar, body: cards + ruleBox('rule.match1v1')};
 }

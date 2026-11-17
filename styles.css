@@ -489,6 +489,7 @@
   .sc2 th.m1-nx{background:var(--acc-bg-strong)}
   .sc2 .adopt{outline:2px solid var(--sub);outline-offset:-2px;font-weight:var(--w-bold);color:var(--strong) !important}
   .sc2 .rwin{background:var(--win-bg-strong) !important;font-weight:var(--w-bold);color:var(--win-ink) !important}   /* 勝ち：濃緑文字で高コントラスト */
+  .sc2 .m1-member .rwin{background:var(--win-bg) !important}   /* 平均の内訳は淡くし、判定に使う平均行を主役にする */
   .sc2 .rtie{background:var(--tie-bg) !important;font-weight:var(--w-bold);color:var(--tie-ink) !important}   /* 引分：濃橙文字 */
   .rlsc td.nm,.rlsc th.nm{width:72px}
   /* 1 on 1 大型UP表示（投影原則 §11.14 適用第1号・§13.3。中央寄せは §14.3・UP縮小/サマリは §15.3）。--f-rl-* の @media 再定義に自動追従。
