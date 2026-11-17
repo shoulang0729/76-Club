@@ -95,9 +95,9 @@ const ui=vm.runInContext(`
   state.players[0].name='佐藤 長い名前 Full Middle Family <img src=x onerror=alert(1)>';
   const hiddenHtml=renderTeamHonest(x);
   const settingsHtml=hjSettingsHtml(x);
-  const defaultClosed=hjView(x).columns.every(v=>!v);
+  const defaultClosed=JSON.stringify(hjView(x).columns)==='[false,false,false,true,true]';
   hjToggleColumn(0); const declaredOnly=renderTeamHonest(x);
-  hjToggleColumn(1);hjToggleColumn(2);hjToggleColumn(3);hjToggleColumn(4);
+  hjToggleColumn(1);hjToggleColumn(2);
   const openBeforeAnnounce=renderTeamHonest(x);
   const announceReady=hjCanAnnounce(x);
   x.announced.honestJohn=true;
@@ -107,6 +107,9 @@ const ui=vm.runInContext(`
   const grouped=table.includes('hj-team-head')&&table.indexOf('>A</th>')<table.indexOf('>B</th>');
   const noStatusColumn=!table.includes('hj.status')&&!table.includes('hj.missing');
   const operatorClosed=visibleHtml.includes('<details class="hj-operator mt10">');
+  const linkPosition=visibleHtml.indexOf('<button>announce</button>');
+  const linkPlacement=linkPosition>visibleHtml.indexOf('</table>')&&linkPosition<visibleHtml.indexOf('class="hj-roulette')&&
+    !visibleHtml.split('class="hj-operator')[1].includes('<button>announce</button>');
   delete x.scores.b;
   const pendingHtml=renderTeamHonest(x);
   x.scores.b=Array(18).fill(4); const dpBefore=JSON.stringify(x.hidden);
@@ -123,26 +126,64 @@ const ui=vm.runInContext(`
   hjStanding(x);hjSettingsHtml(x);const malformedUntouched=JSON.stringify(x.honestJohn)===malformedBefore;
   hjClearHidden();const cleared=hjHiddenShape(x)&&!hjHiddenValid(x);
   const pre=fixture();pre.honestJohn.hidden.fill(false);renderTeamHonest(pre);
-  hjToggleColumn(0);hjToggleColumn(1);hjToggleColumn(2);hjToggleColumn(3);hjToggleColumn(4);
-  const earlyOpen=JSON.stringify(hjView(pre).columns)==='[true,true,false,false,false]';
+  hjToggleColumn(0);hjToggleColumn(1);hjToggleColumn(2);
+  const earlyOpen=hjView(pre).columns.every(Boolean);
   const earlyHtml=renderTeamHonest(pre);
   ({hiddenHtml,settingsHtml,visibleHtml,pendingHtml,allDrawsValid,randomIndependent,excessSafe,
     blankMissing,zeroSaved,invalidRejected,malformedUntouched,cleared,defaultClosed,declaredOnly,
-    openBeforeAnnounce,announceReady,closedPenaltyHtml,grouped,noStatusColumn,operatorClosed,earlyOpen,earlyHtml});
+    openBeforeAnnounce,announceReady,closedPenaltyHtml,grouped,noStatusColumn,operatorClosed,earlyOpen,earlyHtml,linkPlacement});
 `,context);
-assert.ok(!ui.hiddenHtml.includes('<td>100</td>')&&!ui.hiddenHtml.includes('<td>91</td>'),'All columns start masked');
+assert.ok(!ui.hiddenHtml.includes('<td>100</td>')&&!ui.hiddenHtml.includes('<td>91</td>'),'Declared, raw and adjusted columns start masked');
+assert.ok(ui.hiddenHtml.includes('<td>30</td>'),'Difference and penalty columns start open');
 assert.ok(ui.declaredOnly.includes('<td>90</td>')&&!ui.declaredOnly.includes('<td>100</td>'),'Columns open independently');
-assert.ok(ui.openBeforeAnnounce.includes('<td>100</td>')&&!ui.openBeforeAnnounce.includes('tagwin'),'Columns can open before announcement without winner cues');
+assert.ok(ui.openBeforeAnnounce.includes('<td>100</td>')&&ui.openBeforeAnnounce.includes('tagwin'),'Comparable results show before formal announcement');
 assert.ok(ui.visibleHtml.includes('<td>100</td>')&&ui.visibleHtml.includes('<td>91</td>'),'Announced complete breakdown is visible');
 assert.ok(ui.visibleHtml.includes('tagwin')&&!ui.closedPenaltyHtml.includes('tagwin'),'Closing penalty column masks hero winner');
-assert.ok(!ui.pendingHtml.includes('<td>30</td>')&&!ui.pendingHtml.includes('tagwin'),'Incomplete event never reveals derived results');
+assert.ok(!ui.pendingHtml.includes('<td>30</td>')&&!ui.pendingHtml.includes('tagwin'),'Missing member has no invented penalty and blocks team winners');
 assert.ok(ui.hiddenHtml.includes('&lt;img')&&ui.settingsHtml.includes('&lt;img')&&!ui.visibleHtml.includes('<img'),'Names are escaped in every surface');
 assert.ok(ui.visibleHtml.includes('佐藤 長い名前 Full Middle Family &lt;img'),'Full names remain intact');
 assert.ok(ui.earlyHtml.includes('<td>100</td>')&&ui.earlyHtml.includes('<td>90</td>'),'Raw and declared columns work before drawing four holes');
 for(const key of ['allDrawsValid','randomIndependent','excessSafe','blankMissing','zeroSaved','invalidRejected','malformedUntouched','cleared',
-  'defaultClosed','announceReady','grouped','noStatusColumn','operatorClosed','earlyOpen'])assert.ok(ui[key],key);
+  'defaultClosed','announceReady','grouped','noStatusColumn','operatorClosed','earlyOpen','linkPlacement'])assert.ok(ui[key],key);
 assert.ok(writes.every(k=>k==='golfCompe_v1'),'Edits use only the existing data key');
 console.log('Honest John UI regression PASS: independent columns, hero gates, grouped full names and operator controls');
+
+const provisional=vm.runInContext(`(()=>{
+  const g=fixture();g.honestJohn.hidden.fill(false);g.announced.honestJohn=false;
+  renderTeamHonest(g);hjToggleColumn(2);
+  const values=[],totals=[],labels=[],pointsBlocked=[],candidateStable=[];
+  for(let count=0;count<=4;count++){
+    const player=hjDisplayPlayer(g,'a'), standing=hjDisplayStanding(g);
+    values.push([player.adjusted,player.difference,player.penalty]);totals.push(standing.rows.map(r=>r.total));
+    labels.push(renderTeamHonest(g).includes('hj.provisional')===(count<4));
+    pointsBlocked.push(teamWinPoints(g).wins.every(v=>v===0));
+    if(count<4){hjStartSpin();const before=JSON.stringify(hjDisplayStanding(g));__timerHistory.at(-1)();
+      candidateStable.push(before===JSON.stringify(hjDisplayStanding(g)));
+      hjSpin.candidate=count;hjCommitSpin(hjSpin.generation);}
+  }
+  const columnsPreserved=JSON.stringify(hjView(g).columns)==='[false,false,true,true,true]';
+  const finalReady=hjStanding(g).ready&&hjCanAnnounce(g);
+  g.announced.honestJohn=true;save();const published=teamWinPoints(g).wins;
+  hjToggleColumn(4);g.scores.a[4]++;save();
+  const closedStayedClosed=!hjView(g).columns[4]&&!g.announced.honestJohn;
+  const absent=fixture();absent.honestJohn.hidden.fill(false);delete absent.honestJohn.declarations.a;
+  const noDeclaration=hjDisplayPlayer(absent,'a');
+  const noDeclaredSafe=noDeclaration.adjusted===100&&noDeclaration.difference===null&&noDeclaration.penalty===null&&!hjDisplayStanding(absent).ready;
+  delete absent.scores.b;const noScores=hjDisplayPlayer(absent,'b');
+  const missingSafe=noScores.adjusted===null&&noScores.penalty===null&&hjDisplayStanding(absent).rows.length===2&&
+    hjDisplayStanding(absent).rows[0].members.length===2&&hjDisplayStanding(absent).rows[0].total===null;
+  absent.honestJohn.hidden.fill(true);const excess=hjDisplayPlayer(absent,'c');
+  const excessSafe=excess.adjusted===null&&excess.penalty===null&&!hjDisplayStanding(absent).ready;
+  absent.honestJohn.hidden=[true];const malformedSafe=hjDisplayPlayer(absent,'c').adjusted===null;
+  return {values,totals,labels,pointsBlocked,candidateStable,columnsPreserved,finalReady,published,closedStayedClosed,
+    noDeclaredSafe,missingSafe,excessSafe,malformedSafe};
+})()`,context);
+assert.deepEqual(JSON.parse(JSON.stringify(provisional.values)),[[100,10,100],[97,7,70],[95,5,50],[93,3,30],[91,1,10]]);
+assert.deepEqual(JSON.parse(JSON.stringify(provisional.totals)),[[180,230],[120,170],[80,130],[40,90],[40,50]]);
+assert.deepEqual(Array.from(provisional.published),[1,0],'Only four confirmed holes plus announcement publish points');
+for(const key of ['columnsPreserved','finalReady','closedStayedClosed','noDeclaredSafe','missingSafe','excessSafe','malformedSafe'])assert.ok(provisional[key],key);
+assert.ok(provisional.labels.every(Boolean)&&provisional.pointsBlocked.every(Boolean)&&provisional.candidateStable.every(Boolean));
+console.log('Honest John provisional regression PASS: confirmed 0–4 arithmetic, stable choices, missing data and formal publication gate');
 
 const draws=vm.runInContext(`(()=>{
   const x=fixture();x.honestJohn.hidden.fill(false);renderTeamHonest(x);
@@ -159,7 +200,7 @@ const draws=vm.runInContext(`(()=>{
   hjStartSpin();const finishedIdle=hjSpin===null;
   const independent=JSON.stringify(x.hidden)===dp;
   const old=JSON.parse(JSON.stringify(x));state.games=[old];state.currentGameId=old.id;
-  const reloadClosed=hjView(old).columns.every(v=>!v), oldFour=hjDrawOrder(old).length===4;
+  const reloadClosed=JSON.stringify(hjView(old).columns)==='[false,false,false,true,true]', oldFour=hjDrawOrder(old).length===4;
   hjStartSpin();const oldIdle=hjSpin===null;
   const partial=fixture();partial.honestJohn.hidden.fill(false);partial.honestJohn.hidden[8]=true;partial.honestJohn.hidden[13]=true;
   const loaded=JSON.parse(JSON.stringify(partial));state.games=[loaded];state.currentGameId=loaded.id;
@@ -192,18 +233,18 @@ const invalidation=vm.runInContext(`(()=>{
   const changes=[g=>{g.scores.a[0]++;},g=>{g.par[0]++;},g=>{g.honestJohn.declarations.a++;},
     g=>{g.honestJohn.hidden[0]=false;},g=>{g.participants.pop();},g=>{g.teams[0].memberIds.pop();}];
   const detected=changes.map(change=>{const g=fixture();hjBeforeSave(state);hjView(g).columns.fill(true);
-    change(g);save();return !g.announced.honestJohn&&JSON.stringify(hjView(g).columns)==='[true,true,false,false,false]';});
+    change(g);save();return !g.announced.honestJohn&&hjView(g).columns.every(Boolean);});
   const unchanged=fixture();hjBeforeSave(state);hjView(unchanged).columns.fill(true);
   unchanged.name='Renamed';unchanged.womenEvery.enabled=true;unchanged.hidden.fill(false);save();
   const irrelevantPreserved=unchanged.announced.honestJohn&&hjView(unchanged).columns.every(Boolean);
   const imported=JSON.parse(JSON.stringify(unchanged));state.games=[imported];state.currentGameId=imported.id;save();
-  const importedPreserved=imported.announced.honestJohn&&hjView(imported).columns.every(v=>!v);
+  const importedPreserved=imported.announced.honestJohn&&JSON.stringify(hjView(imported).columns)==='[false,false,false,true,true]';
   hjView(imported).columns.fill(true);imported.scores.a[1]++;save();
-  const firstImportedChange=!imported.announced.honestJohn&&!hjView(imported).columns[4];
+  const firstImportedChange=!imported.announced.honestJohn&&hjView(imported).columns.every(Boolean);
   const serial=JSON.stringify(imported);
   return {detected,irrelevantPreserved,importedPreserved,firstImportedChange,serial};
 })()`,context);
-assert.ok(invalidation.detected.every(Boolean),'Save hook cancels announcement and closes derived columns for every relevant edit');
+assert.ok(invalidation.detected.every(Boolean),'Save hook cancels announcement and preserves column choices for every relevant edit');
 assert.ok(invalidation.irrelevantPreserved&&invalidation.importedPreserved&&invalidation.firstImportedChange);
 assert.ok(!/columns|generation|candidate|hjViews|hjSignatures/.test(invalidation.serial),'Presentation state never enters saved data');
 console.log('Honest John invalidation regression PASS: all input edits, import baselines and data/display separation');

@@ -40,12 +40,42 @@ function hjStanding(g){
   return {rows,ready};
 }
 
-// These maps follow object identity: imported/reloaded games start with five closed columns.
+// Stage-only values replace confirmed holes; published scoring still uses the strict helpers above.
+function hjDisplayPlayer(g,pid){
+  const strict=hjPlayer(g,pid), shape=hjHiddenShape(g);
+  const count=shape?g.honestJohn.hidden.filter(Boolean).length:null;
+  const selectionValid=count!==null&&count<=4;
+  const parValid=selectionValid&&(count===0||(Array.isArray(g.par)&&g.par.length===18&&
+    g.honestJohn.hidden.every((v,i)=>!v||hjNumber(g.par[i]))));
+  const sc=(g.scores||{})[pid];
+  const value=strict.scoresValid&&parValid?sc.reduce((sum,v,i)=>sum+(g.honestJohn.hidden[i]?g.par[i]:v),0):null;
+  const adjusted=Number.isFinite(value)?value:null;
+  const difference=adjusted!==null&&strict.declared!==null?adjusted-strict.declared:null;
+  const cost=difference!==null?Math.max(difference,0)*10+Math.max(-difference,0)*30:null;
+  const penalty=Number.isFinite(cost)?cost:null, ready=penalty!==null;
+  return {...strict,raw:Number.isFinite(strict.raw)?strict.raw:null,adjusted,difference,penalty,
+    ready,valid:ready,pending:!ready,provisional:selectionValid&&count<4,count};
+}
+function hjDisplayStanding(g){
+  const rows=teamsOf(g).map(t=>{
+    const members=teamMembers(g,t).map(pid=>hjDisplayPlayer(g,pid));
+    const complete=members.every(p=>p.ready), sum=complete?members.reduce((sum,p)=>sum+p.penalty,0):null;
+    const total=Number.isFinite(sum)?sum:null;
+    return {t,members,ready:complete&&total!==null,total,rank:null};
+  });
+  const ready=rows.length>0&&rows.every(r=>r.ready);
+  if(ready){const ranked=rows.slice().sort((a,b)=>a.total-b.total);
+    ranked.forEach((r,i)=>{r.rank=i&&r.total===ranked[i-1].total?ranked[i-1].rank:i+1;});}
+  const count=hjHiddenShape(g)?g.honestJohn.hidden.filter(Boolean).length:null;
+  return {rows,ready,count,provisional:count!==null&&count<4};
+}
+
+// These maps follow object identity; imported/reloaded games use the column defaults.
 const hjViews=new WeakMap(), hjSignatures=new WeakMap();
 let hjSpin=null, hjSpinGeneration=0;
 function hjView(g){
   g=hjRawGame(g);
-  if(!hjViews.has(g))hjViews.set(g,{columns:[false,false,false,false,false],order:[]});
+  if(!hjViews.has(g))hjViews.set(g,{columns:[false,false,false,true,true],order:[]});
   if(!hjSignatures.has(g))hjSignatures.set(g,hjSignature(g,state));
   return hjViews.get(g);
 }
@@ -63,7 +93,6 @@ function hjSignature(g,s){
 }
 function hjInvalidate(g){
   (g.announced=g.announced||{}).honestJohn=false;
-  const view=hjViews.get(g); if(view)view.columns.fill(false,2);
 }
 function hjBeforeSave(s){
   if(hjSpin&&!(s.games||[]).includes(hjSpin.game))hjStopSpin();
@@ -79,8 +108,7 @@ function hjCanAnnounce(g){ g=hjRawGame(g); const st=hjStanding(g);
   return st.ready&&st.rows.length>=2&&hjView(g).columns[4]; }
 function hjToggleColumn(index){
   const g=curGame(); if(!g||!Number.isInteger(index)||index<0||index>4)return;
-  const st=hjStanding(g), view=hjView(g);
-  if(index>=2&&!(st.ready&&hjHiddenValid(g)))return;
+  const view=hjView(g);
   view.columns[index]=!view.columns[index]; renderResult();
 }
 function hjDrawOrder(g){
@@ -186,26 +214,26 @@ function hjStatus(p){
 }
 function renderTeamHonest(g){
   g=hjRawGame(g);
-  const st=hjStanding(g), view=hjView(g), ann=!!(g.announced||{}).honestJohn;
-  const eligible=st.ready&&st.rows.length>=2, visible=ann&&eligible&&view.columns[4];
-  const order=new Map(teamsOf(g).map((t,i)=>[t.id,i])); st.rows.sort((a,b)=>order.get(a.t.id)-order.get(b.t.id));
-  const ev=visible?teamWinPoints(g).events.find(e=>e.key==='honestJohn'):null;
+  const st=hjStanding(g), display=hjDisplayStanding(g), view=hjView(g), ann=!!(g.announced||{}).honestJohn;
+  const eligible=st.ready&&st.rows.length>=2, visible=display.ready&&display.rows.length>=2&&view.columns[4];
+  const ev=visible&&ann&&eligible?teamWinPoints(g).events.find(e=>e.key==='honestJohn'):null;
   const mask='<span class="mask">—</span>';
-  const hero=st.rows.map(r=>{
+  const hero=display.rows.map(r=>{
     const winner=visible&&r.rank===1;
-    const tied=st.rows.filter(x=>x.rank===1).length>1;
+    const tied=display.rows.filter(x=>x.rank===1).length>1;
     const tag=winner?`<span class="tag ${tied?'tagtie':'tagwin'}">${tied?t('custom.tie'):t('custom.win')}</span>`:'';
     const share=winner&&ev?`<span class="tag">${t('team.winpt')} +${tpShare(ev.w,ev.winners.length)}</span>`:'';
     return `<span class="rl-st tp-nd tp-ovh"><span class="rl-st-team" style="color:${tmColor(r.t.name)}">${esc(r.t.name)}</span>
       <span class="rl-st-h">${visible?r.total:mask}</span>
+      ${display.provisional?`<span class="tp-nd-sub">${t('hj.provisional')}</span>`:''}
       ${visible?`<span class="tp-nd-tagrow">${posBadge(r.rank,winner)}${tag}${share}</span>`:''}</span>`;
   }).join('');
   const columns=['hj.declared','hj.raw','hj.adjusted','hj.difference','hj.penalty'];
-  const heads=columns.map((key,i)=>`<th scope="col">${t(key)}<button class="btn sec sm hj-column-open" aria-pressed="${view.columns[i]}" onclick="hjToggleColumn(${i})" ${i>=2&&!st.ready?'disabled':''}>${view.columns[i]?t('hj.closeColumn'):t('hj.openColumn')}</button></th>`).join('');
-  const rows=st.rows.map(r=>`<tr class="hj-team-head"><th colspan="6" scope="rowgroup" style="color:var(--tm-${tmKey(r.t)});background:var(--tm-${tmKey(r.t)}-bg)">${esc(r.t.name)}</th></tr>`+r.members.map(p=>{
+  const heads=columns.map((key,i)=>`<th scope="col">${t(key)}${i>=2&&display.provisional?`<small> ${t('hj.provisional')}</small>`:''}<button class="btn sec sm hj-column-open" aria-pressed="${view.columns[i]}" onclick="hjToggleColumn(${i})">${view.columns[i]?t('hj.closeColumn'):t('hj.openColumn')}</button></th>`).join('');
+  const rows=display.rows.map(r=>`<tr class="hj-team-head"><th colspan="6" scope="rowgroup" style="color:var(--tm-${tmKey(r.t)});background:var(--tm-${tmKey(r.t)}-bg)">${esc(r.t.name)}</th></tr>`+r.members.map(p=>{
     const person=state.players.find(x=>x.id===p.pid);
     const nums=[p.declared,p.raw,p.adjusted,p.difference,p.penalty];
-    return `<tr><th class="hj-name" scope="row">${esc(person.name)}</th>${nums.map((v,i)=>`<td>${view.columns[i]&&(i<2||st.ready)?(v===null?'—':v):mask}</td>`).join('')}</tr>`;
+    return `<tr><th class="hj-name" scope="row">${esc(person.name)}</th>${nums.map((v,i)=>`<td>${view.columns[i]?(v===null?'—':v):mask}</td>`).join('')}</tr>`;
   }).join('')).join('');
   const selected=hjDrawOrder(g), spinning=hjSpin&&hjSpin.game===g;
   const slots=Array.from({length:4},(_,i)=>`<div class="hj-slot"><small>${t('hj.drawNumber',{n:i+1})}</small><strong${spinning&&i===selected.length?' id="hj-candidate"':''}>${i<selected.length?(selected[i]+1)+'H':spinning&&i===selected.length?(hjSpin.candidate+1)+'H':'—'}</strong></div>`).join('');
@@ -216,11 +244,12 @@ function renderTeamHonest(g){
   const statuses=st.rows.flatMap(r=>r.members.map(p=>`<li>${esc(state.players.find(x=>x.id===p.pid).name)}: ${hjStatus(p)}</li>`)).join('');
   return `<div class="card">${hero?`<div class="rl-standing tp-ovh-wrap">${hero}</div>`:''}
     <div class="scroll mt10"><table class="hj-table sc2"><thead><tr><th scope="col" class="hj-name">${t('col.player')}</th>${heads}</tr></thead><tbody>${rows}</tbody></table></div>
+    <div class="cardtools mt8" style="justify-content:flex-end">${controls}</div>
     <div class="hj-roulette mt10"><div class="row between"><b>${t('hj.drawTitle')}</b><span class="muted">${t('hj.selected',{n:selected.length})}</span></div>
       <div class="hj-slots">${slots}</div><div class="hj-draw-label">${spinButton}<span>${selected.length===4?t('hj.drawComplete'):t('hj.drawGuide')}</span></div></div>
     <details class="hj-operator mt10"><summary>${t('hj.operator')}</summary><div class="in"><b>${t('hj.status')}</b>
       ${note?`<div class="muted mt8">${note}</div>`:''}<ul>${statuses}</ul>
-      <div class="cardtools"><button class="btn gray sm" onclick="hjResetDraw()">${t('hj.resetDraw')}</button>${controls}</div></div></details>
+      <div class="cardtools"><button class="btn gray sm" onclick="hjResetDraw()">${t('hj.resetDraw')}</button></div></div></details>
     <details class="mt10"><summary>${t('rule.summary')}</summary><div class="in">${t('hj.rule')}</div></details></div>`;
 }
 if(typeof state!=='undefined')hjBeforeSave(state);
