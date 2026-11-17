@@ -3,9 +3,15 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import vm from 'node:vm';
 
-const memory=new Map(), writes=[];
+const memory=new Map(), writes=[], timers=new Map(), timerHistory=[];
+let timerId=0;
+const candidateNode={textContent:''};
+const spinNode={textContent:'',disabled:false,onclickText:'',setAttribute(k,v){if(k==='onclick')this.onclickText=v;}};
 const sandbox={console,Math,JSON,localStorage:{getItem:k=>memory.get(k)??null,setItem:(k,v)=>{writes.push(k);memory.set(k,v);}},
-  window:{matchMedia:()=>({matches:false,addEventListener(){}}),addEventListener(){}}};
+  window:{matchMedia:()=>({matches:false,addEventListener(){}}),addEventListener(){}},
+  document:{hidden:false,addEventListener(){},getElementById:()=>candidateNode,querySelector:()=>spinNode},
+  setTimeout:callback=>{const id=++timerId;timers.set(id,callback);timerHistory.push(callback);return id;},
+  clearTimeout:id=>timers.delete(id),__timers:timers,__timerHistory:timerHistory};
 const context=vm.createContext(sandbox);
 for(const name of ['state','nav','score','calc','honest-john'])vm.runInContext(fs.readFileSync(`js/${name}.js`,'utf8'),context);
 const result=vm.runInContext(`
@@ -82,13 +88,25 @@ const ui=vm.runInContext(`
   globalThis.gsSec=(key,title,html)=>html;
   globalThis.tpAnnounceUI=()=>'<button>announce</button>';
   globalThis.tpShare=(w,n)=>String(w/n);
-  globalThis.render=()=>{};globalThis.renderBasic=()=>{};globalThis.toast=()=>{};
+  globalThis.__renders=0;
+  globalThis.render=()=>{__renders++;};globalThis.renderResult=()=>{__renders++;};
+  globalThis.renderBasic=()=>{};globalThis.toast=()=>{};
   const x=fixture(); x.announced.honestJohn=false;
-  state.players[0].name='<img src=x onerror=alert(1)>';
+  state.players[0].name='佐藤 長い名前 Full Middle Family <img src=x onerror=alert(1)>';
   const hiddenHtml=renderTeamHonest(x);
   const settingsHtml=hjSettingsHtml(x);
+  const defaultClosed=hjView(x).columns.every(v=>!v);
+  hjToggleColumn(0); const declaredOnly=renderTeamHonest(x);
+  hjToggleColumn(1);hjToggleColumn(2);hjToggleColumn(3);hjToggleColumn(4);
+  const openBeforeAnnounce=renderTeamHonest(x);
+  const announceReady=hjCanAnnounce(x);
   x.announced.honestJohn=true;
   const visibleHtml=renderTeamHonest(x);
+  hjToggleColumn(4);const closedPenaltyHtml=renderTeamHonest(x);hjToggleColumn(4);
+  const table=visibleHtml.split('<table')[1].split('</table>')[0];
+  const grouped=table.includes('hj-team-head')&&table.indexOf('>A</th>')<table.indexOf('>B</th>');
+  const noStatusColumn=!table.includes('hj.status')&&!table.includes('hj.missing');
+  const operatorClosed=visibleHtml.includes('<details class="hj-operator mt10">');
   delete x.scores.b;
   const pendingHtml=renderTeamHonest(x);
   x.scores.b=Array(18).fill(4); const dpBefore=JSON.stringify(x.hidden);
@@ -104,16 +122,97 @@ const ui=vm.runInContext(`
   x.honestJohn.hidden=[true];const malformedBefore=JSON.stringify(x.honestJohn);
   hjStanding(x);hjSettingsHtml(x);const malformedUntouched=JSON.stringify(x.honestJohn)===malformedBefore;
   hjClearHidden();const cleared=hjHiddenShape(x)&&!hjHiddenValid(x);
+  const pre=fixture();pre.honestJohn.hidden.fill(false);renderTeamHonest(pre);
+  hjToggleColumn(0);hjToggleColumn(1);hjToggleColumn(2);hjToggleColumn(3);hjToggleColumn(4);
+  const earlyOpen=JSON.stringify(hjView(pre).columns)==='[true,true,false,false,false]';
+  const earlyHtml=renderTeamHonest(pre);
   ({hiddenHtml,settingsHtml,visibleHtml,pendingHtml,allDrawsValid,randomIndependent,excessSafe,
-    blankMissing,zeroSaved,invalidRejected,malformedUntouched,cleared});
+    blankMissing,zeroSaved,invalidRejected,malformedUntouched,cleared,defaultClosed,declaredOnly,
+    openBeforeAnnounce,announceReady,closedPenaltyHtml,grouped,noStatusColumn,operatorClosed,earlyOpen,earlyHtml});
 `,context);
-assert.ok(!ui.hiddenHtml.includes('<td>100</td>')&&!ui.hiddenHtml.includes('<td>91</td>'),'Unannounced breakdown is masked');
+assert.ok(!ui.hiddenHtml.includes('<td>100</td>')&&!ui.hiddenHtml.includes('<td>91</td>'),'All columns start masked');
+assert.ok(ui.declaredOnly.includes('<td>90</td>')&&!ui.declaredOnly.includes('<td>100</td>'),'Columns open independently');
+assert.ok(ui.openBeforeAnnounce.includes('<td>100</td>')&&!ui.openBeforeAnnounce.includes('tagwin'),'Columns can open before announcement without winner cues');
 assert.ok(ui.visibleHtml.includes('<td>100</td>')&&ui.visibleHtml.includes('<td>91</td>'),'Announced complete breakdown is visible');
-assert.ok(!ui.pendingHtml.includes('<td>100</td>')&&!ui.pendingHtml.includes('tagwin'),'Stale announcement never reveals incomplete event results');
+assert.ok(ui.visibleHtml.includes('tagwin')&&!ui.closedPenaltyHtml.includes('tagwin'),'Closing penalty column masks hero winner');
+assert.ok(!ui.pendingHtml.includes('<td>30</td>')&&!ui.pendingHtml.includes('tagwin'),'Incomplete event never reveals derived results');
 assert.ok(ui.hiddenHtml.includes('&lt;img')&&ui.settingsHtml.includes('&lt;img')&&!ui.visibleHtml.includes('<img'),'Names are escaped in every surface');
-for(const key of ['allDrawsValid','randomIndependent','excessSafe','blankMissing','zeroSaved','invalidRejected','malformedUntouched','cleared'])assert.ok(ui[key],key);
+assert.ok(ui.visibleHtml.includes('佐藤 長い名前 Full Middle Family &lt;img'),'Full names remain intact');
+assert.ok(ui.earlyHtml.includes('<td>100</td>')&&ui.earlyHtml.includes('<td>90</td>'),'Raw and declared columns work before drawing four holes');
+for(const key of ['allDrawsValid','randomIndependent','excessSafe','blankMissing','zeroSaved','invalidRejected','malformedUntouched','cleared',
+  'defaultClosed','announceReady','grouped','noStatusColumn','operatorClosed','earlyOpen'])assert.ok(ui[key],key);
 assert.ok(writes.every(k=>k==='golfCompe_v1'),'Edits use only the existing data key');
-console.log('Honest John UI regression PASS: masks, escaped names, four-hole controls and declaration edits');
+console.log('Honest John UI regression PASS: independent columns, hero gates, grouped full names and operator controls');
+
+const draws=vm.runInContext(`(()=>{
+  const x=fixture();x.honestJohn.hidden.fill(false);renderTeamHonest(x);
+  const dp=JSON.stringify(x.hidden), counts=[],unique=[];
+  for(let i=0;i<4;i++){
+    hjStartSpin();const generation=hjSpin.generation, candidate=hjSpin.candidate;
+    const callback=__timerHistory.at(-1), before=__renders;
+    callback();const onlyCandidateUpdated=before===__renders;
+    const stopped=hjSpin.candidate;hjCommitSpin(generation);hjCommitSpin(generation);
+    counts.push(x.honestJohn.hidden.filter(Boolean).length);
+    unique.push(onlyCandidateUpdated&&x.honestJohn.hidden[stopped]&&hjSpin===null);
+  }
+  const exactFour=hjHiddenValid(x)&&new Set(hjDrawOrder(x)).size===4;
+  hjStartSpin();const finishedIdle=hjSpin===null;
+  const independent=JSON.stringify(x.hidden)===dp;
+  const old=JSON.parse(JSON.stringify(x));state.games=[old];state.currentGameId=old.id;
+  const reloadClosed=hjView(old).columns.every(v=>!v), oldFour=hjDrawOrder(old).length===4;
+  hjStartSpin();const oldIdle=hjSpin===null;
+  const partial=fixture();partial.honestJohn.hidden.fill(false);partial.honestJohn.hidden[8]=true;partial.honestJohn.hidden[13]=true;
+  const loaded=JSON.parse(JSON.stringify(partial));state.games=[loaded];state.currentGameId=loaded.id;
+  hjStartSpin();const resumedCandidate=!loaded.honestJohn.hidden[hjSpin.candidate];
+  hjCommitSpin(hjSpin.generation);const resumedCount=loaded.honestJohn.hidden.filter(Boolean).length;
+  hjStartSpin();const stale=__timerHistory.at(-1), generation=hjSpin.generation;
+  const other=fixture();const before=JSON.stringify(other.honestJohn.hidden);
+  hjStopSpin();hjStopSpin();stale();hjCommitSpin(generation);
+  const noCrossWrite=JSON.stringify(other.honestJohn.hidden)===before&&loaded.honestJohn.hidden.filter(Boolean).length===3&&hjSpin===null;
+  hjClearHidden();hjStartSpin();const hiddenCallback=__timerHistory.at(-1), hiddenGeneration=hjSpin.generation;
+  document.hidden=true;hiddenCallback();hjCommitSpin(hiddenGeneration);document.hidden=false;
+  const backgroundSafe=other.honestJohn.hidden.filter(Boolean).length===0&&hjSpin===null;
+  const resumeButton=document.querySelector('.hj-spin-button').onclickText==='hjStartSpin()';
+  hjStartSpin();const oldCallback=__timerHistory.at(-1), oldGeneration=hjSpin.generation;
+  hjStopSpin();hjStartSpin();const currentGeneration=hjSpin.generation;
+  oldCallback();hjCommitSpin(oldGeneration);
+  const newerSpinSafe=hjSpin&&hjSpin.generation===currentGeneration&&other.honestJohn.hidden.filter(Boolean).length===0;
+  hjStopSpin();
+  hjStartSpin();const removedCallback=__timerHistory.at(-1);state.games=[];hjBeforeSave(state);removedCallback();
+  const deletedSafe=hjSpin===null;
+  return {counts,unique,exactFour,finishedIdle,independent,reloadClosed,oldFour,oldIdle,resumedCandidate,resumedCount,noCrossWrite,backgroundSafe,resumeButton,newerSpinSafe,deletedSafe};
+})()`,context);
+assert.deepEqual(Array.from(draws.counts),[1,2,3,4],'Each STOP commits exactly one hole, even on double click');
+assert.equal(draws.resumedCount,3,'Reloaded partial draw continues from the remaining holes');
+for(const key of ['exactFour','finishedIdle','independent','reloadClosed','oldFour','oldIdle','resumedCandidate','noCrossWrite','backgroundSafe','resumeButton','newerSpinSafe','deletedSafe'])assert.ok(draws[key],key);
+assert.ok(draws.unique.every(Boolean),'Each draw excludes selected holes and ticks avoid full rerenders');
+console.log('Honest John roulette regression PASS: four unique stops, old/partial reload, stale callbacks and context cancellation');
+
+const invalidation=vm.runInContext(`(()=>{
+  const changes=[g=>{g.scores.a[0]++;},g=>{g.par[0]++;},g=>{g.honestJohn.declarations.a++;},
+    g=>{g.honestJohn.hidden[0]=false;},g=>{g.participants.pop();},g=>{g.teams[0].memberIds.pop();}];
+  const detected=changes.map(change=>{const g=fixture();hjBeforeSave(state);hjView(g).columns.fill(true);
+    change(g);save();return !g.announced.honestJohn&&JSON.stringify(hjView(g).columns)==='[true,true,false,false,false]';});
+  const unchanged=fixture();hjBeforeSave(state);hjView(unchanged).columns.fill(true);
+  unchanged.name='Renamed';unchanged.womenEvery.enabled=true;unchanged.hidden.fill(false);save();
+  const irrelevantPreserved=unchanged.announced.honestJohn&&hjView(unchanged).columns.every(Boolean);
+  const imported=JSON.parse(JSON.stringify(unchanged));state.games=[imported];state.currentGameId=imported.id;save();
+  const importedPreserved=imported.announced.honestJohn&&hjView(imported).columns.every(v=>!v);
+  hjView(imported).columns.fill(true);imported.scores.a[1]++;save();
+  const firstImportedChange=!imported.announced.honestJohn&&!hjView(imported).columns[4];
+  const serial=JSON.stringify(imported);
+  return {detected,irrelevantPreserved,importedPreserved,firstImportedChange,serial};
+})()`,context);
+assert.ok(invalidation.detected.every(Boolean),'Save hook cancels announcement and closes derived columns for every relevant edit');
+assert.ok(invalidation.irrelevantPreserved&&invalidation.importedPreserved&&invalidation.firstImportedChange);
+assert.ok(!/columns|generation|candidate|hjViews|hjSignatures/.test(invalidation.serial),'Presentation state never enters saved data');
+console.log('Honest John invalidation regression PASS: all input edits, import baselines and data/display separation');
+
+const initialState=vm.runInContext('fixture(); JSON.stringify(state)',context);
+const initialContext=vm.createContext({...sandbox,localStorage:{getItem:k=>k==='golfCompe_v1'?initialState:null,setItem(){}}});
+for(const name of ['state','nav','calc','honest-john'])vm.runInContext(fs.readFileSync(`js/${name}.js`,'utf8'),initialContext);
+assert.equal(vm.runInContext(`curGame().scores.a[0]++;save();curGame().announced.honestJohn`,initialContext),false,
+  'Module initialization tracks existing games before their first edit or render');
 
 // HJ announcement is independent of other events' hole reveal controls.
 vm.runInContext(fs.readFileSync('js/results.js','utf8'),context);

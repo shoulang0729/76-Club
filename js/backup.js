@@ -3,7 +3,7 @@ function exportData(){ const blob=new Blob([JSON.stringify(state,null,2)],{type:
   const a=document.createElement('a'); a.href=URL.createObjectURL(blob);
   a.download='76club-backup.json'; a.click(); toast(t('toast.exported')); }
 function importData(inp){ const f=inp.files[0]; if(!f)return; const r=new FileReader();
-  r.onload=()=>{ try{ const s=JSON.parse(r.result); if(!s.players)throw 0; migrate(s); state=s; save(); render(); toast(t('toast.imported')); }
+  r.onload=()=>{ try{ const s=JSON.parse(r.result); if(!s.players)throw 0; migrate(s); if(typeof hjStopSpin==='function')hjStopSpin(); state=s; save(); render(); toast(t('toast.imported')); }
     catch(e){ toast(t('toast.badFile')); } }; r.readAsText(f); }
 /* #166③: バックアップUI（旧「選手・チーム」タブ末尾のカード）を「コンペ設定」タブへ移設。
    保存されるのは state 丸ごと（選手マスタ＋全コンペ＋スコア）＝特定コンペの設定ではないので、

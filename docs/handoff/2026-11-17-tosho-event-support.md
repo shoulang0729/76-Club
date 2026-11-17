@@ -107,8 +107,6 @@ g.points.teamEventPts.honestJohn = 1;
 - 保存するのは announced。発表取消で総合算入・公開結果を戻せる。宣言・隠しホール編集時は発表を取り消す。
 - 出力モデルに独立した種目明細を追加し、未発表・不足時に未マスク結果を出さない。形式OFFなら既存出力と同じ。
 
-## 5. 実装範囲と翻訳
-
 ### 4.3 承認済みの列開示・4穴ルーレット（2026-11-17追補・4.2の一括開示を置換）
 
 - モック `/workspace/output/honest-john-ui-mock.png` を提示し、ユーザー回答「名前はフルネームでよろしく」を反映。表は全員のフルネームを省略せず、チーム登録順・メンバー登録順で表示する。
@@ -122,6 +120,8 @@ g.points.teamEventPts.honestJohn = 1;
 - スコア・par・申告・hidden・参加者/所属の変更は、発表取消と計算結果3列の再マスクを行う。ゲームの保存前フック `hjBeforeSave(state)` が揮発スナップショットで変化を検出する。importの新オブジェクトは基準を初期化し、保存済み発表フラグを不必要に消さない。
 - `hjCanAnnounce(g)` を共通判定、`hjStopSpin()` を中断フックとする。表示テーマ・3言語・既存計算は維持する。
 - 追加検証：5列独立開示、開示前の順位漏れなし、4回STOPの一意性・再開・旧4穴互換、連打/画面切替停止、入力変更の発表取消、長いフルネームの狭幅、帳票の既存ゲートを確認する。
+
+## 5. 実装範囲と翻訳
 
 - データ・計算：`js/state.js`、`js/calc.js`、通常scriptの新規 `js/honest-john.js`。入出力：`js/backup.js`、`js/sheet-model.js`、監査を持つ箇所。
 - 編集：`js/game.js`、`js/players.js`。表示：`js/results.js`、`js/results-team.js`、`js/results-m1.js`、必要なら home/nav。

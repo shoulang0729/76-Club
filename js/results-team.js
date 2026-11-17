@@ -41,7 +41,7 @@ function renderTeamGame(g, g0, parts, key){
    ボタンは常時活性・不成立種目の連携フラグは休眠（算入は 成立∧on の AND・D9）。取り消しは可逆・confirm なし（D8）。
    配置は各カード内の右寄せ（§11.2）＝flex 親の中で margin-left:auto。flush=true は右寄せ済み要素の直後に置く場合（ルーレット head） */
 function tpAnnounce(key,on){ const g=curGame(); if(!g)return;
-  if(key==='honestJohn' && on){ const s=hjStanding(g); if(!s.ready||s.rows.length<2)return; }
+  if(key==='honestJohn' && on && !hjCanAnnounce(g))return;
   (g.announced=g.announced||{})[key]=!!on; save(); renderResult(); }
 function tpAnnounceUI(g,key,flush){ const on=!!(g.announced||{})[key];
   const inner = on

@@ -226,7 +226,8 @@ function auditDel(key){
   save(); auditRefresh(); toast(t('audit.deleted'));
 }
 function createGame(){ const g=newGame(); state.games.push(g); state.currentGameId=g.id; save(); render(); toast(t('toast.gameCreated')); }
-function selectGame(id){ state.currentGameId=id||null; save(); render(); }
+function selectGame(id){ if(typeof hjStopSpin==='function')hjStopSpin(); state.currentGameId=id||null; save(); render(); }
 function deleteGame(){ if(!confirm(t('confirm.deleteGame')))return;
+  if(typeof hjStopSpin==='function')hjStopSpin();
   state.games=state.games.filter(x=>x.id!==state.currentGameId); state.currentGameId=state.games[0]?.id||null; save(); render(); }
 function dupGame(){ const g=JSON.parse(JSON.stringify(curGame())); g.id=uid(); g.name=g.name+' (複製)'; state.games.push(g); state.currentGameId=g.id; save(); render(); }
