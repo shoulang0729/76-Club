@@ -22,7 +22,7 @@ function gameSettingsHtml(g){
     ${fchk('niadoraTeam',t('fmt.niadoraTeam'))}${fchk('teamGross',t('fmt.teamGross'))}${fchk('teamNet',t('fmt.teamNet'))}
     ${fchk('univMatch',t('fmt.univMatch'))}${bchk('holeByHole',t('fmt.hbh'))}${fchk('best2ball',t('fmt.best2'))}
     ${bchk('vegas',t('fmt.vegas'))}${fchk('match1v1',t('fmt.match1v1'))}
-    ${fchk('roulette',t('fmt.roulette'))}${fchk('customMatch',t('fmt.customMatch'))}
+    ${fchk('honestJohn',t('fmt.honestJohn'))}${fchk('roulette',t('fmt.roulette'))}${fchk('customMatch',t('fmt.customMatch'))}
   </div></div>`;
 
   // S4 ルーレット設定はルーレット対抗ON時のみ表示（winpoints-reveal §5.3。setFmt→renderBasic 再描画で出没）
@@ -49,10 +49,13 @@ function gameSettingsHtml(g){
   // 設定はエブリ適用オプションの1項目のみ＝上限36/40・係数0.8・Wパーカットは規定固定値でUI化しない）
   if(F.univMatch){
     html += gsSec('univ', t('fmt.univMatch'),
-    `<label style="display:flex;gap:8px;align-items:center;font-size:13px"><input type="checkbox" ${g.univ.every?'checked':''} onchange="setUniv('every',this.checked)"> ${t('univ.everyTgl')}</label>
+    `<label class="fl">${t('univ.capLabel')}</label>
+    <select onchange="setUniv('capMode',this.value)"><option value="standard" ${uvCapMode(g)==='standard'?'selected':''}>${t('univ.capStandard')}</option><option value="common36" ${uvCapMode(g)==='common36'?'selected':''}>${t('univ.capCommon')}</option></select>
+    <label class="mt8" style="display:flex;gap:8px;align-items:center;font-size:13px"><input type="checkbox" ${g.univ.every?'checked':''} onchange="setUniv('every',this.checked)"> ${t('univ.everyTgl')}</label>
     <div class="muted mt6">${t('univ.everyNote')}</div>
-    <div class="muted">${t('univ.calcNote')}</div>`);
+    <div class="muted">${t('univ.calcNote',{cap:uvCapLabel(g)})}</div>`);
   }
+  if(F.honestJohn) html += hjSettingsHtml(g);
 
   // S7 ダブルペリア設定
   html += gsSec('peria', t('game.periaCard'), `
@@ -120,4 +123,9 @@ function setPoints(k,v){ curGame().points[k]=v.split(',').map(x=>parseInt(x.trim
 function setPointsNum(k,v){ curGame().points[k]=parseInt(v)||0; save(); }
 function setRoulette(k,v){ curGame().roulette[k]=Math.max(0,parseInt(v)||0); save(); }
 function setVegas(k,v){ curGame().vegas[k]=v; save(); }
-function setUniv(k,v){ curGame().univ[k]=!!v; save(); renderBasic(); }   // 大学対抗設定（univ-match §6.3・setVegas と同型）
+function setUniv(k,v){ const g=curGame(); if(!g)return;
+  if(k==='capMode'){ if(v!=='standard'&&v!=='common36')return; g.univ.capMode=v; }
+  else if(k==='every')g.univ.every=!!v;
+  else return;
+  save(); renderBasic(); }
+function uvCapLabel(g){ return uvCapMode(g)==='common36'?t('univ.capCommon'):t('univ.capStandard'); }

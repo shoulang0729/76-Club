@@ -43,8 +43,8 @@ function togglePzSet(s){ const g=curGame(); if(!g||prizeSetCount(g)<s) return;  
   const F=pzFlags(g,s); if(!F.length) return;
   const toOpen=F.some(([h,ss])=>pzMasked(h,ss));                  // 1本でも伏せ → 全開ける
   F.forEach(([h,ss])=>pzSetMasked(h,ss,!toOpen)); renderResult(); }
-function setResGrp(grp){ if(!(grp==='team'&&resGame.team==='roulette')) rlStopTimer(); if(!(grp==='team'&&resGame.team==='m1')) m1AutoStop(); resGrp=grp; renderResult(); }
-function setResGame(k){ if(k!=='roulette') rlStopTimer(); if(k!=='m1') m1AutoStop();
+function setResGrp(grp){ if(typeof hjStopSpin==='function')hjStopSpin(); if(!(grp==='team'&&resGame.team==='roulette')) rlStopTimer(); if(!(grp==='team'&&resGame.team==='m1')) m1AutoStop(); resGrp=grp; renderResult(); }
+function setResGame(k){ if(typeof hjStopSpin==='function')hjStopSpin(); if(k!=='roulette') rlStopTimer(); if(k!=='m1') m1AutoStop();
   resGame[resGrp]=k;
   if(resGrp==='ind' && (k==='gross'||k==='net')) scSortInd=k;                       // §3 D8: スコア表の並べ替え自動追従
   if(resGrp==='team'&& (k==='gross'||k==='net'||k==='hbh')) scSortTeam=k;           // §3 D8
@@ -77,6 +77,7 @@ function resGameTabs(grp,g){ const F=chFormats(g); const T=[];
     if(F.best2ball)  T.push(['b2',    t('term.best2')]);
     if(F.vegas)      T.push(['vegas', t('term.vegas')]);
     if(F.match1v1)   T.push(['m1',    t('result.sub.match1v1')]);
+    if(F.honestJohn) T.push(['honestJohn', t('term.honestJohn')]);
     if(F.roulette) T.push(['roulette', t('result.sub.roulette')]);   // ルーレット対抗トグル連動（winpoints-reveal 要件D。OFF時はタブ消失→tabs[0]フォールバック）
     if(F.customMatch) T.push(['custom', tpEvLabel(g,'customMatch')]);   // 任意対決（§11.21・custom-match §6.1。ラベルはユーザー入力の種目名・空なら term.custom）
   }
@@ -87,7 +88,9 @@ function viewGameN(g,n){
   if(n>=18) return g;
   const scores={};
   g.participants.forEach(pid=>{ const a=g.scores[pid]||[]; scores[pid]=a.map((v,i)=> i<n? v : null); });
-  return Object.assign({}, g, {scores});
+  const view=Object.assign({}, g, {scores});
+  if(typeof hjViewSources!=='undefined') hjViewSources.set(view,hjRawGame(g));
+  return view;
 }
 // 開封済みホール(revealHoles)までのスコアだけ集計に使うビュー用ゲーム（既存呼び出しは挙動不変）
 function viewGame(g){ return viewGameN(g,revealHoles); }
@@ -124,7 +127,7 @@ function renderResult(){
   const on=el.querySelector('.subtab-games .on'); if(on) on.scrollIntoView({inline:'center',block:'nearest'});
 }
 // 当該ゲーム1件のルール解説（D12: 全ルール一括 details を廃止し、各タブ末尾に1行だけ）
-function ruleBox(key){ return `<details class="mt10"><summary>${t('rule.summary')}</summary><div class="in"><div class="rule">${t(key)}</div></div></details>`; }
+function ruleBox(key,params){ return `<details class="mt10"><summary>${t('rule.summary')}</summary><div class="in"><div class="rule">${t(key,params)}</div></div></details>`; }
 
 // 配分タブ
 /* #87 指示⑦→2026-08-30 指示③: チーム設定のあるゲームでは (a)選手名の左に「チーム」列（チームカラーでチーム名・未所属は空。

@@ -12,12 +12,13 @@ function renderTeamGame(g, g0, parts, key){
      （総合タブに開封バーは無く復旧不能）だった。勝ち点・種目別勝ち点表は announced（連携）ゲートで既に守られている
      ＝未連携行は？マスクのままなのでネタバレなし。他タブ（gross/net/hbh 等）の viewGame マスクは意図どおり不変 */
   if(key==='overall') return renderTeamOverall(g0);
+  if(key==='honestJohn') return renderTeamHonest(g0);
   /* 大学対抗は g（viewGame マスク後）＋スコア表併設（univ-match §14.1・PR#3 でユーザー確定）:
      g0 にしていた唯一の根拠は「開封バーが無く revealHoles=0 の空から復旧できない」ことだったが、
      本PRで sc()（開封バー・合計値トグル）を併設したため復旧経路ができ、'net'/'hbh' と同型に戻した。
      結果、ヒーロー・タイブレーク表が開封済みホールまでで再計算される＝段階開封（§14.2）。
      スコア表には足切り情報（uvScSel）を渡す＝対象外はグレーアウト・対象者は「対象」併記（PR#3 指示⑤。他タブは引数なし＝不変）*/
-  if(key==='univ')  return renderTeamUniv(g) + renderScorecard(g, g.participants, teams, uvScSel(g)) + ruleBox('rule.univ');   // ルール解説は最下部（2026-08-30 指示）
+  if(key==='univ')  return renderTeamUniv(g) + renderScorecard(g, g.participants, teams, uvScSel(g)) + ruleBox('rule.univ',{cap:uvCapLabel(g)});
   if(key==='nd')    return renderTeamNiadora(g);
   if(key==='gross') return `<div class="rank-wrap">${renderTeams(g,'teamGross')}</div>` + sc();
   if(key==='net')   return `<div class="rank-wrap">${renderTeams(g,'teamNet')}</div>` + sc();
@@ -40,6 +41,7 @@ function renderTeamGame(g, g0, parts, key){
    ボタンは常時活性・不成立種目の連携フラグは休眠（算入は 成立∧on の AND・D9）。取り消しは可逆・confirm なし（D8）。
    配置は各カード内の右寄せ（§11.2）＝flex 親の中で margin-left:auto。flush=true は右寄せ済み要素の直後に置く場合（ルーレット head） */
 function tpAnnounce(key,on){ const g=curGame(); if(!g)return;
+  if(key==='honestJohn' && on && !hjCanAnnounce(g))return;
   (g.announced=g.announced||{})[key]=!!on; save(); renderResult(); }
 function tpAnnounceUI(g,key,flush){ const on=!!(g.announced||{})[key];
   const inner = on
@@ -74,14 +76,14 @@ function setTeamEventPts(key,v){ const g=curGame(); if(!g)return;
 let tpEvPtsOpen=false;
 function tpEvPtsToggle(open){ tpEvPtsOpen=open; }
 const TP_EV_LABEL={teamGross:'term.teamGross',teamNet:'term.teamNet',univMatch:'term.univ',holeByHole:'term.hbh',best2ball:'term.best2',
-  roulette:'term.roulette',match1v1:'term.match1v1',vegas:'term.vegas',niadora:'term.niadora',customMatch:'term.custom'};
+  roulette:'term.roulette',match1v1:'term.match1v1',honestJohn:'term.honestJohn',vegas:'term.vegas',niadora:'term.niadora',customMatch:'term.custom'};
 /* 種目ラベル（任意対決だけユーザー入力名を優先・§11.21）。名前が空なら i18n 既定（term.custom）にフォールバック。
    ユーザー入力は esc() 必須（辞書文字列と違い HTML が混ざり得る） */
 function tpEvLabel(g,key){ const nm=(key==='customMatch')?(((g&&g.custom&&g.custom.name)||'').trim()):'';
   return nm? esc(nm) : t(TP_EV_LABEL[key]||key); }
 /* 種目別勝ち点表の行順（#87 指示③）＝チーム戦下段タブの生成順（resGameTabs grp='team'・総合を除く）:
    nd→gross→net→univ→hbh→b2→vegas→m1→roulette。タブ生成順を変えるときは本配列も同期させる */
-const TP_EV_ORDER=['niadora','teamGross','teamNet','univMatch','holeByHole','best2ball','vegas','match1v1','roulette','customMatch'];
+const TP_EV_ORDER=['niadora','teamGross','teamNet','univMatch','holeByHole','best2ball','vegas','match1v1','honestJohn','roulette','customMatch'];
 /* ---- 総合タブの表示モデル（result-share.md §3.8）----
    画面（renderTeamOverall）と共有画像（PR-B の js/share.js）が共用する「表示の唯一の正」。
    計算は teamWinPoints(g) だけを読む＝ここでスコアから何も計算しない（js/calc.js は非接触・§10）。
@@ -260,7 +262,7 @@ function renderTeamUniv(g){
   /* 見出し <h2> は廃止＝タイトルはゲームタブ名「大学対抗」が兼ねる（heading-unify §3.2）。
      固有情報（エブリ適用中タグ・連携UI）はカード末尾の共通フッタ行へ: 左＝状態タグ／右端＝幹事操作（§4.1/§5.2）。
      対象校0の空状態カードにも同じフッタを出す＝連携できなくならないようにする（§5.2） */
-  const foot=`<div class="cardtools mt8">${evTag}${tpAnnounceUI(g,'univMatch')}</div>`;
+  const foot=`<div class="cardtools mt8"><span class="tag">${uvCapLabel(g)}</span>${evTag}${tpAnnounceUI(g,'univMatch')}</div>`;
   if(!uv.rows.length)   // 対象校0（スコア未入力等）＝集計ルールを案内（チームなしは renderTeamGame 冒頭の team.emptyTeams）
     return `<div class="card"><div class="empty">${t('univ.note')}</div>${foot}</div>`;
   const {teams:wt,events}=teamWinPoints(g);

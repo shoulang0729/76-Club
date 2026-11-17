@@ -6,8 +6,8 @@ let revealHoles=0;             // 個人戦で開封済みのホール数(0-18)�
    スピン開始から RL_STOP_LOCK_MS だけ STOP を受け付けない。表示状態なので localStorage には入れない。
    undo は「直前の1操作」の取り消し用スナップショット（同 §5.1・最大1件・メモリのみ＝リロードで消える）。
    ★golfCompe_v1 には絶対に入れない: 保存すると過去コンペを後から書き換える経路ができてしまう（同 §4.1） */
-let rl={ spinning:false, spinTeams:[], timer:null, challengeFrom:null, stopLock:false, lockTimer:null, undo:null };
-function rlStopTimer(){ if(rl.timer){clearInterval(rl.timer);rl.timer=null;} rl.spinning=false;
+let rl={ spinning:false, spinTeams:[], timer:null, challengeFrom:null, stopLock:false, lockTimer:null, undo:null, resetPending:null };
+function rlStopTimer(){ rl.resetPending=null; if(rl.timer){clearInterval(rl.timer);rl.timer=null;} rl.spinning=false;
   if(rl.lockTimer){clearTimeout(rl.lockTimer);rl.lockTimer=null;} rl.stopLock=false; }
 /* 1 on 1 ホール自動オープンの実行時状態（2026-09-12-m1-autoplay.md §4.1・非保存＝揮発。
    key=再生中の組キー（m1Key）／timer=setTimeout ID。ハンドルは常に1本＝同時に2組は走らない（§4.5）。
@@ -17,7 +17,10 @@ function m1AutoStop(){ if(m1Auto.timer){ clearTimeout(m1Auto.timer); m1Auto.time
 /* バックグラウンド化で停止（§4.3(a)#9）。非アクティブタブでは setTimeout が丸められ 0.2秒区間が一瞬で飛ぶため、
    pause ではなく stop が正しい（開封済みホール m1Opened は残す＝進捗は失わない）。
    regress ハーネスの vm には document が無いので存在確認してから登録する（§11 実装者への注意）。 */
-if(typeof document!=='undefined') document.addEventListener('visibilitychange',()=>{ if(document.hidden) m1AutoStop(); });
+if(typeof document!=='undefined') document.addEventListener('visibilitychange',()=>{
+  if(document.hidden){ m1AutoStop(); if(typeof hjStopSpin==='function')hjStopSpin(); }
+  else if(activeTab==='result'&&resGrp==='team'&&resGame.team==='honestJohn')renderResult();
+});
 // 発表用の表示/非表示スイッチ（true=表示）。totals=スコア表の合計欄（個人/チーム共通・チーム小計の色も含む）。既定=非表示（#97）
 let show={ totals:false };
 function toggleShow(k){ show[k]=!show[k]; renderResult(); }
@@ -65,7 +68,7 @@ window.addEventListener('load', syncHdrH);
 const tabLabel=k=>t('tab.'+k);
 let lastHome='home';   // ホーム系で最後に居たサブタブ（揮発・非保存）。結果発表からの復帰先（2026-08-20-home-subtabs.md §3.3）
 function goHome(){ go(lastHome); }
-function go(tab){ rlStopTimer(); m1AutoStop(); activeTab=tab; render(); }   // タブ切替で 1 on 1 自動再生も停止（m1-autoplay §4.3(a)#1）
+function go(tab){ rlStopTimer(); m1AutoStop(); if(typeof hjStopSpin==='function')hjStopSpin(); activeTab=tab; render(); }
 function render(){
   Object.entries(views).forEach(([k,id])=> document.getElementById(id).style.display = k===activeTab?'':'none');
   const g=curGame();

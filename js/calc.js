@@ -177,9 +177,25 @@ function vegasStandings(g){ const teams=g.teams.filter(T=>vegasPair(g,T));   // 
 
 /* ---- 1 on 1 マッチプレー（§11.13・docs/handoff/2026-08-20-1on1-match.md §3/§4）----
    判定スコアはエブリ適用後 adjHole（チームHBH・スコア表と同一基準）。既存 §3 計算には一切触れない。 */
-function m1HoleWin(g,pidA,pidB,i){ const a=adjHole(g,pidA,i), b=adjHole(g,pidB,i);
-  if(a==null||b==null) return null;                       // 未入力/未開封はスキップ
-  return a<b?'A' : b<a?'B' : 'H'; }                       // 少ない方が1UP・同打数はハーフ
+/* A side is one real player or exactly two distinct players; malformed backup data stays visible but never scores. */
+function m1SideIds(side){
+  if(typeof side==='string' && side) return [side];
+  return Array.isArray(side) && side.length===2 && typeof side[0]==='string' && side[0] && typeof side[1]==='string' && side[1] && side[0]!==side[1] ? side.slice() : [];
+}
+function m1Pairs(g){ return g.match1v1&&Array.isArray(g.match1v1.pairs)?g.match1v1.pairs:[]; }
+/* Reference traversal also covers malformed nested backup data, for audit and permanent deletion. */
+function m1PairIds(pair){ return Array.isArray(pair)?pair.flat(Infinity).filter(x=>typeof x==='string'&&x):[]; }
+function m1SideParts(g,side,i){ const ids=m1SideIds(side);
+  if(!ids.length || ids.some(pid=>!g.participants.includes(pid)||!state.players.some(p=>p.id===pid))) return null;
+  const vals=ids.map(pid=>adjHole(g,pid,i));
+  return vals.some(v=>v==null)?null:{sum:vals.reduce((a,b)=>a+b,0),count:ids.length};
+}
+function m1SideHole(g,side,i){ const p=m1SideParts(g,side,i); return p?p.sum/p.count:null; }
+function m1HoleWin(g,pidA,pidB,i){ const a=m1SideParts(g,pidA,i), b=m1SideParts(g,pidB,i);
+  if(!a||!b||m1SideIds(pidA).some(pid=>m1SideIds(pidB).includes(pid))) return null;
+  // Integer cross multiplication: 4.5 beats 5, with no rounding at any stage.
+  const x=a.sum*b.count, y=b.sum*a.count;
+  return x<y?'A' : y<x?'B' : 'H'; }
 function m1Result(g,pidA,pidB){ let upA=0,upB=0,half=0;
   for(let i=0;i<18;i++){ const w=m1HoleWin(g,pidA,pidB,i);
     if(w==='A')upA++; else if(w==='B')upB++; else if(w==='H')half++; }
@@ -188,18 +204,25 @@ function m1Result(g,pidA,pidB){ let upA=0,upB=0,half=0;
 function m1MemberIds(g,T){ return teamMembers(g,T); }
 function m1Teams(g){ return g.teams.filter(T=>m1MemberIds(g,T).length); }
 /* §4.3 有効性チェック: 保存済み teamA/teamB が現在の2チームと一致し、pair の両 pid が該当チームの参加メンバーである試合のみ有効 */
-function m1Valid(g){ const m=g.match1v1; if(!m||!m.teamA||!m.teamB||!(m.pairs||[]).length) return null;
+function m1Valid(g){ const m=g.match1v1; if(!m||!m.teamA||!m.teamB||m.teamA===m.teamB||!m1Pairs(g).length) return null;
   const T=m1Teams(g); if(T.length!==2) return null;
   const A=T.find(x=>x.id===m.teamA), B=T.find(x=>x.id===m.teamB);
   return (A&&B)? {A,B} : null; }
+function m1PairValid(g,pair,A,B){
+  if(!Array.isArray(pair)||pair.length!==2)return false;
+  const a=m1SideIds(pair[0]), b=m1SideIds(pair[1]);
+  return a.length>0 && b.length>0 && a.every(pid=>m1MemberIds(g,A).includes(pid))
+    && b.every(pid=>m1MemberIds(g,B).includes(pid)) && !a.some(pid=>b.includes(pid));
+}
 function m1ValidPairs(g){ const v=m1Valid(g); if(!v) return [];
-  return g.match1v1.pairs.filter(([a,b])=> m1MemberIds(g,v.A).includes(a) && m1MemberIds(g,v.B).includes(b)); }
+  return m1Pairs(g).filter(p=>m1PairValid(g,p,v.A,v.B)); }
 
 /* ---- 大学対抗（univMatch・§11.20・docs/handoff/2026-08-30-univ-match.md §4）----
    大会規定準拠の独立ネット計算（ダブルパーカット・HDCP上限 男36/女40・係数0.8固定・periaCoef/periaCap 非連動）。
    既存 §3 関数（periaHdcp/netScore/effGross/adjHole 等）には一切触れない（関数プレフィックス uv で分離）。 */
 // §4.1 集計対象人数: N=5+(P−5)×50%（四捨五入）・N は参加者数 P を超えない（Q2。P≤5 は min だけで「全員」が成立）
 function uvTargetN(P){ return P<=0?0:Math.min(P, Math.round(5+(P-5)*0.5)); }
+function uvCapMode(g){ return g.univ&&g.univ.capMode==='common36'?'common36':'standard'; }
 /* エブリ適用オプション（§4.4・既定OFF）: g.univ.every のみで判定＝g.womenEvery.enabled（コンペ本体のエブリ）には連動しない。
    支給量は既存 player.everyType を流用（evPer と同じ判定・enabled ゲートのみ外す） */
 function uvEvPer(g,pid){ if(!(g.univ&&g.univ.every))return 0;
@@ -216,7 +239,7 @@ function uvHdcpA(g,pid){
   let hd=(hEst*1.5 - parTotal(g))*0.8;                  // 係数 0.8 固定（§12 既定事項3・g.periaCoef 非連動）
   if(hd<0)hd=0;
   const p=state.players.find(x=>x.id===pid);
-  const cap=(p&&p.gender==='F')?40:36;                  // 規定: 男36/女40（g.periaCap 非連動）
+  const cap=(uvCapMode(g)==='standard'&&p&&p.gender==='F')?40:36;
   if(hd>cap)hd=cap;                                     // ★上限・0クリップは按分の「前」（§3.7）
   if(partial) hd = hd*n/18;                             // ② 消化率で按分
   return Math.round(hd*10)/10;
@@ -289,7 +312,7 @@ function customPts(g,T){ const c=g&&g.custom; if(!c||!c.pts) return null;
    ＝ルーレットON・未進行では「タブは出るが勝ち点には入らない」が、本数0でもカードは出す
    （2026-08-20-results-regroup.md §4.3）のと同型で無害。 */
 function anyTeamEventFmt(F){
-  return !!(F.teamGross||F.teamNet||F.holeByHole||F.best2ball||F.vegas||F.match1v1||F.customMatch||F.roulette||F.univMatch);
+  return !!(F.teamGross||F.teamNet||F.holeByHole||F.best2ball||F.vegas||F.match1v1||F.customMatch||F.roulette||F.univMatch||F.honestJohn);
 }
 /* §3.1〜3.2 種目別勝ち点（＋2026-08-30-winpoints-reveal.md §3 の部分上書き＝発表後反映）。
    teams=順位対象チーム（メンバー1人以上かつ1H以上入力済み）。
@@ -297,11 +320,11 @@ function anyTeamEventFmt(F){
    wins は確定(on)種目のみの合計。未確定種目の winners/vals も従来どおり計算して返す（表示はマスク・発表の瞬間に正が既にある状態を保つ）。
    rlStandings/holesWon/vegasHoleWins は独自に g.teams をフィルタするため index 前提にせず team.id で突合する。 */
 function teamWinPoints(g){
+  const F=chFormats(g);
   const entered=pid=>(g.scores[pid]||[]).some(v=>v!=null&&v!=='');
-  const teams=g.teams.filter(t=>{ const m=teamMembers(g,t); return m.length&&m.some(entered); });
+  const teams=g.teams.filter(t=>{ const m=teamMembers(g,t); return m.length&&(F.honestJohn||m.some(entered)); });
   const wins=teams.map(()=>0), events=[];
   if(teams.length<2) return {teams,wins,events};   // 成立条件（共通）：対象チーム2以上
-  const F=chFormats(g);   // αではβ種目（best2ball/vegas）を懸けない（§11.12 C）
   /* 確定判定（winpoints-reveal §3.2/§3.3・2026-08-30 ユーザー確定で自動確定廃止）: 勝ち点算入＝成立 かつ 確定(on) の AND（D9）。
      全8種目とも連携フラグ g.announced のみで確定（ルーレットの cur>=18 自動確定は廃止＝他種目と同じ手動連携・可逆）。
      連携フラグはデータ保存（D1/D2）。viewGame の Object.assign コピーでも announced は素通しで参照できる */
@@ -353,6 +376,10 @@ function teamWinPoints(g){
     if(nd.reduce((a,b)=>a+b,0)>=1) add('niadora', nd,'desc'); }
   // 任意対決（§11.21）：幹事入力ポイントの最大が勝ち（同点は山分け）。全未入力/入力1チームは add の live<2 で不成立
   if(F.customMatch) add('customMatch', teams.map(t=>customPts(g,t)),'desc');
+  if(F.honestJohn){ const hj=hjStanding(hjRawGame(g));
+    if(hj.ready && hj.rows.length>=2) add('honestJohn',teams.map(t=>{const r=hj.rows.find(x=>x.t.id===t.id);return r?r.total:null;}),'asc');
+    else events.push({key:'honestJohn',winners:[],vals:teams.map(()=>null),on:false,w:wOf('honestJohn')});
+  }
   return {teams,wins,events};
 }
 
@@ -383,7 +410,8 @@ function computePoints(g){
     } }
   // 1 on 1 マッチプレー（§11.13 §6）：勝者+m1win/引分両者+m1draw。個人にのみ加算（チーム全員加算はしない）
   if(F.match1v1 && g.match1v1 && (g.match1v1.pairs||[]).length){
-    m1ValidPairs(g).forEach(([a,b])=>{ const r=m1Result(g,a,b); if(!r.played)return;   // 有効試合のみ・未プレーは配点なし
+    m1ValidPairs(g).forEach(([a,b])=>{ if(Array.isArray(a)||Array.isArray(b))return; // Composite matches award no personal points to either side.
+      const r=m1Result(g,a,b); if(!r.played)return;   // 有効試合のみ・未プレーは配点なし
       if(r.diff>0){ if(pts[a]!=null)pts[a]+=(P.m1win||0); }
       else if(r.diff<0){ if(pts[b]!=null)pts[b]+=(P.m1win||0); }
       else { if(pts[a]!=null)pts[a]+=(P.m1draw||0); if(pts[b]!=null)pts[b]+=(P.m1draw||0); } });

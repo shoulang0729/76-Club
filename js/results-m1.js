@@ -6,7 +6,13 @@ let m1Opened=new Map();      // 一組ずつモードのオープン済みカー
    組合せ=幹事の手動作成（編集UIは §15.1 で選手タブ js/players.js へ移設＝本タブは閲覧・オープン演出専用）。判定/配点/データ構造（§3/§5/§6）は不変。
    投影原則（正本 §11.14）適用第1号: 大型UP表示が主役。 */
 // オープン演出（§13.2/§14.1）: 表示状態のみを更新（save() しない＝localStorage 非保存）
-function m1Key(a,b){ return a+':'+b; }
+function m1Key(a,b){
+  if(typeof a==='string'&&typeof b==='string') return a+':'+b;
+  // No colon in composite keys: disjoint from legacy keys, canonical within each side.
+  const side=x=>Array.isArray(x)?x.slice().sort():[x];
+  return 'm1@'+encodeURIComponent(JSON.stringify([side(a),side(b)])).replace(/'/g,'%27');
+}
+function m1SideName(side,nameOf){ return m1SideIds(side).map(nameOf).join('＋')||'?'; }
 /* ======== 開封順（OUT/IN スタート・docs/handoff/2026-09-11-m1-start-side.md §3）========
    スタートホール s（1-based）の組について、開封順 k(0-based) ↔ 実ホール index i(0-based) は
      holeAt(k,s) = ((s-1)+k)%18   /   m1Off(i,s) = (i-(s-1)+18)%18   （互いに逆写像）
@@ -104,18 +110,18 @@ function renderMatch1v1Parts(g){
   if(!F.match1v1) return {head:'', body:`<div class="card"><div class="empty">${t('m1.emptyFmt')}</div></div>`};
   const T=m1Teams(g);
   if(T.length!==2) return {head:'', body:`<div class="card"><div class="empty">${t('m1.need2Teams')}</div></div>`};
-  const m=g.match1v1||{pairs:[]};
-  const raw=m.pairs||[];              // 登録済み全組（無効組も編集UIには出す）
+  const raw=m1Pairs(g);              // 登録済み全組（無効組も編集UIには出す）
   const v=m1Valid(g);                 // 現在の2チームと一致する保存済み組合せ（なければ null）
   const pairs=m1ValidPairs(g);        // 有効試合のみ（無効試合は表示・集計からスキップ §4.3）
   const stale=raw.length>0 && pairs.length<raw.length;
-  const nameOf=pid=>{ const p=state.players.find(x=>x.id===pid); return p?esc(p.name):'?'; };
+  const playerName=pid=>{ const p=state.players.find(x=>x.id===pid); return p?esc(p.name):'?'; };
+  const nameOf=side=>m1SideName(side,playerName);
   const n=revealHoles;
   const one=m1RevealMode==='one';
   const isOpen=(a,b)=> !one || m1Opened.has(m1Key(a,b));
   const gAll=viewGame(g);   // 全組一括モード用（従来どおり共通 revealHoles でマスク。一組ずつは組ごとに viewGameN §14.1）
   // 未出場（両チームの参加メンバーで組合せに1度も現れない選手）: 警告のみ・登録/集計はブロックしない（§13.1 運用ガイド）
-  const appeared=new Set(); raw.forEach(([a,b])=>{ appeared.add(a); appeared.add(b); });
+  const appeared=new Set(); raw.forEach(p=>m1PairIds(p).forEach(pid=>appeared.add(pid)));
   const notPlayed=[...m1MemberIds(g,T[0]),...m1MemberIds(g,T[1])].filter(pid=>!appeared.has(pid));
   const npNote=(raw.length&&notPlayed.length)?`<div class="muted mt6" style="color:var(--red)">${t('m1.notPlayed',{name:notPlayed.map(nameOf).join(', ')})}</div>`:'';
   // 上部カード：h2 見出し行なし＝チームサマリ行から始まる（§15.2。開封状況 pill は開封バーカード側に表示）。
@@ -156,12 +162,12 @@ function renderMatch1v1Parts(g){
   const colg=`<colgroup><col class="cnm">${H0.map(()=>'<col class="ch">').join('')}</colgroup>`;
   const colA=tmColor(v.A.name), colB=tmColor(v.B.name);
   const cards=pairs.map(([a,b])=>{
-    const k=m1Key(a,b);
+    const k=m1Key(a,b), arg=esc(JSON.stringify(k));
     const s=m1StartOf(g,k);                    // この組のスタートホール（1=OUT / 10=IN）
     const H=s===1? H0 : H0.map(x=>((s-1)+x)%18);   // 列＝その組の巡回順（§4.1 案Y。見出しは実ホール番号 i+1）
-    const hero=c=>`<div class="m1-hero"><div class="m1-nm" style="color:${colA}">${nameOf(a)}</div><div class="m1-mid">${c}</div><div class="m1-nm" style="color:${colB}">${nameOf(b)}</div></div>`;   // 中央要素=.m1-mid（3カラムグリッドの中央固定・#103）
+    const hero=c=>`<div class="m1-hero"><div class="m1-nm" style="color:${colA}">${nameOf(a)}${Array.isArray(a)?`<span class="tag">${t('m1.average')}</span>`:''}</div><div class="m1-mid">${c}</div><div class="m1-nm" style="color:${colB}">${nameOf(b)}${Array.isArray(b)?`<span class="tag">${t('m1.average')}</span>`:''}</div></div>`;   // 中央要素=.m1-mid（3カラムグリッドの中央固定・#103）
     if(!isOpen(a,b))   // 伏せ状態（一組ずつ・未オープン §13.2）: 名前は見える・結果とホール表は隠す
-      return `<div class="card">${hero(`<button class="btn gold" onclick="m1OpenCard('${k}')">${t('m1.open')}</button>`)}</div>`;
+      return `<div class="card">${hero(`<button class="btn gold" onclick="m1OpenCard(${arg})">${t('m1.open')}</button>`)}</div>`;
     const c=one? (m1Opened.get(k)||0) : 18;      // 一組ずつ=組ローカル開封数（オープン直後0）
     const gc=one? m1ViewGameN(g,c,s) : (s===1?gAll:m1ViewGameN(g,n,s));   // 表示・判定の基準ゲーム（§14.1／§3.3。revealHoles は一組ずつでは関与しない）
     const r=m1Result(gc,a,b);
@@ -173,7 +179,8 @@ function renderMatch1v1Parts(g){
     const ptag=one ? (c<18?`<span class="tag tagtie">${c}/18H</span>`:'')
       : ((n<18&&r.played>0)?`<span class="tag tagtie">${n}/18H</span>`:'');
     const stag=s>1?`<span class="tag">${t('m1.startTag',{h:s})}</span>`:'';   // IN 組だけ（列並びが違うことの明示・§4.2）。OUT では出力ゼロ＝現行と同一
-    const prov=(ptag||stag)?`<div class="mt6">${ptag}${stag}</div>`:'';
+    const noPts=Array.isArray(a)||Array.isArray(b)?`<span class="tag">${t('m1.noIndividualPoints')}</span>`:'';
+    const prov=(ptag||stag||noPts)?`<div class="mt6">${ptag}${stag}${noPts}</div>`:'';
     /* 自動再生（m1-autoplay §4・§7）: 走行中のカードだけが「次に開く列の脈打ち」と「ため」のタグを持つ。
        m1Auto.key!==k（＝自動再生を使っていない）のときは playing=false → 下の出力は ▶再生 ボタン1個の追加のみ（受け入れ条件 A1）。 */
     const playing=one && m1Auto.key===k;
@@ -181,18 +188,18 @@ function renderMatch1v1Parts(g){
     const nx=(playing&&c<18)? ((s-1)+c)%18 : -1;        // 次に開く列の実ホール index（-1=付けない）
     // カード内開封バー（一組ずつのみ・既存キー流用＝新キーは再生/停止トグル1個のみ。disabled 境界 0/18）
     const cardbar=one?`<div class="reveal-bar m1-cardbar">
-      <button class="btn gray sm" onclick="m1Holes('${k}','reset')" ${c<=0?'disabled':''}>${t('btn.reset')}</button>
-      <button class="btn gray sm" onclick="m1Holes('${k}','prev')" ${c<=0?'disabled':''}>${t('sc.prev')}</button>
-      <button class="btn gold sm" onclick="m1Holes('${k}','next')" ${c>=18?'disabled':''}>${t('sc.next')}</button>
-      <button class="btn ${playing?'gray':'gold'} sm" onclick="m1AutoPlay('${k}')" ${c>=18?'disabled':''}>${playing?'■ '+t('m1.pause'):'▶ '+t('m1.play')}</button>
-      <button class="btn gray sm" onclick="m1Holes('${k}','all')" ${c>=18?'disabled':''}>${t('btn.all')}</button>
+      <button class="btn gray sm" onclick="m1Holes(${arg},'reset')" ${c<=0?'disabled':''}>${t('btn.reset')}</button>
+      <button class="btn gray sm" onclick="m1Holes(${arg},'prev')" ${c<=0?'disabled':''}>${t('sc.prev')}</button>
+      <button class="btn gold sm" onclick="m1Holes(${arg},'next')" ${c>=18?'disabled':''}>${t('sc.next')}</button>
+      <button class="btn ${playing?'gray':'gold'} sm" onclick="m1AutoPlay(${arg})" ${c>=18?'disabled':''}>${playing?'■ '+t('m1.pause'):'▶ '+t('m1.play')}</button>
+      <button class="btn gray sm" onclick="m1Holes(${arg},'all')" ${c>=18?'disabled':''}>${t('btn.all')}</button>
       <span class="tag tagtie">${c>=18?t('sc.allHoles'):c+'/18H'}</span>${(D!=null&&c===D)?`<span class="tag">${t('m1.hold')}</span>`:''}</div>`:'';
-    const row=(pid,me,col)=>`<tr><td class="nm" style="color:${col}">${nameOf(pid)}</td>${H.map(i=>{
+    const row=(pid,me,col,mean=false,member=false)=>`<tr${member?' class="m1-member"':''}><td class="nm" style="color:${col}">${mean?t('m1.average'):nameOf(pid)}</td>${H.map(i=>{
       const w=m1HoleWin(gc,a,b,i); const cls=(w===me?'rwin':w==='H'?'rtie':'')+(i===nx?' m1-nx':'');
-      const val=adjHole(gc,pid,i); return `<td class="${cls}">${val==null?'':val}</td>`; }).join('')}</tr>`;
+      const val=m1SideHole(gc,pid,i); return `<td class="${cls}">${val==null?'':val}</td>`; }).join('')}</tr>`;
     return `<div class="card">${hero(big+prov)}${cardbar}
       <table class="sc2">${colg}<tr><th class="nm"></th>${H.map(i=>`<th${i===nx?' class="m1-nx"':''}>${i+1}</th>`).join('')}</tr>
-      ${row(a,'A',colA)}${row(b,'B',colB)}</table></div>`;
+      ${Array.isArray(a)?a.map(pid=>row(pid,'A',colA,false,true)).join(''):''}${row(a,'A',colA,Array.isArray(a))}${Array.isArray(b)?b.map(pid=>row(pid,'B',colB,false,true)).join(''):''}${row(b,'B',colB,Array.isArray(b))}</table></div>`;
   }).join('');
   return {head: top + bar, body: cards + ruleBox('rule.match1v1')};
 }
