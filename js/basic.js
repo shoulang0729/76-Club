@@ -160,8 +160,11 @@ function auditScan(){
         else if(outside)  off.push(it); }); });
     const pairs=g.match1v1&&g.match1v1.pairs;
     if(Array.isArray(pairs)) pairs.forEach((pr,i)=>{ if(!Array.isArray(pr))return;
-      const gs=[...new Set(pr.filter(x=>x&&!live.has(x)))];
+      const gs=[...new Set(m1PairIds(pr).filter(x=>!live.has(x)))];
       if(gs.length) ghosts.push({gid:g.id,gname,type:'m1',a:String(i),b:'',pid:gs.join(','),hole:null}); });
+    const declarations=g.honestJohn&&g.honestJohn.declarations;
+    if(declarations&&typeof declarations==='object') Object.keys(declarations).forEach(pid=>{
+      if(!live.has(pid)) ghosts.push({gid:g.id,gname,type:'hj',a:'',b:'',pid,hole:null}); });
   });
   return {ghosts,off};
 }
@@ -170,6 +173,7 @@ function auditSrc(it){                                                          
   if(it.type==='rep')  return t('audit.src.rep');
   if(it.type==='pool') return t('audit.src.pool');
   if(it.type==='m1')   return t('fmt.match1v1');
+  if(it.type==='hj')   return t('term.honestJohn');
   const base=it.kind==='np'?t('term.niapin'):t('term.dracon');
   return base+' '+prizeSetLabel(it.set);                                               // OUT/IN（リテラル・§4.2）
 }
@@ -211,13 +215,14 @@ function auditDel(key){
   if(!it){ auditRefresh(); return; }                                   // 既に消えている（再点検で一覧から落とすだけ）
   if(!confirm(t('audit.confirmDel',{v:auditLabel(it)})))return;
   const g=state.games.find(x=>x.id===it.gid); if(!g)return;
+  if(it.type==='hj'){ delete g.honestJohn.declarations[it.pid]; (g.announced=g.announced||{}).honestJohn=false; save(); auditRefresh(); return; }
   if(it.type==='rep'){ const rp=(g.roulette&&g.roulette.reps||{})[it.a];
     if(rp){ delete rp[it.b]; if(!Object.keys(rp).length) delete g.roulette.reps[it.a]; } }   // 空になったホールごと削除（delPlayer と同じ）
   else if(it.type==='pool'){ const P=g.roulette&&g.roulette.pool;
     if(P&&Array.isArray(P[it.b])) P[it.b]=P[it.b].filter(x=>x!==it.pid); }
   else if(it.type==='prize'){ const w=g.prizes&&g.prizes[it.a]; if(w) delete w[it.b]; }      // キーごと削除＝「該当なし（—）」表示（#174 と同じ）
   else if(it.type==='m1'){ const pairs=g.match1v1&&g.match1v1.pairs; const i=Number(it.a);
-    if(Array.isArray(pairs)&&Array.isArray(pairs[i])&&it.pid.split(',').every(p=>pairs[i].includes(p))) pairs.splice(i,1); }
+    if(Array.isArray(pairs)&&Array.isArray(pairs[i])){ m1ForgetPair(g,pairs[i]); pairs.splice(i,1); } }
   save(); auditRefresh(); toast(t('audit.deleted'));
 }
 function createGame(){ const g=newGame(); state.games.push(g); state.currentGameId=g.id; save(); render(); toast(t('toast.gameCreated')); }

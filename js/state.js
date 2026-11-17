@@ -56,6 +56,11 @@ function migrate(s){
     if(!g.match1v1.starts || typeof g.match1v1.starts!=='object') g.match1v1.starts={};   // 組ごとのスタートホール（1-based・キーなし=OUT=1H。2026-09-11-m1-start-side.md §2.4）
     if(g.formats && g.formats.univMatch===undefined) g.formats.univMatch=false;   // 大学対抗（§11.20・2026-08-30-univ-match.md）
     if(!g.univ) g.univ={every:false}; else if(g.univ.every===undefined) g.univ.every=false;   // 大学対抗設定（エブリ適用オプション・既定OFF）
+    if(g.univ.capMode===undefined) g.univ.capMode='standard';
+    if(g.formats && g.formats.honestJohn===undefined) g.formats.honestJohn=false;
+    if(!g.honestJohn || typeof g.honestJohn!=='object' || Array.isArray(g.honestJohn)) g.honestJohn={hidden:Array(18).fill(false),declarations:{}};
+    if(g.honestJohn.hidden===undefined) g.honestJohn.hidden=Array(18).fill(false);
+    if(!g.honestJohn.declarations || typeof g.honestJohn.declarations!=='object' || Array.isArray(g.honestJohn.declarations)) g.honestJohn.declarations={};
     if(g.formats && g.formats.customMatch===undefined) g.formats.customMatch=false;   // 任意対決（§11.21・2026-08-31-custom-match.md）
     if(!g.custom) g.custom={name:'',pts:{}};   // 任意対決の設定（種目名＋チームID→ポイント。既定＝空＝種目不成立）
     else { if(typeof g.custom.name!=='string') g.custom.name='';
@@ -80,7 +85,7 @@ function defaultPoints(){ return {
   teamRankPts:[10,5], niapin:2, dracon:2,
   m1win:2, m1draw:1,   // 1 on 1 マッチプレー（§11.13）：勝者+2pt/引分両者+1pt（個人にのみ加算）
   teamEventPts:{ niadora:1, teamGross:1, teamNet:1, univMatch:1, holeByHole:1,   // 種目別勝ち点の重み（0以上の整数・既定 全1＝現行互換。winpoints-reveal §13.2）
-    best2ball:1, vegas:1, match1v1:1, roulette:1, customMatch:1 } }; }
+    best2ball:1, vegas:1, match1v1:1, honestJohn:1, roulette:1, customMatch:1 } }; }
 function save(){ localStorage.setItem(LS_KEY, JSON.stringify(state)); }
 function uid(){ return Math.random().toString(36).slice(2,9); }
 function toast(m){ const t=document.getElementById('toast'); t.textContent=m; t.classList.add('show');
@@ -128,13 +133,14 @@ function newGame(){
       npdcOverride:{} },   // 対象ホールの手動上書き（既定 {}＝par 自動導出のみ・2026-09-12-npdc-manual-holes.md §4）
     points:defaultPoints(), prizePool:0, roulette:newRoulette(),
     vegas:{ flip:true, cap:'doublePar' },   // ラスベガス設定（§11.11）
-    univ:{ every:false },   // 大学対抗設定（エブリ適用オプション・既定OFF＝規定準拠。§11.20）
+    univ:{ every:false, capMode:'standard' },
+    honestJohn:{ hidden:Array(18).fill(false), declarations:{} },
     match1v1:{ teamA:null, teamB:null, pairs:[], starts:{} },   // 1 on 1 マッチプレーの抽選結果（§11.13。starts=組ごとのスタートホール §2.2）
     custom:{ name:'', pts:{} },   // 任意対決（§11.21・幹事入力ポイントのみで勝敗。name 空＝i18n 既定名）
     announced:{},   // 種目別の発表済みフラグ（データ＝幹事の記録。演出の開封状態〔揮発〕とは別物・winpoints-reveal §4.1）
     formats:{ gross:true, net:true, niadoraInd:true, niadoraTeam:true, teamGross:true, teamNet:true, holeByHole:true, roulette:true,
       stableford:true, nassau:true, olympic:true, callaway:false, best2ball:false, vegas:false, match1v1:false, univMatch:false,
-      customMatch:false }
+      customMatch:false, honestJohn:false }
   };
 }
 

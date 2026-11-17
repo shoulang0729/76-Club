@@ -114,8 +114,13 @@ function smDetM1(g){
     teamA:v?(v.A.name||''):'', teamB:v?(v.B.name||''):'', rows:[] };
   if(!on||!v) return d;
   d.rows=m1ValidPairs(g).map(([a,b])=>{ const r=m1Result(g,a,b);
-    return { a:smName(a), b:smName(b), upA:r.upA, upB:r.upB, half:r.half, played:r.played, diff:r.diff,
-      win:r.played?(r.diff>0?'A':r.diff<0?'B':'H'):'' }; });
+    const row={ a:m1SideIds(a).map(smName).join('＋'), b:m1SideIds(b).map(smName).join('＋'), upA:r.upA, upB:r.upB, half:r.half, played:r.played, diff:r.diff,
+      win:r.played?(r.diff>0?'A':r.diff<0?'B':'H'):'' };
+    // Composite-only detail keeps legacy export snapshots unchanged.
+    const detail=side=>({ members:m1SideIds(side).map(pid=>({name:smName(pid),holes:smHoles(g,pid)})),
+      average:Array.from({length:18},(_,i)=>m1SideHole(g,side,i)),labelKey:'m1.average' });
+    if(Array.isArray(a))row.sideA=detail(a); if(Array.isArray(b))row.sideB=detail(b);
+    return row; });
   return d;
 }
 function smDetUniv(g){
@@ -143,6 +148,15 @@ function smDetCustom(g){
    g は **生ゲーム**（開封マスクを通さないもの）を渡す（§3・§6.4）。 */
 function sheetModel(g){
   const parts=smParts(g);
+  const det={m1:smDetM1(g),univ:smDetUniv(g),custom:smDetCustom(g)};
+  if(det.univ&&uvCapMode(g)==='common36') det.univ.capMode='common36';
+  if(chFormats(g).honestJohn){
+    const st=hjStanding(g), on=!!(g.announced||{}).honestJohn&&st.ready&&st.rows.length>=2;
+    det.honestJohn={on,pending:!on,rows:on?st.rows.flatMap(r=>r.members.map(p=>({
+      team:r.t.name,name:(state.players.find(x=>x.id===p.pid)||{}).name||'',
+      declared:p.declared,raw:p.raw,adjusted:p.adjusted,difference:p.difference,penalty:p.penalty,total:r.total
+    }))):[]};
+  }
   return {
     meta:{ name:g.name||'', date:g.date||'', course:g.course||'', n:parts.length,
       prov:periaProv(g,parts) },                       // prov=暫定HDCP（1人でも18H未入力なら true・§14）
@@ -151,6 +165,6 @@ function sheetModel(g){
     ind:smInd(g,parts),
     flags:smFlags(g),
     pay:smPay(g,parts),
-    det:{ m1:smDetM1(g), univ:smDetUniv(g), custom:smDetCustom(g) }
+    det
   };
 }

@@ -71,6 +71,7 @@ function drawSheet(M, opt){
   if(sheetDetOn(D.m1))     add('det:m1',     SL.SECT + SL.HEAD + SL.ROW*D.m1.rows.length + SL.GAP);
   if(sheetDetOn(D.univ))   add('det:univ',   SL.SECT + SL.HEAD + SL.SCROW*sheetUvLines(D.univ) + SL.GAP);
   if(sheetDetOn(D.custom)) add('det:custom', SL.SECT + SL.HEAD + SL.ROW*D.custom.rows.length + SL.GAP);
+  if(sheetDetOn(D.honestJohn)) add('det:honestJohn', SL.SECT + SL.HEAD + SL.ROW*D.honestJohn.rows.length + SL.GAP);
   add('pay', SL.SECT + SL.HEAD + SL.ROW*sheetColRows(M.pay.rows.length) + SL.GAP);
   add('foot', 40);
   H += SL.PAD;
@@ -199,8 +200,8 @@ function drawSheet(M, opt){
       txt(clip(d.teamB,f(700,21),sideW-16), W-SL.PAD-8, ry+SL.HEAD/2, f(700,21), tmc(d.teamB), 'right');
       ry+=SL.HEAD;
       d.rows.forEach(r=>{
-        txt(clip(r.a,f(600,22),sideW-16), SL.PAD+8, ry+SL.ROW/2, f(600,22), C['--ink']);
-        txt(clip(r.b,f(600,22),sideW-16), W-SL.PAD-8, ry+SL.ROW/2, f(600,22), C['--ink'], 'right');
+        txt(clip(r.a+(r.sideA?' ('+t('m1.average')+')':''),f(600,22),sideW-16), SL.PAD+8, ry+SL.ROW/2, f(600,22), C['--ink']);
+        txt(clip(r.b+(r.sideB?' ('+t('m1.average')+')':''),f(600,22),sideW-16), W-SL.PAD-8, ry+SL.ROW/2, f(600,22), C['--ink'], 'right');
         const mx=SL.PAD+sideW;
         if(r.win==='A'||r.win==='B') { c.fillStyle=C['--win-bg']; c.fillRect(mx+8, ry+4, midW-16, SL.ROW-8); }
         else if(r.win==='H')         { c.fillStyle=C['--tie-bg']; c.fillRect(mx+8, ry+4, midW-16, SL.ROW-8); }
@@ -214,7 +215,7 @@ function drawSheet(M, opt){
       /* 大学対抗の校別明細（明細・PM 判断で v1 に収録）: 校ごとに「順位・校名・対象n/参加P・平均」行＋メンバー行。
          対象（足切り通過）は文字で併記する＝色だけに頼らない */
       const d=M.det.univ;
-      sectTitle(t('term.univ') + (d.every?'   '+t('univ.everyOn'):''), y);
+      sectTitle(t('term.univ') + (d.capMode==='common36'?'   '+t('univ.capCommon'):'') + (d.every?'   '+t('univ.everyOn'):''), y);
       const nameW=300, cw=110, markW=CW-nameW-cw*3;
       const cols=[{w:nameW,label:t('col.player'),al:'left'},{w:cw,label:'G'},{w:cw,label:t('col.hd')},
         {w:cw,label:t('col.net')},{w:markW,label:t('univ.selMark')}];
@@ -252,6 +253,18 @@ function drawSheet(M, opt){
         txt(r.pts==null?t('custom.unset'):String(r.pts), W-SL.PAD-8, ry+SL.ROW/2, f(800,24), C['--strong'], 'right');
         line(ry+SL.ROW); ry+=SL.ROW; });
 
+    } else if(S.id==='det:honestJohn'){
+      sectTitle(t('term.honestJohn'),y);
+      let ry=y+SL.SECT;
+      const widths=[0.27,0.14,0.17,0.19,0.23], labels=[t('col.player'),t('hj.declared'),t('hj.adjusted'),t('hj.difference'),t('hj.penalty')];
+      headBand(ry); let cx=SL.PAD;
+      widths.forEach((w,i)=>{txt(labels[i],cx+8,ry+SL.HEAD/2,f(700,18),C['--sub']);cx+=CW*w;});
+      ry+=SL.HEAD;
+      M.det.honestJohn.rows.forEach(r=>{
+        const vals=[r.name,r.declared,r.adjusted,r.difference,r.penalty]; let x=SL.PAD;
+        widths.forEach((w,i)=>{txt(clip(String(vals[i]),f(i===4?700:500,20),CW*w-16),x+8,ry+SL.ROW/2,f(i===4?700:500,20),i===4?C['--strong']:C['--ink']);x+=CW*w;});
+        line(ry+SL.ROW);ry+=SL.ROW;
+      });
     } else if(S.id==='pay'){
       /* ポイント配分（§2 #6）: 全員分・17行以上は2段組。¥ 列は原資がある（pool>0）ときだけ */
       sectTitle(t('result.sub.pts'), y);

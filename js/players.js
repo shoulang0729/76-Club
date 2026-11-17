@@ -85,60 +85,81 @@ function renderPlayers(){
 /* ---- 1 on 1 組合せ編集カード（§15.1・docs/handoff/2026-08-20-1on1-match.md）----
    §13.1 の編集UIを結果発表タブから移設（details 廃止＝通常カード・常時展開）。操作仕様は §13.1 のまま。
    表示条件は renderPlayers 側の chFormats(g).match1v1（チャンネル共通・2026-08-30 α昇格）。 */
+let m1Editing=null; // {gid,index,key}; form editing is transient, like reveal state.
 function m1EditCard(g){
-  const T=m1Teams(g);
+  const current=m1Teams(g), v=m1Valid(g), T=v?[v.A,v.B]:current;
   if(T.length!==2) return `<div class="card"><h2>${t('m1.edit')}</h2><div class="muted">${t('m1.need2Teams')}</div></div>`;
-  const raw=(g.match1v1&&g.match1v1.pairs)||[];   // 登録済み全組（無効組もリストに出す）
-  const pairs=m1ValidPairs(g);                    // 有効組（無効組は赤字＋タグ表示 §13.1）
-  const nameOf=pid=>{ const p=state.players.find(x=>x.id===pid); return p?esc(p.name):'?'; };
-  // 未出場（両チームの参加メンバーで組合せに1度も現れない選手）: 警告のみ・登録/集計はブロックしない（§13.1 運用ガイド）
-  const appeared=new Set(); raw.forEach(([a,b])=>{ appeared.add(a); appeared.add(b); });
+  const raw=m1Pairs(g), pairs=m1ValidPairs(g);
+  const playerName=pid=>{ const p=state.players.find(x=>x.id===pid); return p?esc(p.name):'?'; };
+  const nameOf=side=>m1SideName(side,playerName);
+  const appeared=new Set(raw.flatMap(m1PairIds));
   const notPlayed=[...m1MemberIds(g,T[0]),...m1MemberIds(g,T[1])].filter(pid=>!appeared.has(pid));
-  const npNote=(raw.length&&notPlayed.length)?`<div class="muted mt6" style="color:var(--red)">${t('m1.notPlayed',{name:notPlayed.map(nameOf).join(', ')})}</div>`:'';
-  const cA={}, cB={}; raw.forEach(([a,b])=>{ cA[a]=(cA[a]||0)+1; cB[b]=(cB[b]||0)+1; });
-  const mkSel=(id,ids,cnt)=>{ const def=ids.find(pid=>!appeared.has(pid))||ids[0];   // 既定=未出場の先頭（全員出場済みなら先頭）
-    return `<select id="${id}">${ids.map(pid=>`<option value="${pid}"${pid===def?' selected':''}>${nameOf(pid)}${cnt[pid]?` ×${cnt[pid]}`:''}</option>`).join('')}</select>`; };
-  const rows=raw.map((p,i)=>{ const [a,b]=p; const invalid=!pairs.includes(p);   // 無効組=赤字＋タグ・×で削除可（§13.1）
-    const st=m1StartOf(g,m1Key(a,b));   // スタートホール（1=OUT / 10=IN・2026-09-11-m1-start-side.md §4.3(b)）
+  const npNote=(raw.length&&notPlayed.length)?`<div class="muted mt6" style="color:var(--red)">${t('m1.notPlayed',{name:notPlayed.map(playerName).join(', ')})}</div>`:'';
+  const editing=m1EditTarget(g), counts=[{},{}];
+  raw.forEach(p=>{ if(!Array.isArray(p))return; p.slice(0,2).forEach((side,i)=>m1SideIds(side).forEach(pid=>counts[i][pid]=(counts[i][pid]||0)+1)); });
+  const mkSel=(id,ids,cnt,selected,optional=false)=>{
+    const def=selected===undefined?(optional?'':ids.find(pid=>!appeared.has(pid))||ids[0]):selected;
+    return `<select id="${id}" aria-label="${t(optional?'m1.secondPlayer':'player.colName')}">${optional?`<option value="">${t('m1.noSecondPlayer')}</option>`:''}${ids.map(pid=>`<option value="${esc(pid)}"${pid===def?' selected':''}>${playerName(pid)}${cnt[pid]?` ×${cnt[pid]}`:''}</option>`).join('')}</select>`;
+  };
+  const sideForm=(i)=>{ const ids=editing?m1SideIds(editing[i]):[], name=i?'B':'A';
+    return `<div class="row"><span style="color:${tmColor(T[i].name)}">${esc(T[i].name)}</span>${mkSel('m1sel'+name,m1MemberIds(g,T[i]),counts[i],ids[0])}＋${mkSel('m1sel'+name+'2',m1MemberIds(g,T[i]),counts[i],ids[1],true)}</div>`; };
+  const rows=raw.map((p,i)=>{ const [a,b]=Array.isArray(p)?p:[]; const invalid=!pairs.includes(p);
+    const st=m1StartOf(g,m1Key(a,b));
     return `<div class="row mt6"><span${invalid?' style="color:var(--red)"':''}>#${i+1} ${nameOf(a)} vs ${nameOf(b)}</span>
       ${invalid?`<span class="tag" style="background:var(--danger-bg);color:var(--red)">${t('m1.invalidPair')}</span>`:''}
       <span class="muted">${t('m1.start')}</span><span class="seg"><button class="${st===10?'':'on'}" onclick="m1SetStart(${i},1)">OUT</button><button class="${st===10?'on':''}" onclick="m1SetStart(${i},10)">IN</button></span>
+      <button class="btn gray sm" onclick="m1EditPair(${i})">${t('m1.editPair')}</button>
       <button class="btn gray sm" onclick="m1MovePair(${i},-1)" ${i===0?'disabled':''}>↑</button>
       <button class="btn gray sm" onclick="m1MovePair(${i},1)" ${i===raw.length-1?'disabled':''}>↓</button>
       <button class="btn gray sm" onclick="m1DelPair(${i})">×</button></div>`; }).join('');
   return `<div class="card"><h2>${t('m1.edit')}</h2>
-    <div class="row mt6">${mkSel('m1selA',m1MemberIds(g,T[0]),cA)} vs ${mkSel('m1selB',m1MemberIds(g,T[1]),cB)}
-      <button class="btn gold sm" onclick="m1AddPair()">${t('m1.addPair')}</button></div>
-    ${rows}${npNote}
-    ${raw.length?`<div class="row mt8"><button class="btn gray sm" onclick="m1ClearAll()">${t('m1.clearAll')}</button></div>`:''}
-  </div>`;
+    ${sideForm(0)}${sideForm(1)}<div class="row mt6"><button class="btn gold sm" onclick="m1AddPair()">${t(editing?'m1.savePair':'m1.addPair')}</button>${editing?`<button class="btn gray sm" onclick="m1CancelEdit()">${t('btn.cancel')}</button>`:''}</div>
+    <div class="muted">${t('m1.compositeNote')}</div>${rows}${npNote}
+    ${raw.length?`<div class="row mt8"><button class="btn gray sm" onclick="m1ClearAll()">${t('m1.clearAll')}</button></div>`:''}</div>`;
 }
-// 組合せ編集（§13.1・js/results.js から移設 §15.1）: いずれも save() → renderPlayers()。唯一のブロック=同一カードの重複（m1.dupPair）
+function m1EditTarget(g){
+  const e=m1Editing, p=e&&e.gid===g.id?m1Pairs(g)[e.index]:null;
+  return Array.isArray(p)&&m1Key(p[0],p[1])===e.key?p:null;
+}
+function m1EditPair(index){ const g=curGame(), p=g&&m1Pairs(g)[index]; if(!Array.isArray(p))return;
+  m1Editing={gid:g.id,index,key:m1Key(p[0],p[1])}; renderPlayers(); }
+function m1CancelEdit(){ m1Editing=null; renderPlayers(); }
 function m1AddPair(){ const g=curGame(); if(!g)return;
-  const T=m1Teams(g); if(T.length!==2)return;
-  const selA=document.getElementById('m1selA'), selB=document.getElementById('m1selB');
-  if(!selA||!selB)return; const a=selA.value, b=selB.value; if(!a||!b)return;
-  const m=g.match1v1||(g.match1v1={teamA:null,teamB:null,pairs:[],starts:{}});
-  if((m.pairs||[]).some(([x,y])=>x===a&&y===b)){ toast(t('m1.dupPair')); return; }   // 重複カードのみ弾く。同一選手の複数回は可
-  if(!m1Valid(g)){ m.teamA=T[0].id; m.teamB=T[1].id; }   // 初回追加（有効な保存がない）時に現在の2チームで確定（以後 §4.3 の stale 判定が機能）
-  m.pairs.push([a,b]); save(); renderPlayers(); }
+  const current=m1Teams(g), v=m1Valid(g), T=v?[v.A,v.B]:current; if(T.length!==2)return;
+  const readSide=name=>{ const first=document.getElementById('m1sel'+name), second=document.getElementById('m1sel'+name+'2');
+    if(!first)return null; return second&&second.value?[first.value,second.value]:first.value; };
+  const a=readSide('A'), b=readSide('B');
+  if(!m1PairValid(g,[a,b],T[0],T[1])){ toast(t('m1.invalidPair')); return; }
+  const m=g.match1v1||(g.match1v1={teamA:null,teamB:null,pairs:[],starts:{}}), editing=m1EditTarget(g);
+  if(m1Editing&&m1Editing.gid===g.id&&!editing){ m1Editing=null; toast(t('m1.stale')); renderPlayers(); return; }
+  const key=m1Key(a,b);
+  if(m1Pairs(g).some((p,i)=>Array.isArray(p)&&(!editing||i!==m1Editing.index)&&m1Key(p[0],p[1])===key)){ toast(t('m1.dupPair')); return; }
+  if(!v){ m.teamA=T[0].id; m.teamB=T[1].id; }
+  if(!Array.isArray(m.pairs))m.pairs=[];
+  if(editing){ const index=m1Editing.index, start=m1StartOf(g,m1Key(editing[0],editing[1]));
+    m1ForgetPair(g,editing); m.pairs[index]=[a,b]; if(start>1){ if(!m.starts)m.starts={}; m.starts[key]=start; }
+  } else m.pairs.push([a,b]);
+  m1Editing=null; save(); renderPlayers();
+}
+/* Shared with audit/permanent deletion: remove the complete match and its transient/saved key state. */
+function m1ForgetPair(g,p){ if(!Array.isArray(p))return; const key=m1Key(p[0],p[1]);
+  if(g.match1v1&&g.match1v1.starts)delete g.match1v1.starts[key];
+  if(curGame()===g){ m1Opened.delete(key); if(m1Auto.key===key)m1AutoStop(); }
+}
 function m1DelPair(idx){ const g=curGame(); if(!g||!g.match1v1)return;
-  const p=g.match1v1.pairs[idx];
-  if(p && g.match1v1.starts) delete g.match1v1.starts[m1Key(p[0],p[1])];   // 孤児キーを残さない（§2.2・A10）
-  g.match1v1.pairs.splice(idx,1); save(); renderPlayers(); }
-/* スタートホールの切替（§4.3(b)）: 既定 OUT(=1) はデータに書かない＝旧データ・既定運用は starts が空のまま */
-function m1SetStart(idx,s){ const g=curGame(); if(!g||!g.match1v1)return;
-  const p=(g.match1v1.pairs||[])[idx]; if(!p)return;
-  if(!g.match1v1.starts) g.match1v1.starts={};
-  const k=m1Key(p[0],p[1]);
-  if(s>1) g.match1v1.starts[k]=s; else delete g.match1v1.starts[k];
+  m1ForgetPair(g,m1Pairs(g)[idx]); m1Pairs(g).splice(idx,1); m1Editing=null; save(); renderPlayers(); }
+function m1SetStart(idx,s){ const g=curGame(); if(!g||!g.match1v1||!Number.isInteger(s)||s<1||s>18)return;
+  const p=m1Pairs(g)[idx]; if(!Array.isArray(p))return;
+  if(!g.match1v1.starts)g.match1v1.starts={}; const k=m1Key(p[0],p[1]);
+  if(s>1)g.match1v1.starts[k]=s; else delete g.match1v1.starts[k];
   save(); renderPlayers(); }
 function m1MovePair(idx,dir){ const g=curGame(); if(!g||!g.match1v1)return;
-  const p=g.match1v1.pairs, j=idx+dir; if(j<0||j>=p.length)return;
-  [p[idx],p[j]]=[p[j],p[idx]]; save(); renderPlayers(); }   // 並び順＝カード表示順＝「次の組」のめくり順
+  const p=m1Pairs(g), j=idx+dir; if(idx<0||idx>=p.length||j<0||j>=p.length)return;
+  [p[idx],p[j]]=[p[j],p[idx]]; m1Editing=null; save(); renderPlayers(); }
 function m1ClearAll(){ const g=curGame(); if(!g||!g.match1v1)return;
   if(!confirm(t('m1.confirmClear')))return;
-  g.match1v1={teamA:null,teamB:null,pairs:[],starts:{}}; m1Opened.clear(); save(); renderPlayers(); }   // m1Opened=js/results.js の揮発表示状態（クリック時点で読込済み）
+  m1Pairs(g).forEach(p=>m1ForgetPair(g,p)); g.match1v1={teamA:null,teamB:null,pairs:[],starts:{}};
+  m1Editing=null; m1Opened.clear(); save(); renderPlayers(); }
 function addPlayer(){
   const n=document.getElementById('pName').value.trim(); if(!n) return toast(t('toast.enterName'));
   state.players.push({id:uid(),name:n,gender:document.getElementById('pGender').value,
@@ -195,7 +216,7 @@ function delPlayerRefs(id){ let parts=0, holes=0, team=0, rep=0, prize=0, m1=0;
     PRIZE_WINNER_FIELDS.forEach(f=>{ const w=g.prizes&&g.prizes[f]; if(!w)return;
       for(const h in w) if(w[h]===id) prize++; });
     const pairs=g.match1v1&&g.match1v1.pairs;
-    if(Array.isArray(pairs)) m1+=pairs.filter(p=>Array.isArray(p)&&p.includes(id)).length;
+    if(Array.isArray(pairs)) m1+=pairs.filter(p=>m1PairIds(p).includes(id)).length;
   });
   return {parts,holes,team,rep,prize,m1}; }
 // 確認ダイアログの文面: 参照0件なら従来どおり confirm.delete のみ（余計な文言を出さない＝新規選手の削除は1クリック相当）
@@ -209,6 +230,7 @@ function delPlayerMsg(id){ const r=delPlayerRefs(id); const parts=[];
 function delPlayer(id){ if(!confirm(delPlayerMsg(id)))return;
   state.players=state.players.filter(p=>p.id!==id);
   state.games.forEach(g=>{ g.participants=g.participants.filter(x=>x!==id); delete g.scores[id];
+    if(g.honestJohn&&g.honestJohn.declarations) delete g.honestJohn.declarations[id];
     g.teams.forEach(t=>t.memberIds=t.memberIds.filter(x=>x!==id));
     const R=g.roulette;
     if(R&&R.reps) for(const h in R.reps){ const rp=R.reps[h]; if(!rp)continue;
@@ -219,7 +241,8 @@ function delPlayer(id){ if(!confirm(delPlayerMsg(id)))return;
     PRIZE_WINNER_FIELDS.forEach(f=>{ const w=g.prizes&&g.prizes[f]; if(!w)return;
       for(const h in w) if(w[h]===id) delete w[h]; });
     const m=g.match1v1;
-    if(m&&Array.isArray(m.pairs)) m.pairs=m.pairs.filter(p=>!(Array.isArray(p)&&p.includes(id)));
+    if(m&&Array.isArray(m.pairs)) m.pairs=m.pairs.filter(p=>{
+      if(!m1PairIds(p).includes(id))return true; m1ForgetPair(g,p); return false; });
   });
   save(); renderPlayers(); }
 /* 参加者・チーム対抗（js/game.js から移動・§11.12 N） */
