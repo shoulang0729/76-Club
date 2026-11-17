@@ -6,8 +6,8 @@ let revealHoles=0;             // 個人戦で開封済みのホール数(0-18)�
    スピン開始から RL_STOP_LOCK_MS だけ STOP を受け付けない。表示状態なので localStorage には入れない。
    undo は「直前の1操作」の取り消し用スナップショット（同 §5.1・最大1件・メモリのみ＝リロードで消える）。
    ★golfCompe_v1 には絶対に入れない: 保存すると過去コンペを後から書き換える経路ができてしまう（同 §4.1） */
-let rl={ spinning:false, spinTeams:[], timer:null, challengeFrom:null, stopLock:false, lockTimer:null, undo:null };
-function rlStopTimer(){ if(rl.timer){clearInterval(rl.timer);rl.timer=null;} rl.spinning=false;
+let rl={ spinning:false, spinTeams:[], timer:null, challengeFrom:null, stopLock:false, lockTimer:null, undo:null, resetPending:null };
+function rlStopTimer(){ rl.resetPending=null; if(rl.timer){clearInterval(rl.timer);rl.timer=null;} rl.spinning=false;
   if(rl.lockTimer){clearTimeout(rl.lockTimer);rl.lockTimer=null;} rl.stopLock=false; }
 /* 1 on 1 ホール自動オープンの実行時状態（2026-09-12-m1-autoplay.md §4.1・非保存＝揮発。
    key=再生中の組キー（m1Key）／timer=setTimeout ID。ハンドルは常に1本＝同時に2組は走らない（§4.5）。

@@ -69,6 +69,12 @@ function hjDisplayStanding(g){
   const count=hjHiddenShape(g)?g.honestJohn.hidden.filter(Boolean).length:null;
   return {rows,ready,count,provisional:count!==null&&count<4};
 }
+function hjDisplayTotals(row){
+  return ['declared','raw','adjusted','difference','penalty'].map(key=>{
+    if(!row.members.length||!row.members.every(p=>Number.isFinite(p[key])))return null;
+    const total=row.members.reduce((sum,p)=>sum+p[key],0);return Number.isFinite(total)?total:null;
+  });
+}
 
 // These maps follow object identity; only draw order and input signatures are retained.
 const hjViews=new WeakMap(), hjSignatures=new WeakMap();
@@ -223,24 +229,23 @@ function renderTeamHonest(g){
   const st=hjStanding(g), display=hjDisplayStanding(g), ann=!!(g.announced||{}).honestJohn;
   const eligible=st.ready&&st.rows.length>=2, visible=display.ready&&display.rows.length>=2;
   const ev=visible&&ann&&eligible?teamWinPoints(g).events.find(e=>e.key==='honestJohn'):null;
-  const mask='<span class="mask">—</span>';
-  const hero=display.rows.map(r=>{
+  const totalRow=r=>{
     const winner=visible&&r.rank===1;
     const tied=display.rows.filter(x=>x.rank===1).length>1;
     const tag=winner?`<span class="tag ${tied?'tagtie':'tagwin'}">${tied?t('custom.tie'):t('custom.win')}</span>`:'';
     const share=winner&&ev?`<span class="tag">${t('team.winpt')} +${tpShare(ev.w,ev.winners.length)}</span>`:'';
-    return `<span class="rl-st tp-nd tp-ovh"><span class="rl-st-team" style="color:${tmColor(r.t.name)}">${esc(r.t.name)}</span>
-      <span class="rl-st-h">${visible?r.total:mask}</span>
-      ${display.provisional?`<span class="tp-nd-sub">${t('hj.provisional')}</span>`:''}
-      ${visible?`<span class="tp-nd-tagrow">${posBadge(r.rank,winner)}${tag}${share}</span>`:''}</span>`;
-  }).join('');
+    const rank=visible?t('hj.rank',{n:r.rank}):'';
+    const caption=[display.provisional?t('hj.provisional'):'',rank].filter(Boolean).join(' ');
+    return `<tr class="hj-total tsum"><th class="hj-name" scope="row">${esc(r.t.name)} ${t('col.total')}${caption?` <span class="tag">${caption}</span>`:''}</th>`+
+      hjDisplayTotals(r).map((v,i)=>`<td>${v===null?'—':v}${i===4?tag+share:''}</td>`).join('')+'</tr>';
+  };
   const columns=['hj.declared','hj.raw','hj.adjusted','hj.difference','hj.penalty'];
   const heads=columns.map((key,i)=>`<th scope="col">${t(key)}${i>=2&&display.provisional?`<small> ${t('hj.provisional')}</small>`:''}</th>`).join('');
   const rows=display.rows.map(r=>`<tr class="hj-team-head"><th colspan="6" scope="rowgroup" style="color:var(--bg);background:var(--tm-${tmKey(r.t)})">${esc(r.t.name)}</th></tr>`+r.members.map(p=>{
     const person=state.players.find(x=>x.id===p.pid);
     const nums=[p.declared,p.raw,p.adjusted,p.difference,p.penalty];
     return `<tr><th class="hj-name" scope="row">${esc(person.name)}</th>${nums.map(v=>`<td>${v===null?'—':v}</td>`).join('')}</tr>`;
-  }).join('')).join('');
+  }).join('')+totalRow(r)).join('');
   const selected=hjDrawOrder(g), spinning=hjSpin&&hjSpin.game===g;
   const slots=Array.from({length:4},(_,i)=>`<div class="hj-slot"><small>${t('hj.drawNumber',{n:i+1})}</small><strong${spinning&&i>=selected.length?' id="hj-candidate-'+i+'"':''}>${i<selected.length?(selected[i]+1)+'H':spinning?(hjSpin.candidates[i-selected.length]+1)+'H':'—'}</strong></div>`).join('');
   const spinButton=spinning?`<button class="btn hj-spin-button" onclick="hjCommitSpin(${hjSpin.generation},${selected.length})">${t('hj.stop')}</button>`:
@@ -248,8 +253,7 @@ function renderTeamHonest(g){
   const controls=hjCanAnnounce(g)||ann?tpAnnounceUI(g,'honestJohn'):`<button class="btn gray sm" disabled>${t('team.announce')}</button>`;
   const note=!st.rows.length?t('team.emptyTeams'):!st.ready?t('hj.pending'):st.rows.length<2?t('hj.needTeams'):!ann?t('hj.unannounced'):'';
   const statuses=st.rows.flatMap(r=>r.members.map(p=>`<li>${esc(state.players.find(x=>x.id===p.pid).name)}: ${hjStatus(p)}</li>`)).join('');
-  return `<div class="card">${hero?`<div class="rl-standing tp-ovh-wrap">${hero}</div>`:''}
-    <div class="scroll mt10"><table class="hj-table sc2"><thead><tr><th scope="col" class="hj-name">${t('col.player')}</th>${heads}</tr></thead><tbody>${rows}</tbody></table></div>
+  return `<div class="card"><div class="scroll mt10"><table class="hj-table sc2"><thead><tr><th scope="col" class="hj-name">${t('col.player')}</th>${heads}</tr></thead><tbody>${rows}</tbody></table></div>
     <div class="cardtools mt8" style="justify-content:flex-end">${controls}</div>
     <div class="hj-roulette mt10"><div class="row between"><b>${t('hj.drawTitle')}</b><span class="muted">${t('hj.selected',{n:selected.length})}</span></div>
       <div class="hj-slots">${slots}</div><div class="hj-draw-label">${spinButton}<span>${selected.length===4?t('hj.drawComplete'):t('hj.drawGuide')}</span></div></div>

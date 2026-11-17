@@ -84,7 +84,7 @@ assert.deepEqual(writes,['golfCompe_v1'],'Helpers never persist data or display 
 console.log('Honest John regression PASS: arithmetic, strict readiness, independent holes, ties and persistence');
 
 const ui=vm.runInContext(`
-  globalThis.t=(key,values)=>key+(values?JSON.stringify(values):'');
+  globalThis.t=(key,values)=>key==='hj.rank'?values.n+'位':key+(values?JSON.stringify(values):'');
   globalThis.gsSec=(key,title,html)=>html;
   globalThis.tpAnnounceUI=()=>'<button>announce</button>';
   globalThis.tpShare=(w,n)=>String(w/n);
@@ -104,6 +104,10 @@ const ui=vm.runInContext(`
   const grouped=table.includes('hj-team-head')&&table.indexOf('>A</th>')<table.indexOf('>B</th>');
   const noStatusColumn=!table.includes('hj.status')&&!table.includes('hj.missing');
   const plainHeaders=!table.split('</thead>')[0].includes('<button');
+  const sumRows=visibleHtml.split('<tr class="hj-total tsum">').slice(1).map(row=>row.split('</tr>')[0]);
+  const displayedTotals=hjDisplayStanding(x).rows.map(hjDisplayTotals);
+  const explicitRanks=sumRows[0].includes('1位')&&sumRows[1].includes('2位')&&!visibleHtml.includes('rankno');
+  const noHero=!visibleHtml.includes('rl-standing')&&!visibleHtml.includes('rl-st-h');
   const operatorClosed=visibleHtml.includes('<details class="hj-operator mt10">');
   const linkPosition=visibleHtml.indexOf('<button>announce</button>');
   const linkPlacement=linkPosition>visibleHtml.indexOf('</table>')&&linkPosition<visibleHtml.indexOf('class="hj-roulette')&&
@@ -127,7 +131,8 @@ const ui=vm.runInContext(`
   const earlyHtml=renderTeamHonest(pre);
   ({hiddenHtml,settingsHtml,visibleHtml,pendingHtml,allDrawsValid,randomIndependent,excessSafe,
     blankMissing,zeroSaved,invalidRejected,malformedUntouched,cleared,noColumnState,
-    openBeforeAnnounce,announceReady,grouped,noStatusColumn,plainHeaders,operatorClosed,earlyHtml,linkPlacement});
+    openBeforeAnnounce,announceReady,grouped,noStatusColumn,plainHeaders,operatorClosed,earlyHtml,linkPlacement,
+    sumRows,totals:displayedTotals,explicitRanks,noHero});
 `,context);
 assert.ok(ui.hiddenHtml.includes('<td>90</td><td>100</td><td>91</td><td>1</td><td>10</td>'),'All five available values display immediately');
 assert.ok(ui.openBeforeAnnounce.includes('<td>100</td>')&&ui.openBeforeAnnounce.includes('tagwin'),'Comparable results show before formal announcement');
@@ -138,7 +143,10 @@ assert.ok(ui.hiddenHtml.includes('&lt;img')&&ui.settingsHtml.includes('&lt;img')
 assert.ok(ui.visibleHtml.includes('佐藤 長い名前 Full Middle Family &lt;img'),'Full names remain intact');
 assert.ok(ui.earlyHtml.includes('<td>90</td><td>100</td><td>100</td><td>10</td><td>100</td>'),'Every available value displays before drawing four holes');
 for(const key of ['allDrawsValid','randomIndependent','excessSafe','blankMissing','zeroSaved','invalidRejected','malformedUntouched','cleared',
-  'noColumnState','announceReady','grouped','noStatusColumn','plainHeaders','operatorClosed','linkPlacement'])assert.ok(ui[key],key);
+  'noColumnState','announceReady','grouped','noStatusColumn','plainHeaders','operatorClosed','linkPlacement','explicitRanks','noHero'])assert.ok(ui[key],key);
+assert.deepEqual(JSON.parse(JSON.stringify(ui.totals)),[[182,200,182,0,40],[177,200,182,5,50]],'Sum every column independently; opposite differences still retain individual penalties');
+assert.equal(ui.sumRows.length,2);
+assert.ok(ui.sumRows[0].includes('<td>182</td><td>200</td><td>182</td><td>0</td><td>40'),'Team total row contains all five sums');
 assert.ok(writes.every(k=>k==='golfCompe_v1'),'Edits use only the existing data key');
 console.log('Honest John UI regression PASS: always-visible values, plain headers, grouped full names and link placement');
 
@@ -163,19 +171,27 @@ const provisional=vm.runInContext(`(()=>{
   const absent=fixture();absent.honestJohn.hidden.fill(false);delete absent.honestJohn.declarations.a;
   const noDeclaration=hjDisplayPlayer(absent,'a');
   const noDeclaredSafe=noDeclaration.adjusted===100&&noDeclaration.difference===null&&noDeclaration.penalty===null&&!hjDisplayStanding(absent).ready;
+  const declarationOnlyTotals=hjDisplayTotals(hjDisplayStanding(absent).rows[0]);
   delete absent.scores.b;const noScores=hjDisplayPlayer(absent,'b');
   const missingSafe=noScores.adjusted===null&&noScores.penalty===null&&hjDisplayStanding(absent).rows.length===2&&
     hjDisplayStanding(absent).rows[0].members.length===2&&hjDisplayStanding(absent).rows[0].total===null;
+  const scoresOnly=clone(absent);scoresOnly.honestJohn.declarations.a=90;
+  const scoresOnlyTotals=hjDisplayTotals(hjDisplayStanding(scoresOnly).rows[0]);
   absent.honestJohn.hidden.fill(true);const excess=hjDisplayPlayer(absent,'c');
   const excessSafe=excess.adjusted===null&&excess.penalty===null&&!hjDisplayStanding(absent).ready;
+  const missingTotals=hjDisplayStanding(absent).rows.map(hjDisplayTotals);
+  const noRankWhenMissing=!renderTeamHonest(absent).includes('1位')&&!renderTeamHonest(absent).includes('2位');
   absent.honestJohn.hidden=[true];const malformedSafe=hjDisplayPlayer(absent,'c').adjusted===null;
   return {values,totals,labels,pointsBlocked,candidateStable,noDisplayFlags,finalReady,published,inputChangesRecomputed,
-    noDeclaredSafe,missingSafe,excessSafe,malformedSafe};
+    noDeclaredSafe,missingSafe,excessSafe,malformedSafe,missingTotals,noRankWhenMissing,declarationOnlyTotals,scoresOnlyTotals};
 })()`,context);
 assert.deepEqual(JSON.parse(JSON.stringify(provisional.values)),[[100,10,100],[97,7,70],[95,5,50],[93,3,30],[91,1,10]]);
 assert.deepEqual(JSON.parse(JSON.stringify(provisional.totals)),[[180,230],[120,170],[80,130],[40,90],[40,50]]);
 assert.deepEqual(Array.from(provisional.published),[1,0],'Only four confirmed holes plus announcement publish points');
-for(const key of ['noDisplayFlags','finalReady','inputChangesRecomputed','noDeclaredSafe','missingSafe','excessSafe','malformedSafe'])assert.ok(provisional[key],key);
+for(const key of ['noDisplayFlags','finalReady','inputChangesRecomputed','noDeclaredSafe','missingSafe','excessSafe','malformedSafe','noRankWhenMissing'])assert.ok(provisional[key],key);
+assert.deepEqual(Array.from(provisional.missingTotals[0]),[null,null,null,null,null],'Missing individual values leave the corresponding team sums empty');
+assert.deepEqual(Array.from(provisional.declarationOnlyTotals),[null,200,200,null,null],'Missing declaration does not erase valid gross and adjusted totals');
+assert.deepEqual(Array.from(provisional.scoresOnlyTotals),[182,null,null,null,null],'Missing scores do not erase a valid declaration total');
 assert.ok(provisional.labels.every(Boolean)&&provisional.pointsBlocked.every(Boolean)&&provisional.candidateStable.every(Boolean));
 console.log('Honest John provisional regression PASS: confirmed 0–4 arithmetic, input updates, missing data and formal publication gate');
 
@@ -244,11 +260,12 @@ const reset=vm.runInContext(`(()=>{
   }
   g.announced.honestJohn=true;save();const final=hjDisplayStanding(g).rows.map(r=>r.total);
   hjResetDraw();const html=renderTeamHonest(g), display=hjDisplayStanding(g);
+  const sumRows=html.split('<tr class="hj-total tsum">').slice(1).map(row=>row.split('</tr>')[0]);
   return {final,reset:display.rows.map(r=>r.total),adjusted:hjDisplayPlayer(g,'a').adjusted,
     preserved:inputs===JSON.stringify([g.scores,g.honestJohn.declarations])&&!('columns' in hjView(g)),
     cleared:!g.announced.honestJohn&&hjSpin===null&&hjDrawOrder(g).length===0&&g.honestJohn.hidden.every(v=>!v),
-    htmlCorrect:html.includes('>430</span>')&&html.includes('>520</span>')&&html.includes('<td>70</td><td>90</td><td>90</td><td>20</td><td>200</td>')&&
-      !html.includes('>150</span>')&&!html.includes('>160</span>')};
+    htmlCorrect:sumRows[0].includes('<td>430')&&sumRows[1].includes('<td>520')&&html.includes('<td>70</td><td>90</td><td>90</td><td>20</td><td>200</td>')&&
+      sumRows.every(row=>row.includes('hj.provisional'))&&!sumRows.some(row=>row.includes('<td>150')||row.includes('<td>160'))};
 })()`,context);
 assert.deepEqual(Array.from(reset.final),[150,160]);
 assert.deepEqual(Array.from(reset.reset),[430,520],'Reset recalculates every penalty and team total from zero confirmed holes');
@@ -296,7 +313,7 @@ const provenance=vm.runInContext(`(()=>{
   // Before announcement, the lower total belongs to team B; row order must still be A, B.
   g.honestJohn.declarations={a:86,b:86,c:91,d:91};
   const masked=renderTeamHonest(g);
-  const order=masked.indexOf('>A</span>')<masked.indexOf('>B</span>');
+  const order=masked.indexOf('>A</th>')<masked.indexOf('>B</th>');
   return {full,closed,nestedPoints,on:event.on,order,serialized:JSON.stringify(view)};
 })()`,context);
 assert.equal(provenance.full,provenance.closed,'Closed unrelated holes retain announced HJ points');

@@ -69,9 +69,23 @@ function rlAdvance(g){ const R=g.roulette;
 function rlNextHole(){ const g=curGame(); if(!rlCanAdvance(g)){toast(t('toast.useChange'));return;}
   rlMark(g,'next',[]); rlAdvance(g);
   rl.challengeFrom=null; save(); renderResult(); }
-function rlReset(){ if(!confirm(t('confirm.rlReset')))return; const g=curGame(); const R=g.roulette;
+// Inline confirmation also works in embedded previews that block native dialogs.
+// The pending reference is volatile and binds to this exact game, including across imports.
+function rlReset(){ const g=curGame(); if(!g)return;
+  rlStopTimer(); rl.spinTeams=[]; rl.challengeFrom=null; rl.resetPending=g; renderResult(); }
+function rlResetCancel(silent){ rl.resetPending=null; if(!silent)renderResult(); }
+function rlResetApply(){ const g=curGame();
+  if(!g||rl.resetPending!==g||!state.games.includes(g)){rlResetCancel(true);return;}
+  rlStopTimer(); const R=g.roulette;
   R.reps={};R.pool={};R.remChange={};R.remChallenge={};R.cur=0; rTeams(g).forEach(t=>{R.remChange[t.id]=R.changeN;R.remChallenge[t.id]=R.challengeM;});
-  rl.challengeFrom=null; rl.undo=null; rlStopTimer(); rl.spinTeams=[]; save(); renderResult(); }
+  (g.announced=g.announced||{}).roulette=false;
+  rl.resetPending=null; rl.challengeFrom=null; rl.undo=null; rl.spinTeams=[]; save(); renderResult(); }
+function rlResetUI(g){
+  if(rl.resetPending!==g)return '';
+  return `<div class="row mt8" role="group" aria-label="${t('confirm.rlReset')}"><span>${t('confirm.rlReset')}</span>
+    <button class="btn danger sm" onclick="rlResetApply()">${t('rl.resetDo')}</button>
+    <button class="btn gray sm" onclick="rlResetCancel()">${t('btn.cancel')}</button></div>`;
+}
 /* ===== 直前の1操作の取り消し（2026-09-20-roulette-undo.md §5）=====
    逆操作ではなくスナップショット方式: rlDraw の pool リセットやハーフ境界の再付与といった
    「rlNextHole が何を副作用に持つか」を知らずに済み、復元は代入1回＝過去の結果を壊す経路が構造的に無い。
@@ -172,7 +186,7 @@ function renderRouletteParts(g){
     // §7.3: 18H終了後も「1ホール戻す」を出す（ここは現状 rlReset=18H全消し しか戻す手段が無い＝被害が最大のケース）
     const undoBtn=rlUndoBtn(g);
     return {head:`<div class="rlwrap">
-      <div class="card rl-play">${standRow}<div class="rl-head">${undoBtn}<button class="btn gray sm"${undoBtn?'':' style="margin-left:auto"'} onclick="rlReset()">${t('btn.reset')}</button>${tpAnnounceUI(g,'roulette',true)}</div></div></div>`,
+      <div class="card rl-play">${standRow}<div class="rl-head">${undoBtn}<button class="btn gray sm"${undoBtn?'':' style="margin-left:auto"'} onclick="rlReset()">${t('btn.reset')}</button>${tpAnnounceUI(g,'roulette',true)}</div>${rlResetUI(g)}</div></div>`,
       body:`<div class="rlwrap">${rlScorecard(g)}</div>`};
   }
 
@@ -228,6 +242,7 @@ function renderRouletteParts(g){
         ${holeRes}
         ${rl.challengeFrom?`<span class="muted">${t('rl.pickOpp')} <button class="btn gray sm" onclick="rlCancelChallenge()">${t('btn.cancel')}</button></span>`:''}
         ${undoBtn}<button class="btn gray sm"${undoBtn?'':' style="margin-left:auto"'} onclick="rlReset()">${t('btn.reset')}</button>${tpAnnounceUI(g,'roulette',true)}</div>
+      ${rlResetUI(g)}
       <div class="rl-panels">${panels}</div>
       <div class="rl-ctrl">
         <div class="rl-info">${(!rl.spinning&&drawn)?holeInfo:'&nbsp;'}</div>

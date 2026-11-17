@@ -800,5 +800,6 @@
   .hj-operator{color:var(--sub);font-size:var(--f-small);margin-top:8px}
   .hj-operator summary{cursor:pointer}
   .hj-table.sc2 tbody th.hj-name{border-bottom:1px solid var(--line);background:var(--card);color:var(--ink)}
+  .hj-table.sc2 .hj-total>th,.hj-table.sc2 .hj-total>td{background:var(--surface-1);font-size:inherit;font-weight:var(--w-bold);border-bottom:1px solid var(--line)}
   .hj-draw-label{text-align:center}
   .hj-draw-label span{margin-left:8px}

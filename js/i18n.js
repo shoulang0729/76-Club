@@ -2,6 +2,8 @@
 /* 言語は golfCompe_lang に永続化（golfCompe_v1 とは分離）。計算・データモデルには一切介入しない。 */
 const I18N = {
 ja: {
+  "rl.resetDo":"リセットする",
+  "hj.rank":"{n}位",
   "hj.provisional":"暫定",
   "hj.drawNumber":"{n}つ目",
   "hj.drawTitle":"4ホール抽選",
@@ -301,6 +303,8 @@ ja: {
   'confirm.delRefRep':'ルーレット代表 {n}ホール','confirm.delRefPrize':'ニアピン/ドラコン受賞 {n}件','confirm.delRefM1':'1 on 1 {n}試合',
 },
 zh: {
+  "rl.resetDo":"确认重置",
+  "hj.rank":"第{n}名",
   "hj.provisional":"暂定",
   "hj.drawNumber":"第{n}个",
   "hj.drawTitle":"抽取4个球洞",
@@ -591,6 +595,8 @@ zh: {
   'confirm.delRefRep':'轮盘代表 {n}洞','confirm.delRefPrize':'近洞/远洞获奖 {n}项','confirm.delRefM1':'1 on 1 {n}场',
 },
 en: {
+  "rl.resetDo":"Reset now",
+  "hj.rank":"Rank {n}",
   "hj.provisional":"Provisional",
   "hj.drawNumber":"Draw {n}",
   "hj.drawTitle":"Four-hole draw",
