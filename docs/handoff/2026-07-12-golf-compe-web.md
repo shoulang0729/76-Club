@@ -45,6 +45,8 @@ src/app.js          # タブ切替 / render() エントリ
 
 ## 3. 計算仕様（★正本・ロジックを変えないこと）
 
+**2026-11-17 追補**：複合サイドのホール別 every 後平均（丸めなし・複合試合は全員個人m1配点なし）、大学対抗の任意 `common36` 上限、独立4穴をpar置換するオネストジョンの計算・成立条件は [東商イベント対応 §2–§4](2026-11-17-tosho-event-support.md) を正とする。旧1v1・既存大学対抗の既定計算は維持。
+
 すべて `src/calc.js` の純粋関数として持つ。`par[i]`（0..17）、`scores[pid][i]`（打数 or null）、`hidden[i]`（真偽・隠しホール）を入力にとる。
 
 ### 3.1 ダブルペリア（新ペリア）ネットHDCP
@@ -102,6 +104,8 @@ net(pid)      = effGross(pid) − periaHdcp(pid)     # ← ネット個人戦。
 ---
 
 ## 4. データモデル（Phase 1・localStorage `golfCompe_v1`）
+
+**2026-11-17 追補**：pair side の `pid | [pid,pid]`、`univ.capMode`（既定standard）、`honestJohn:{hidden:boolean[18],declarations:{pid:number}}` と採用/発表/種目重み、および後方互換移行は [東商イベント対応 §1](2026-11-17-tosho-event-support.md) を参照。既存保存キーは不変。
 
 ```jsonc
 {
