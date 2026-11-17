@@ -70,12 +70,12 @@ function hjDisplayStanding(g){
   return {rows,ready,count,provisional:count!==null&&count<4};
 }
 
-// These maps follow object identity; imported/reloaded games use the column defaults.
+// These maps follow object identity; only draw order and input signatures are retained.
 const hjViews=new WeakMap(), hjSignatures=new WeakMap();
 let hjSpin=null, hjSpinGeneration=0;
 function hjView(g){
   g=hjRawGame(g);
-  if(!hjViews.has(g))hjViews.set(g,{columns:[false,false,false,true,true],order:[]});
+  if(!hjViews.has(g))hjViews.set(g,{order:[]});
   if(!hjSignatures.has(g))hjSignatures.set(g,hjSignature(g,state));
   return hjViews.get(g);
 }
@@ -105,12 +105,7 @@ function hjBeforeSave(s){
   });
 }
 function hjCanAnnounce(g){ g=hjRawGame(g); const st=hjStanding(g);
-  return st.ready&&st.rows.length>=2&&hjView(g).columns[4]; }
-function hjToggleColumn(index){
-  const g=curGame(); if(!g||!Number.isInteger(index)||index<0||index>4)return;
-  const view=hjView(g);
-  view.columns[index]=!view.columns[index]; renderResult();
-}
+  return st.ready&&st.rows.length>=2; }
 function hjDrawOrder(g){
   const view=hjView(g), selected=hjHiddenShape(g)?g.honestJohn.hidden.flatMap((v,i)=>v?[i]:[]):[];
   view.order=view.order.filter(i=>selected.includes(i));
@@ -225,8 +220,8 @@ function hjStatus(p){
 }
 function renderTeamHonest(g){
   g=hjRawGame(g);
-  const st=hjStanding(g), display=hjDisplayStanding(g), view=hjView(g), ann=!!(g.announced||{}).honestJohn;
-  const eligible=st.ready&&st.rows.length>=2, visible=display.ready&&display.rows.length>=2&&view.columns[4];
+  const st=hjStanding(g), display=hjDisplayStanding(g), ann=!!(g.announced||{}).honestJohn;
+  const eligible=st.ready&&st.rows.length>=2, visible=display.ready&&display.rows.length>=2;
   const ev=visible&&ann&&eligible?teamWinPoints(g).events.find(e=>e.key==='honestJohn'):null;
   const mask='<span class="mask">—</span>';
   const hero=display.rows.map(r=>{
@@ -240,11 +235,11 @@ function renderTeamHonest(g){
       ${visible?`<span class="tp-nd-tagrow">${posBadge(r.rank,winner)}${tag}${share}</span>`:''}</span>`;
   }).join('');
   const columns=['hj.declared','hj.raw','hj.adjusted','hj.difference','hj.penalty'];
-  const heads=columns.map((key,i)=>`<th scope="col">${t(key)}${i>=2&&display.provisional?`<small> ${t('hj.provisional')}</small>`:''}<button class="btn sec sm hj-column-open" aria-pressed="${view.columns[i]}" onclick="hjToggleColumn(${i})">${view.columns[i]?t('hj.closeColumn'):t('hj.openColumn')}</button></th>`).join('');
+  const heads=columns.map((key,i)=>`<th scope="col">${t(key)}${i>=2&&display.provisional?`<small> ${t('hj.provisional')}</small>`:''}</th>`).join('');
   const rows=display.rows.map(r=>`<tr class="hj-team-head"><th colspan="6" scope="rowgroup" style="color:var(--bg);background:var(--tm-${tmKey(r.t)})">${esc(r.t.name)}</th></tr>`+r.members.map(p=>{
     const person=state.players.find(x=>x.id===p.pid);
     const nums=[p.declared,p.raw,p.adjusted,p.difference,p.penalty];
-    return `<tr><th class="hj-name" scope="row">${esc(person.name)}</th>${nums.map((v,i)=>`<td>${view.columns[i]?(v===null?'—':v):mask}</td>`).join('')}</tr>`;
+    return `<tr><th class="hj-name" scope="row">${esc(person.name)}</th>${nums.map(v=>`<td>${v===null?'—':v}</td>`).join('')}</tr>`;
   }).join('')).join('');
   const selected=hjDrawOrder(g), spinning=hjSpin&&hjSpin.game===g;
   const slots=Array.from({length:4},(_,i)=>`<div class="hj-slot"><small>${t('hj.drawNumber',{n:i+1})}</small><strong${spinning&&i>=selected.length?' id="hj-candidate-'+i+'"':''}>${i<selected.length?(selected[i]+1)+'H':spinning?(hjSpin.candidates[i-selected.length]+1)+'H':'—'}</strong></div>`).join('');

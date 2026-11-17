@@ -3,8 +3,6 @@
 const I18N = {
 ja: {
   "hj.provisional":"暫定",
-  "hj.openColumn":"開く",
-  "hj.closeColumn":"閉じる",
   "hj.drawNumber":"{n}つ目",
   "hj.drawTitle":"4ホール抽選",
   "hj.start":"START",
@@ -41,7 +39,7 @@ ja: {
   "hj.pending":"正式連携には正しい4穴と、対象全員の申告・生スコア18Hが必要です。暫定値は確定済みの穴だけで計算し、不足者を除外したチーム合計は出しません。",
   "hj.needTeams":"実在する参加メンバーがいるチームを2チーム以上登録してください。",
   "hj.unannounced":"結果を確認して連携すると、チーム総合と帳票に反映します。",
-  "hj.rule":"各参加者が18Hの合計を申告し、確定済みの隠し穴の実打をパーへ置換します。0穴なら実打合計のまま、STOPで1穴確定するたびに再計算します。換算後合計−申告の差が正なら1打につき10点、負なら1打につき30点、ぴったりなら0点です。エブリ・DPハンデ・ダブルパーカットは適用しません。各チームの参加メンバー全員のペナルティ合計が少ないチームが勝ち、同点は種目の勝ち点を山分けします。個人ポイントへ直接加減しません。4穴未満の数値・順位は暫定です。全員の生スコア18Hと申告がそろえば、連携前にもチーム結果を表示します。不足者を除外したりスコアを推測したりしません。5列は抽選前から個別に開閉でき、差・ペナルティは初期状態で表示します。ペナルティ列を閉じるとチーム結果も伏せます。対象2チーム以上、有効な4穴とパー、全員の申告と18Hがそろい、連携した後だけ総合勝ち点と帳票へ算入します。入力・所属・抽選の変更は連携を取り消し、列の開閉状態は維持します。",
+  "hj.rule":"各参加者が18Hの合計を申告し、確定済みの隠し穴の実打をパーへ置換します。0穴なら実打合計のまま、STOPで1穴確定するたびに再計算します。換算後合計−申告の差が正なら1打につき10点、負なら1打につき30点、ぴったりなら0点です。エブリ・DPハンデ・ダブルパーカットは適用しません。各チームの参加メンバー全員のペナルティ合計が少ないチームが勝ち、同点は種目の勝ち点を山分けします。個人ポイントへ直接加減しません。4穴未満の数値・順位は暫定です。全員の生スコア18Hと申告がそろえば、連携前にもチーム結果を表示します。不足者を除外したりスコアを推測したりしません。申告・実打・換算後・差・ペナルティは抽選前から常時表示します。対象2チーム以上、有効な4穴とパー、全員の申告と18Hがそろい、連携した後だけ総合勝ち点と帳票へ算入します。入力・所属・抽選の変更は連携を取り消し、表示値を再計算します。",
   "univ.capLabel":"大学対抗のHDCP上限",
   "univ.capStandard":"男性36・女性40",
   "univ.capCommon":"男女とも36",
@@ -304,8 +302,6 @@ ja: {
 },
 zh: {
   "hj.provisional":"暂定",
-  "hj.openColumn":"展开",
-  "hj.closeColumn":"隐藏",
   "hj.drawNumber":"第{n}个",
   "hj.drawTitle":"抽取4个球洞",
   "hj.start":"START",
@@ -342,7 +338,7 @@ zh: {
   "hj.pending":"正式同步需要有效的4个球洞及所有计分成员的申报和18洞原始杆数。暂定成绩只使用已确认的球洞，不排除未完成者后计算团队总分。",
   "hj.needTeams":"请至少登记2支有真实参赛成员的队伍。",
   "hj.unannounced":"确认并同步结果后，将计入团队总排名和报表。",
-  "hj.rule":"每位参赛者申报18洞总杆，将已确认隐藏洞的原始杆数替换为标准杆。0洞时使用原始总杆，每次STOP确认一个球洞后重新计算。替换后总杆减去申报值，差值为正时每杆罚10分，为负时每杆罚30分，相同则为0分。不使用Every、双倍贝利亚差点或双倍标准杆封顶。合计每队所有参赛成员的罚分，最低的队伍获胜，平局平分本项目胜点。不直接增减个人积分。不足4洞的数值和排名均为暂定；全员18洞原始杆数与申报齐全时，同步前也显示团队结果。不排除未完成者或推算缺失杆数。5列在抽取前即可独立展开或隐藏，差值和罚分默认展开。隐藏罚分列也隐藏团队结果。至少2支队伍、有效的4洞和标准杆、全员申报及18洞原始杆数齐全，并正式同步后，才计入团队胜点和报表。修改输入、成员或抽签会取消同步，但保留各列的展开或隐藏状态。",
+  "hj.rule":"每位参赛者申报18洞总杆，将已确认隐藏洞的原始杆数替换为标准杆。0洞时使用原始总杆，每次STOP确认一个球洞后重新计算。替换后总杆减去申报值，差值为正时每杆罚10分，为负时每杆罚30分，相同则为0分。不使用Every、双倍贝利亚差点或双倍标准杆封顶。合计每队所有参赛成员的罚分，最低的队伍获胜，平局平分本项目胜点。不直接增减个人积分。不足4洞的数值和排名均为暂定；全员18洞原始杆数与申报齐全时，同步前也显示团队结果。不排除未完成者或推算缺失杆数。申报、原始总杆、替换后、差值和罚分从抽签前起始终显示。至少2支队伍、有效的4洞和标准杆、全员申报及18洞原始杆数齐全，并正式同步后，才计入团队胜点和报表。修改输入、成员或抽签会取消同步并重新计算显示值。",
   "univ.capLabel":"大学对抗差点上限",
   "univ.capStandard":"男性36・女性40",
   "univ.capCommon":"男女均36",
@@ -596,8 +592,6 @@ zh: {
 },
 en: {
   "hj.provisional":"Provisional",
-  "hj.openColumn":"Open",
-  "hj.closeColumn":"Close",
   "hj.drawNumber":"Draw {n}",
   "hj.drawTitle":"Four-hole draw",
   "hj.start":"START",
@@ -634,7 +628,7 @@ en: {
   "hj.pending":"Formal linking requires four valid holes plus every team member’s declaration and 18 raw scores. Provisional values use confirmed holes only; incomplete players are never omitted from team totals.",
   "hj.needTeams":"Register at least two teams with real participating members.",
   "hj.unannounced":"Check and link the results to include them in team standings and reports.",
-  "hj.rule":"Each participant declares an 18-hole total. Replace the raw scores on confirmed hidden holes with their pars. With zero holes, use the raw gross; recalculate after each STOP confirms a hole. Subtract the declaration from this adjusted total: each stroke above costs 10 penalty points, each stroke below costs 30, and an exact match costs zero. Every allowances, Double Peoria handicap and double-par caps do not apply. Sum every participating team member’s penalties; the lowest team total wins, with ties splitting this event’s win points. Penalties do not directly change individual points. Values and ranks before four confirmed holes are provisional. Team results can appear before linking when every member has 18 raw scores and a declaration. Missing players are never excluded and missing scores are never estimated. All five columns can be toggled before drawing; difference and penalty start open. Closing penalty also masks the team result. Only at least two complete teams, four valid holes and pars, and formal linking allow results into overall win points and reports. Changes to inputs, membership or the draw cancel linking while preserving column choices.",
+  "hj.rule":"Each participant declares an 18-hole total. Replace the raw scores on confirmed hidden holes with their pars. With zero holes, use the raw gross; recalculate after each STOP confirms a hole. Subtract the declaration from this adjusted total: each stroke above costs 10 penalty points, each stroke below costs 30, and an exact match costs zero. Every allowances, Double Peoria handicap and double-par caps do not apply. Sum every participating team member’s penalties; the lowest team total wins, with ties splitting this event’s win points. Penalties do not directly change individual points. Values and ranks before four confirmed holes are provisional. Team results can appear before linking when every member has 18 raw scores and a declaration. Missing players are never excluded and missing scores are never estimated. All five columns remain visible before and during the draw. Only at least two complete teams, four valid holes and pars, and formal linking allow results into overall win points and reports. Changes to inputs, membership or the draw cancel linking and recalculate the displayed values.",
   "univ.capLabel":"University handicap cap",
   "univ.capStandard":"Men 36, women 40",
   "univ.capCommon":"Everyone 36",
