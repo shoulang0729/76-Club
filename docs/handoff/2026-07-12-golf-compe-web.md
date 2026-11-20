@@ -45,6 +45,8 @@ src/app.js          # タブ切替 / render() エントリ
 
 ## 3. 計算仕様（★正本・ロジックを変えないこと）
 
+**2026-11-20 追補**：オネストジョンの大学別勝敗は保存方式に従い合計または全参加人数で割った未丸め平均を比較する。旧データは合計を維持し、新規は平均。計算・暫定順位・総合・帳票の契約は [HJ大学別平均 §2–§4](2026-11-20-honest-john-team-average.md) が正。
+
 **2026-11-17 追補**：複合サイドのホール別 every 後平均（丸めなし・複合試合は全員個人m1配点なし）、大学対抗の任意 `common36` 上限、独立4穴をpar置換するオネストジョンの計算・成立条件は [東商イベント対応 §2–§4](2026-11-17-tosho-event-support.md) を正とする。旧1v1・既存大学対抗の既定計算は維持。
 
 すべて `src/calc.js` の純粋関数として持つ。`par[i]`（0..17）、`scores[pid][i]`（打数 or null）、`hidden[i]`（真偽・隠しホール）を入力にとる。
@@ -104,6 +106,8 @@ net(pid)      = effGross(pid) − periaHdcp(pid)     # ← ネット個人戦。
 ---
 
 ## 4. データモデル（Phase 1・localStorage `golfCompe_v1`）
+
+**2026-11-20 追補**：`honestJohn.teamScoreMode:'sum'|'avg'` を追加。旧ゲームの欠落／未知値はsum、新規はavg、明示値・複製元方式は保持。[HJ大学別平均 §1](2026-11-20-honest-john-team-average.md) を参照。
 
 **2026-11-17 追補**：pair side の `pid | [pid,pid]`、`univ.capMode`（既定standard）、`honestJohn:{hidden:boolean[18],declarations:{pid:number}}` と採用/発表/種目重み、および後方互換移行は [東商イベント対応 §1](2026-11-17-tosho-event-support.md) を参照。既存保存キーは不変。
 
