@@ -80,6 +80,7 @@ const TP_EV_LABEL={teamGross:'term.teamGross',teamNet:'term.teamNet',univMatch:'
 /* 種目ラベル（任意対決だけユーザー入力名を優先・§11.21）。名前が空なら i18n 既定（term.custom）にフォールバック。
    ユーザー入力は esc() 必須（辞書文字列と違い HTML が混ざり得る） */
 function tpEvLabel(g,key){ const nm=(key==='customMatch')?(((g&&g.custom&&g.custom.name)||'').trim()):'';
+  if(key==='honestJohn'&&hjTeamScoreMode(g)==='avg')return t('term.honestJohn')+' ('+t('col.avg')+')';
   return nm? esc(nm) : t(TP_EV_LABEL[key]||key); }
 /* 種目別勝ち点表の行順（#87 指示③）＝チーム戦下段タブの生成順（resGameTabs grp='team'・総合を除く）:
    nd→gross→net→univ→hbh→b2→vegas→m1→roulette。タブ生成順を変えるときは本配列も同期させる */
@@ -96,6 +97,7 @@ const TP_EV_ORDER=['niadora','teamGross','teamNet','univMatch','holeByHole','bes
 const TP_EV_UNIT={holeByHole:'H',vegas:'H',roulette:'H',match1v1:'W',univMatch:'#'};   // 言語非依存のリテラル略号（NP/DC/G と同じ規律＝i18n キー追加なし・§3.2）
 /* 種目ラベルの生名（esc 前）。tpEvLabel は esc 済みを返すので、辞書文字列を二重エスケープしないよう別関数にする */
 function tpEvLabelRaw(g,key){ const nm=(key==='customMatch')?(((g&&g.custom&&g.custom.name)||'').trim()):'';
+  if(key==='honestJohn'&&hjTeamScoreMode(g)==='avg')return t('term.honestJohn')+' ('+t('col.avg')+')';
   return nm? nm : t(TP_EV_LABEL[key]||key); }
 /* 実値の表示書式（§3.2）: 小数1桁に丸め・整数は小数点なし（teamNet は calc 側で丸め済み＝再丸めしても不変） */
 function tpEvVal(v){ return String(Math.round(v*10)/10); }
@@ -120,7 +122,7 @@ function tpShareModel(g){
         if(ev.vals[i]==null) return {state:'none',val:'',unit:'',unitPre:false,pts:''};   // 種目の対象外＝—
         const win=ev.winners.includes(i);
         return {state: win?(ev.winners.length>1?'tie':'win'):'lose',
-          val:tpEvVal(ev.vals[i]), unit:TP_EV_UNIT[ev.key]||'', unitPre:ev.key==='univMatch',   // 順位（#1）だけ略号が前
+          val:ev.key==='honestJohn'&&hjTeamScoreMode(g)==='avg'?hjFmtNumber(ev.vals[i],true):tpEvVal(ev.vals[i]), unit:TP_EV_UNIT[ev.key]||'', unitPre:ev.key==='univMatch',   // 順位（#1）だけ略号が前
           pts: win? '+'+tpShare(ev.w,ev.winners.length) : ''};   // 勝ち点は勝ち/山分けのみ（文字併記＝色だけに頼らない・§11.14-2）
       }) }));
   return {meta:{name:g.name||'',date:g.date||'',course:g.course||''},

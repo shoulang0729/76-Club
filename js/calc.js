@@ -377,7 +377,7 @@ function teamWinPoints(g){
   // 任意対決（§11.21）：幹事入力ポイントの最大が勝ち（同点は山分け）。全未入力/入力1チームは add の live<2 で不成立
   if(F.customMatch) add('customMatch', teams.map(t=>customPts(g,t)),'desc');
   if(F.honestJohn){ const hj=hjStanding(hjRawGame(g));
-    if(hj.ready && hj.rows.length>=2) add('honestJohn',teams.map(t=>{const r=hj.rows.find(x=>x.t.id===t.id);return r?r.total:null;}),'asc');
+    if(hj.ready && hj.rows.length>=2) add('honestJohn',teams.map(t=>{const r=hj.rows.find(x=>x.t.id===t.id);return r?r.value:null;}),'asc');
     else events.push({key:'honestJohn',winners:[],vals:teams.map(()=>null),on:false,w:wOf('honestJohn')});
   }
   return {teams,wins,events};

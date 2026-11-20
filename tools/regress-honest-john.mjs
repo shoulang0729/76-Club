@@ -20,7 +20,7 @@ const result=vm.runInContext(`
   const fixture=()=>{ const g=newGame();
     g.participants=['a','b','c','d','solo'];
     g.teams=[{id:'A',name:'A',memberIds:['a','b','ghost']},{id:'B',name:'B',memberIds:['c','d']},{id:'ghost',name:'Ghost',memberIds:['ghost']}];
-    g.honestJohn=newHonestJohn(); g.honestJohn.hidden=g.honestJohn.hidden.map((_,i)=>i<4);
+    g.honestJohn=newHonestJohn();g.honestJohn.teamScoreMode='sum'; g.honestJohn.hidden=g.honestJohn.hidden.map((_,i)=>i<4);
     g.par=Array(18).fill(4); g.hidden=Array(18).fill(true);
     // raw100 - hidden25 + par16 = actual91.
     g.scores=Object.fromEntries(g.participants.map(pid=>[pid,[7,6,6,6,...Array(13).fill(5),10]]));
@@ -104,7 +104,7 @@ const ui=vm.runInContext(`
   const grouped=table.includes('hj-team-head')&&table.indexOf('>A</th>')<table.indexOf('>B</th>');
   const noStatusColumn=!table.includes('hj.status')&&!table.includes('hj.missing');
   const plainHeaders=!table.split('</thead>')[0].includes('<button');
-  const sumRows=visibleHtml.split(/<tr class="hj-total tsum"[^>]*>/).slice(1).map(row=>row.split('</tr>')[0]);
+  const sumRows=visibleHtml.split(/<tr class="hj-total tsum(?: hj-selected)?"[^>]*>/).slice(1).map(row=>row.split('</tr>')[0]);
   const displayedTotals=hjDisplayStanding(x).rows.map(hjDisplayTotals);
   const explicitRanks=sumRows[0].includes('1位')&&sumRows[1].includes('2位')&&!visibleHtml.includes('rankno');
   const noHero=!visibleHtml.includes('rl-standing')&&!visibleHtml.includes('rl-st-h');
@@ -260,7 +260,7 @@ const reset=vm.runInContext(`(()=>{
   }
   g.announced.honestJohn=true;save();const final=hjDisplayStanding(g).rows.map(r=>r.total);
   hjResetDraw();const html=renderTeamHonest(g), display=hjDisplayStanding(g);
-  const sumRows=html.split(/<tr class="hj-total tsum"[^>]*>/).slice(1).map(row=>row.split('</tr>')[0]);
+  const sumRows=html.split(/<tr class="hj-total tsum(?: hj-selected)?"[^>]*>/).slice(1).map(row=>row.split('</tr>')[0]);
   return {final,reset:display.rows.map(r=>r.total),adjusted:hjDisplayPlayer(g,'a').adjusted,
     preserved:inputs===JSON.stringify([g.scores,g.honestJohn.declarations])&&!('columns' in hjView(g)),
     cleared:!g.announced.honestJohn&&hjSpin===null&&hjDrawOrder(g).length===0&&g.honestJohn.hidden.every(v=>!v),

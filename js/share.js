@@ -45,6 +45,7 @@ function sheetColRows(n){ return n>16 ? Math.ceil(n/2) : n; }
    未連携（幹事がまだ連携を押していない）種目は行を持たない＝描かない。種目別勝ち点表の ？ 行が結論を兼ねる（§3） */
 function sheetDetOn(d){ return !!(d && d.on && d.rows && d.rows.length); }
 function sheetUvLines(d){ return d.rows.reduce((a,r)=> a + 1 + r.members.length, 0); }
+function sheetHjLines(d){ return d.rows.length+(d.mode==='avg'?(d.teams||[]).length*3:0); }
 
 /* ============ 本体: 結果表を1枚の PNG に描く ============
    drawSheet(M)             → {W,H,k,bytes,url}   bytes=PNG の生バイト（同期で作る・§7.2）
@@ -71,7 +72,7 @@ function drawSheet(M, opt){
   if(sheetDetOn(D.m1))     add('det:m1',     SL.SECT + SL.HEAD + SL.ROW*D.m1.rows.length + SL.GAP);
   if(sheetDetOn(D.univ))   add('det:univ',   SL.SECT + SL.HEAD + SL.SCROW*sheetUvLines(D.univ) + SL.GAP);
   if(sheetDetOn(D.custom)) add('det:custom', SL.SECT + SL.HEAD + SL.ROW*D.custom.rows.length + SL.GAP);
-  if(sheetDetOn(D.honestJohn)) add('det:honestJohn', SL.SECT + SL.HEAD + SL.ROW*D.honestJohn.rows.length + SL.GAP);
+  if(sheetDetOn(D.honestJohn)) add('det:honestJohn', SL.SECT + SL.HEAD + SL.ROW*sheetHjLines(D.honestJohn) + SL.GAP);
   add('pay', SL.SECT + SL.HEAD + SL.ROW*sheetColRows(M.pay.rows.length) + SL.GAP);
   add('foot', 40);
   H += SL.PAD;
@@ -254,6 +255,25 @@ function drawSheet(M, opt){
         line(ry+SL.ROW); ry+=SL.ROW; });
 
     } else if(S.id==='det:honestJohn'){
+      const d=M.det.honestJohn;
+      if(d.mode==='avg'){
+        sectTitle(t('term.honestJohn')+' ('+t('hj.modeAvg')+')',y);
+        let ry=y+SL.SECT;
+        const widths=[0.30,0.14,0.14,0.15,0.12,0.15];
+        const labels=[t('col.player'),t('hj.declared'),t('hj.raw'),t('hj.adjusted'),t('hj.difference'),t('hj.penalty')];
+        const drawRow=(values,bold=false)=>{let x=SL.PAD;
+          widths.forEach((w,i)=>{txt(clip(String(values[i]),f(bold?700:500,20),CW*w-16),x+8,ry+SL.ROW/2,
+            f(bold?700:500,20),bold?C['--strong']:C['--ink']);x+=CW*w;});line(ry+SL.ROW);ry+=SL.ROW;};
+        headBand(ry);let cx=SL.PAD;
+        widths.forEach((w,i)=>{txt(clip(labels[i],f(700,18),CW*w-16),cx+8,ry+SL.HEAD/2,f(700,18),C['--sub']);cx+=CW*w;});ry+=SL.HEAD;
+        (d.teams||[]).forEach(team=>{
+          drawRow([team.name+' ('+t('game.partsCard')+': '+team.count+')','','','','',''],true);
+          d.rows.filter(row=>row.teamId===team.teamId).forEach(row=>
+            drawRow([row.name,row.declared,row.raw,row.adjusted,row.difference,row.penalty]));
+          drawRow([t('col.total'),...team.totals.map(value=>value===null?'—':String(value))],true);
+          drawRow([t('col.avg')+' '+t('hj.rank',{n:team.rank}),...team.averages.map(value=>value===null?'—':value.toFixed(2))],true);
+        });
+      } else {
       sectTitle(t('term.honestJohn'),y);
       let ry=y+SL.SECT;
       const widths=[0.27,0.14,0.17,0.19,0.23], labels=[t('col.player'),t('hj.declared'),t('hj.adjusted'),t('hj.difference'),t('hj.penalty')];
@@ -265,6 +285,7 @@ function drawSheet(M, opt){
         widths.forEach((w,i)=>{txt(clip(String(vals[i]),f(i===4?700:500,20),CW*w-16),x+8,ry+SL.ROW/2,f(i===4?700:500,20),i===4?C['--strong']:C['--ink']);x+=CW*w;});
         line(ry+SL.ROW);ry+=SL.ROW;
       });
+      }
     } else if(S.id==='pay'){
       /* ポイント配分（§2 #6）: 全員分・17行以上は2段組。¥ 列は原資がある（pool>0）ときだけ */
       sectTitle(t('result.sub.pts'), y);
