@@ -159,9 +159,7 @@ function rlScorecard(g){
     <div class="in"><div class="scroll"><table class="sc2 rlsc">${cg}${head}${parRow}${body}</table></div></div></details>`;
 }
 
-/* 返り値 {head, body}（2026-08-20-roulette-standings.md §5・renderMatch1v1Parts と同型）。
-   head=抽選カード一式（card rl-play）＝.result-sticky に同居して固定・body=スコア表＋開発者メニュー＝スクロール領域。
-   ガード（rl.need2）は {head:'', body:空状態カード}＝空状態は固定しない */
+/* head は抽選または結果のカード、body はスコア表と開発者メニュー。どちらも固定のタブ列の下に描画する。 */
 function renderRouletteParts(g){
   const teams=rTeams(g);
   // 空状態カードの <h2> は廃止＝タイトルはゲームタブ名（result.sub.roulette）が兼ねる（heading-unify §3.2）

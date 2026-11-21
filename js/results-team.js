@@ -1,6 +1,6 @@
 /* ============================ RESULTS: チーム戦（js/results.js から分割・挙動不変） ============================ */
 /* チーム戦グループ（§5.2）: key ごとに 当該対抗カード（上）＋チーム別スコア表（下・グロス/ネット/HBH のみ）。
-   'm1'/'roulette' は renderResult 側で renderMatch1v1Parts / renderRouletteParts を直接使う（sticky 同居 D15・roulette-standings §5）。
+   'm1'/'roulette' は renderResult 側で renderMatch1v1Parts / renderRouletteParts を直接使う。1 on 1 の操作バーは固定、ルーレットのカードは本文内。
    総合=①チーム総合カード＋②種目別勝ち点表の2つのみ（スコア表なし・winpoints-reveal 要件A）、nd=ニアドラ・ヒーローカード（team-points §6.2①③・配置=regroup §6） */
 function renderTeamGame(g, g0, parts, key){
   const teams=teamsOf(g);
