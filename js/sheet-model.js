@@ -152,10 +152,20 @@ function sheetModel(g){
   if(det.univ&&uvCapMode(g)==='common36') det.univ.capMode='common36';
   if(chFormats(g).honestJohn){
     const st=hjStanding(g), on=!!(g.announced||{}).honestJohn&&st.ready&&st.rows.length>=2;
+    const average=hjTeamScoreMode(g)==='avg';
     det.honestJohn={on,pending:!on,rows:on?st.rows.flatMap(r=>r.members.map(p=>({
+      ...(average?{teamId:r.t.id}:{}),
       team:r.t.name,name:(state.players.find(x=>x.id===p.pid)||{}).name||'',
       declared:p.declared,raw:p.raw,adjusted:p.adjusted,difference:p.difference,penalty:p.penalty,total:r.total
     }))):[]};
+    if(average){
+      const order=new Map(teamsOf(g).map((team,i)=>[team.id,i]));
+      const rows=st.rows.slice().sort((a,b)=>order.get(a.t.id)-order.get(b.t.id));
+      det.honestJohn.mode='avg';
+      det.honestJohn.teams=on?rows.map(r=>({teamId:r.t.id,name:r.t.name,count:r.count,
+        total:r.total,average:r.average,value:r.value,rank:r.rank,totals:hjDisplayTotals(r),averages:hjDisplayAverages(r)})):[];
+      if(on)det.honestJohn.rows.sort((a,b)=>order.get(a.teamId)-order.get(b.teamId));
+    }
   }
   return {
     meta:{ name:g.name||'', date:g.date||'', course:g.course||'', n:parts.length,

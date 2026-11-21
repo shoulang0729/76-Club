@@ -1,6 +1,8 @@
 /* Honest John: independent raw-score calculation; no display state is persisted.
    Contract: docs/handoff/2026-11-17-tosho-event-support.md §4. */
-function newHonestJohn(){ return {hidden:Array(18).fill(false),declarations:{}}; }
+function newHonestJohn(){ return {hidden:Array(18).fill(false),declarations:{},teamScoreMode:'avg'}; }
+function hjTeamScoreMode(g){ return g.honestJohn&&g.honestJohn.teamScoreMode==='avg'?'avg':'sum'; }
+function hjFmtNumber(value,average=false){ return Number.isFinite(value)?(average?value.toFixed(2):String(value)):'—'; }
 // View provenance is volatile: HJ is revealed by its own announcement, not other events' hole controls.
 const hjViewSources=new WeakMap();
 function hjRawGame(g){ return hjViewSources.get(g)||g; }
@@ -26,16 +28,19 @@ function hjPlayer(g,pid){
   return {pid,valid:ready,ready,pending:!ready,scoresValid,hiddenValid,parValid,
     raw,adjusted,declared,difference,penalty:ready?penalty:null};
 }
+function hjTeamRow(g,t,members){
+  const count=members.length, complete=count>0&&members.every(p=>p.valid);
+  const sum=complete?members.reduce((sum,p)=>sum+p.penalty,0):null;
+  const total=Number.isFinite(sum)?sum:null, average=total!==null&&count?total/count:null;
+  const value=hjTeamScoreMode(g)==='avg'?average:total;
+  return {t,members,count,ready:complete&&Number.isFinite(value),total,average,value,rank:null};
+}
 function hjStanding(g){
-  const rows=teamsOf(g).map(t=>{
-    const members=teamMembers(g,t).map(pid=>hjPlayer(g,pid));
-    const ready=members.every(p=>p.valid), total=ready?members.reduce((s,p)=>s+p.penalty,0):null;
-    return {t,members,ready:ready&&Number.isFinite(total),total:Number.isFinite(total)?total:null,rank:null};
-  });
+  const rows=teamsOf(g).map(t=>hjTeamRow(g,t,teamMembers(g,t).map(pid=>hjPlayer(g,pid))));
   const ready=rows.length>0&&rows.every(r=>r.ready);
   if(ready){
-    rows.sort((a,b)=>a.total-b.total);
-    rows.forEach((r,i)=>{ r.rank=i&&r.total===rows[i-1].total?rows[i-1].rank:i+1; });
+    rows.sort((a,b)=>a.value-b.value);
+    rows.forEach((r,i)=>{ r.rank=i&&r.value===rows[i-1].value?rows[i-1].rank:i+1; });
   }
   return {rows,ready};
 }
@@ -57,15 +62,10 @@ function hjDisplayPlayer(g,pid){
     ready,valid:ready,pending:!ready,provisional:selectionValid&&count<4,count};
 }
 function hjDisplayStanding(g){
-  const rows=teamsOf(g).map(t=>{
-    const members=teamMembers(g,t).map(pid=>hjDisplayPlayer(g,pid));
-    const complete=members.every(p=>p.ready), sum=complete?members.reduce((sum,p)=>sum+p.penalty,0):null;
-    const total=Number.isFinite(sum)?sum:null;
-    return {t,members,ready:complete&&total!==null,total,rank:null};
-  });
+  const rows=teamsOf(g).map(t=>hjTeamRow(g,t,teamMembers(g,t).map(pid=>hjDisplayPlayer(g,pid))));
   const ready=rows.length>0&&rows.every(r=>r.ready);
-  if(ready){const ranked=rows.slice().sort((a,b)=>a.total-b.total);
-    ranked.forEach((r,i)=>{r.rank=i&&r.total===ranked[i-1].total?ranked[i-1].rank:i+1;});}
+  if(ready){const ranked=rows.slice().sort((a,b)=>a.value-b.value);
+    ranked.forEach((r,i)=>{r.rank=i&&r.value===ranked[i-1].value?ranked[i-1].rank:i+1;});}
   const count=hjHiddenShape(g)?g.honestJohn.hidden.filter(Boolean).length:null;
   return {rows,ready,count,provisional:count!==null&&count<4};
 }
@@ -75,6 +75,7 @@ function hjDisplayTotals(row){
     const total=row.members.reduce((sum,p)=>sum+p[key],0);return Number.isFinite(total)?total:null;
   });
 }
+function hjDisplayAverages(row){ return hjDisplayTotals(row).map(value=>value===null||!row.count?null:value/row.count); }
 
 // These maps follow object identity; only draw order and input signatures are retained.
 const hjViews=new WeakMap(), hjSignatures=new WeakMap();
@@ -87,7 +88,7 @@ function hjView(g){
 }
 function hjSignature(g,s){
   const h=g.honestJohn||{};
-  const data=[g.scores,g.par,h.declarations,h.hidden,g.participants,
+  const data=[g.scores,g.par,h.declarations,h.hidden,hjTeamScoreMode(g),g.participants,
     (g.teams||[]).map(t=>[t.id,t.memberIds]),
     (g.participants||[]).map(id=>[id,(s.players||[]).some(p=>p.id===id)])];
   return JSON.stringify(data,(k,v)=>{
@@ -170,11 +171,17 @@ function hjResetDraw(){ hjStopSpin(); hjClearHidden(); }
 
 /* Only explicit edits repair malformed settings; calculation/rendering never do. */
 function hjEditData(g){
-  if(!g.honestJohn||typeof g.honestJohn!=='object'||Array.isArray(g.honestJohn))g.honestJohn=newHonestJohn();
+  if(!g.honestJohn||typeof g.honestJohn!=='object'||Array.isArray(g.honestJohn)){
+    const mode=hjTeamScoreMode(g);g.honestJohn=newHonestJohn();g.honestJohn.teamScoreMode=mode;
+  }
   if(!g.honestJohn.declarations||typeof g.honestJohn.declarations!=='object'||Array.isArray(g.honestJohn.declarations))g.honestJohn.declarations={};
   return g.honestJohn;
 }
 function hjChanged(){ const g=curGame(); hjInvalidate(g); save(); render(); }
+function hjSetTeamScoreMode(mode){
+  const g=curGame();if(!g||!['sum','avg'].includes(mode)||hjTeamScoreMode(g)===mode)return;
+  hjEditData(g).teamScoreMode=mode;hjStopSpin();hjChanged();
+}
 function hjSetHidden(i,on){
   const g=curGame(); if(!g||!Number.isInteger(i)||i<0||i>=18)return;
   if(!hjHiddenShape(g)){ toast(t('hj.chooseFour')); renderBasic(); return; }
@@ -209,12 +216,15 @@ function hjDeclarationsHtml(g){
 function hjSettingsHtml(g){
   const h=hjHiddenShape(g)?g.honestJohn.hidden:Array(18).fill(false);
   const count=h.filter(Boolean).length;
-  return gsSec('honestJohn',t('term.honestJohn'),`<div class="muted">${t('hj.hiddenNote')}</div>
+  const mode=hjTeamScoreMode(g);
+  return gsSec('honestJohn',t('term.honestJohn'),`<label class="fl">${t('hj.teamScoreMode')}</label>
+    <select onchange="hjSetTeamScoreMode(this.value)"><option value="avg" ${mode==='avg'?'selected':''}>${t('hj.modeAvg')}</option><option value="sum" ${mode==='sum'?'selected':''}>${t('hj.modeSum')}</option></select>
+    <div class="muted mt6">${t('hj.modeNote')}</div><div class="muted mt8">${t('hj.hiddenNote')}</div>
     <div class="row mt6"><button class="btn sec sm" onclick="hjRandomHidden()">${t('hj.randomFour')}</button>
       <button class="btn gray sm" onclick="hjClearHidden()">${t('btn.clear')}</button><span class="tag">${t('hj.selected',{n:count})}</span></div>
     <div class="fmtgrid mt8">${h.map((v,i)=>`<label><input type="checkbox" ${v?'checked':''} onchange="hjSetHidden(${i},this.checked)"> ${i+1}</label>`).join('')}</div>
     ${hjHiddenValid(g)?'':`<div class="muted mt6" style="color:var(--red)">${t('hj.chooseFour')}</div>`}
-    ${hjDeclarationsHtml(g)}<div class="muted mt8">${t('hj.rule')}</div>`);
+    ${hjDeclarationsHtml(g)}<div class="muted mt8">${t('hj.rule',{mode:t(mode==='avg'?'hj.modeAvg':'hj.modeSum')})}</div>`);
 }
 function hjStatus(p){
   const issues=[];
@@ -229,15 +239,16 @@ function renderTeamHonest(g){
   const st=hjStanding(g), display=hjDisplayStanding(g), ann=!!(g.announced||{}).honestJohn;
   const eligible=st.ready&&st.rows.length>=2, visible=display.ready&&display.rows.length>=2;
   const ev=visible&&ann&&eligible?teamWinPoints(g).events.find(e=>e.key==='honestJohn'):null;
-  const totalRow=r=>{
-    const winner=visible&&r.rank===1;
+  const mode=hjTeamScoreMode(g);
+  const totalRow=(r,average)=>{
+    const selected=average===(mode==='avg'), winner=selected&&visible&&r.rank===1;
     const tied=display.rows.filter(x=>x.rank===1).length>1;
     const tag=winner?`<span class="tag ${tied?'tagtie':'tagwin'}">${tied?t('custom.tie'):t('custom.win')}</span>`:'';
     const share=winner&&ev?`<span class="tag">${t('team.winpt')} +${tpShare(ev.w,ev.winners.length)}</span>`:'';
-    const rank=visible?t('hj.rank',{n:r.rank}):'';
+    const rank=selected&&visible?t('hj.rank',{n:r.rank}):'';
     const caption=[display.provisional?t('hj.provisional'):'',rank].filter(Boolean).join(' ');
-    return `<tr class="hj-total tsum" style="--hj-total-bg:var(--tm-${tmKey(r.t)}-bg)"><th class="hj-name" scope="row">${esc(r.t.name)} ${t('col.total')}${caption?` <span class="tag">${caption}</span>`:''}</th>`+
-      hjDisplayTotals(r).map((v,i)=>`<td>${v===null?'—':v}${i===4?tag+share:''}</td>`).join('')+'</tr>';
+    return `<tr class="${average?'hj-average':'hj-total'} tsum${selected?' hj-selected':''}" style="--hj-total-bg:var(--tm-${tmKey(r.t)}-bg)"><th class="hj-name" scope="row">${esc(r.t.name)} ${t(average?'col.avg':'col.total')}${average?` <small>${t('game.partsCard')}: ${r.count}</small>`:''}${caption?` <span class="tag">${caption}</span>`:''}</th>`+
+      (average?hjDisplayAverages(r):hjDisplayTotals(r)).map((v,i)=>`<td>${hjFmtNumber(v,average)}${i===4?tag+share:''}</td>`).join('')+'</tr>';
   };
   const columns=['hj.declared','hj.raw','hj.adjusted','hj.difference','hj.penalty'];
   const heads=columns.map(key=>`<th scope="col">${t(key)}</th>`).join('');
@@ -245,7 +256,7 @@ function renderTeamHonest(g){
     const person=state.players.find(x=>x.id===p.pid);
     const nums=[p.declared,p.raw,p.adjusted,p.difference,p.penalty];
     return `<tr><th class="hj-name" scope="row">${esc(person.name)}</th>${nums.map(v=>`<td>${v===null?'—':v}</td>`).join('')}</tr>`;
-  }).join('')+totalRow(r)).join('');
+  }).join('')+totalRow(r,false)+totalRow(r,true)).join('');
   const selected=hjDrawOrder(g), spinning=hjSpin&&hjSpin.game===g;
   const slots=Array.from({length:4},(_,i)=>`<div class="hj-slot"><small>${t('hj.drawNumber',{n:i+1})}</small><strong${spinning&&i>=selected.length?' id="hj-candidate-'+i+'"':''}>${i<selected.length?(selected[i]+1)+'H':spinning?(hjSpin.candidates[i-selected.length]+1)+'H':'—'}</strong></div>`).join('');
   const spinButton=spinning?`<button class="btn hj-spin-button" onclick="hjCommitSpin(${hjSpin.generation},${selected.length})">${t('hj.stop')}</button>`:
@@ -260,6 +271,6 @@ function renderTeamHonest(g){
     <details class="hj-operator mt10"><summary>${t('hj.operator')}</summary><div class="in"><b>${t('hj.status')}</b>
       ${note?`<div class="muted mt8">${note}</div>`:''}<ul>${statuses}</ul>
       <div class="cardtools"><button class="btn gray sm" onclick="hjResetDraw()">${t('hj.resetDraw')}</button></div></div></details>
-    <details class="mt10"><summary>${t('rule.summary')}</summary><div class="in">${t('hj.rule')}</div></details></div>`;
+    <details class="mt10"><summary>${t('rule.summary')}</summary><div class="in">${t('hj.rule',{mode:t(mode==='avg'?'hj.modeAvg':'hj.modeSum')})}</div></details></div>`;
 }
 if(typeof state!=='undefined')hjBeforeSave(state);
