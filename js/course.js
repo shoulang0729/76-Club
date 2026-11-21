@@ -45,27 +45,206 @@ function setNpdc(h,v){ const P=curGame().prizes;
   if(v==='auto') delete P.npdcOverride[h]; else P.npdcOverride[h]=v;   // 自動＝キーを削除（§4.1）
   save(); render(); }
 function resetNpdc(){ curGame().prizes.npdcOverride={}; save(); render(); }   // 上書きを全破棄＝2026-08-20 と同じ状態
-function toggleHidden(i){ const g=curGame(); g.hidden[i]=!g.hidden[i]; save(); document.getElementById('hidCount').textContent=g.hidden.filter(Boolean).length; }
+function toggleHidden(i){
+  const g=curGame(), hidden=g.hidden.slice();
+  hidden[i]=!hidden[i]; setManualHidden(g,hidden);
+  const count=document.getElementById('hidCount');
+  if(count) count.textContent=hidden.filter(Boolean).length;
+}
 /* 隠し12H＝前後半×パー帯で層化抽選: 各半分(1-9H/10-18H)から Par3×1・Par5×1・Par4×4 の計6ずつ。
    帯分類は par===3→P3 / par===4→P4 / par>=5→P5（Par6はP5扱い）/ par<3→未設定U。
    非標準コースは各帯 min(quota,n) でクリップし、不足は同じ半分の P4残→P5残→P3残→U 順に無作為補充して必ず各半6。
    シャッフルは Fisher–Yates（一様）。sort(()=>Math.random()-0.5) は非一様で Par4 帯内に偏りが出るため使わない
    （2026-08-20-hidden12-balance.md rev.2 §R2。true は常にちょうど12個・標準par72 の隠しPar合計は48） */
-function pickHidden12(par){
-  const shuf=a=>{ a=a.slice(); for(let i=a.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [a[i],a[j]]=[a[j],a[i]]; } return a; };
-  const pick=(arr,n)=>shuf(arr).slice(0,Math.max(0,n));
-  const hidden=Array(18).fill(false);
-  [0,9].forEach(s=>{
-    const p3=[],p4=[],p5=[],u=[];
-    for(let i=s;i<s+9;i++){ const p=par[i]; (p===3?p3:p===4?p4:p>=5?p5:u).push(i); }
-    const sel=[...pick(p3,Math.min(1,p3.length)), ...pick(p5,Math.min(1,p5.length)), ...pick(p4,Math.min(4,p4.length))];
-    [p4,p5,p3,u].forEach(grp=>{ pick(grp,grp.length).forEach(i=>{ if(sel.length<6 && !sel.includes(i)) sel.push(i); }); });
-    sel.forEach(i=>hidden[i]=true);
-  });
-  return hidden;
+function hidden12Sample(holes,n){
+  for(let i=0;i<n;i++){
+    const j=i+Math.floor(Math.random()*(holes.length-i));
+    [holes[i],holes[j]]=[holes[j],holes[i]];
+  }
+  return holes.slice(0,n);
 }
-function randomHidden(){ const g=curGame(); g.hidden=pickHidden12(g.par); save(); renderCourse(); }
-function clearHidden(){ curGame().hidden=Array(18).fill(false); save(); renderCourse(); }
+function hidden12Frame(par,order){
+  const picked=new Set(order);
+  return [0,9].flatMap(start=>{
+    const fixed=order.filter(i=>i>=start&&i<start+9);
+    const candidates=hidden12Groups(par,start).flatMap(b=>{
+      const available=b.holes.filter(i=>!picked.has(i));
+      return hidden12Sample(available,b.count-(b.holes.length-available.length));
+    });
+    return fixed.concat(candidates);
+  });
+}
+function pickHidden12(par){
+  const holes=new Set(hidden12Frame(par,[]));
+  return Array.from({length:18},(_,i)=>holes.has(i));
+}
+function setManualHidden(g,hidden){
+  hidden12StopSpin();
+  hidden12BeforeSave(state);
+  delete g.hidden12Draw;
+  g.hidden=hidden;
+  save();
+}
+function randomHidden(){ const g=curGame(); setManualHidden(g,pickHidden12(g.par)); renderCourse(); }
+function clearHidden(){ setManualHidden(curGame(),Array(18).fill(false)); renderCourse(); }
+
+/* 大学対抗で行う共通隠し12H抽選。回転中の枠と開閉はメモリだけに置く。 */
+let hidden12Spin=null, hidden12Generation=0, hidden12Game=null, hidden12Open=false;
+const hidden12SavedHoles=new WeakMap();
+function hidden12Signature(g){
+  const ref=g.courseRef?HIDDEN12_REF_KEYS.map(k=>g.courseRef[k]):null;
+  return JSON.stringify([g.hidden,g.par,ref,Object.hasOwn(g,'hidden12Draw'),g.hidden12Draw]);
+}
+function hidden12BeforeSave(s){
+  const spin=hidden12Spin;
+  if(spin && (s.currentGameId!==spin.game.id || !s.games.includes(spin.game) ||
+    hidden12Signature(spin.game)!==spin.signature)) hidden12StopSpin();
+  (s.games||[]).forEach(g=>{
+    const holes=Array.isArray(g.hidden)?g.hidden.map(Boolean).join(','):'';
+    if(hidden12SavedHoles.has(g) && hidden12SavedHoles.get(g)!==holes){
+      const a=g.announced=g.announced||{};
+      a.univMatch=false; a.teamNet=false;
+    }
+    hidden12SavedHoles.set(g,holes);
+  });
+}
+if(typeof state!=='undefined') hidden12BeforeSave(state);
+
+function hidden12Details(){ return document.getElementById('hidden12Roulette'); }
+function hidden12OnScreen(g,card=hidden12Details()){
+  return !!(card&&card.open&&hidden12Game===g&&curGame()===g&&!document.hidden&&
+    activeTab==='result'&&resGrp==='team'&&resGame.team==='univ'&&chFormats(g).univMatch);
+}
+function hidden12Toggle(card){
+  if(card!==hidden12Details()) return;
+  hidden12Open=card.open;
+  if(!card.open) hidden12StopSpin();
+}
+function hidden12StopSpin(){
+  const spin=hidden12Spin;
+  if(!spin) return;
+  clearTimeout(spin.timer);
+  hidden12Spin=null;
+  const card=hidden12Details();
+  if(card&&hidden12Game===spin.game){
+    const view=hidden12View(spin.game);
+    card.querySelector('summary').innerHTML=hidden12Summary(view);
+    card.querySelector('.h12-grid').innerHTML=hidden12Slots(spin.game,view.order,null);
+    card.querySelector('.h12-controls').innerHTML=hidden12Controls(view.status,null);
+  }
+}
+function hidden12SpinCurrent(spin){
+  return hidden12Spin===spin && hidden12OnScreen(spin.game) && hidden12Signature(spin.game)===spin.signature;
+}
+function hidden12Tick(spin){
+  if(hidden12Spin!==spin) return;
+  if(!hidden12SpinCurrent(spin)){ hidden12StopSpin(); return; }
+  const g=spin.game, order=g.hidden12Draw.order, card=hidden12Details();
+  spin.frame=hidden12Frame(g.par,order);
+  card.querySelector('.h12-grid').innerHTML=hidden12Slots(g,order,spin.frame);
+  card.querySelector('.h12-stop').setAttribute('aria-disabled',Date.now()<spin.readyAt);
+  spin.timer=setTimeout(()=>hidden12Tick(spin),100);
+}
+function hidden12ResetData(g){
+  // 未保存のコンペでも、置換前の隠しホールを記録する。
+  hidden12BeforeSave(state);
+  const ref=g.courseRef;
+  g.hidden=Array(18).fill(false);
+  g.hidden12Draw={version:1,order:[],sourcePar:g.par.slice(),
+    sourceCourseRef:ref?{courseId:ref.courseId,outId:ref.outId,inId:ref.inId}:null};
+  save();
+}
+function hidden12Start(button){
+  const g=curGame(), card=hidden12Details();
+  if(!hidden12OnScreen(g,card)||!card.contains(button)||hidden12Spin) return;
+  const status=hidden12Status(g);
+  if(status.active&&(!status.valid||status.complete)) return;
+  if(!status.active) hidden12ResetData(g);
+  if(!hidden12Status(g).valid){ renderResult(); return; }
+  const order=g.hidden12Draw.order;
+  const spin={game:g, generation:++hidden12Generation, signature:hidden12Signature(g),
+    frame:hidden12Frame(g.par,order), timer:null, readyAt:0};
+  hidden12Spin=spin;
+  hidden12Open=true;
+  renderResult();
+  spin.timer=setTimeout(()=>hidden12Tick(spin),100);
+}
+function hidden12CommitSpin(generation,step){
+  const spin=hidden12Spin;
+  if(!spin||spin.generation!==generation) return;
+  if(!hidden12SpinCurrent(spin)){ hidden12StopSpin(); renderResult(); return; }
+  const g=spin.game, order=g.hidden12Draw.order;
+  if(step!==order.length||Date.now()<spin.readyAt) return;
+  const hole=spin.frame.find(i=>!g.hidden[i]);
+  if(hole===undefined) return;
+  const keepFocus=hidden12Details().querySelector('.h12-stop')===document.activeElement;
+  order.push(hole); g.hidden[hole]=true; spin.signature=hidden12Signature(g);
+  spin.readyAt=Date.now()+250;
+  save();
+  if(order.length===12) hidden12StopSpin();
+  renderResult();
+  if(keepFocus){
+    const stop=hidden12Details()?.querySelector('.h12-stop');
+    if(stop) stop.focus({preventScroll:true});
+  }
+}
+function hidden12Reset(button){
+  const g=curGame(), card=hidden12Details();
+  if(!hidden12OnScreen(g,card)||!card.contains(button)||!hidden12Status(g).active) return;
+  hidden12StopSpin();
+  hidden12ResetData(g);
+  renderResult();
+}
+function hidden12View(g){
+  const status=hidden12Status(g), draw=g.hidden12Draw;
+  const changed=status.active&&!status.valid&&draw&&hidden12Status({
+    ...g, par:draw.sourcePar, courseRef:draw.sourceCourseRef
+  }).valid;
+  return {status,changed,order:status.valid||changed?draw.order:[]};
+}
+function hidden12Slots(g,order,frame){
+  const link=clibLinked(g), fixed=new Set(order);
+  const next=frame?.find(i=>!fixed.has(i));
+  return [0,9].map((start,side)=>{
+    const half=side?'IN':'OUT';
+    const nine=link?clibNineLabel(link.c,side?link.i:link.o):'';
+    const title=esc(nine?half+' '+nine:half);
+    const holes=frame?frame.slice(side*6,side*6+6):order.filter(i=>i>=start&&i<start+9);
+    const slots=Array.from({length:6},(_,i)=>{
+      const h=holes[i], cls=fixed.has(h)?' fixed':h===undefined?'':' spinning'+(h===next?' next':'');
+      const label=h===undefined?'—':nine?title+(h-start+1):title+' '+(h+1);
+      return `<div class="h12-slot${cls}"><strong class="h12-hole">${label}</strong>
+        <small class="h12-par">${h===undefined?'':'Par '+esc(String(g.par[h]??''))}</small></div>`;
+    }).join('');
+    return `<div class="h12-line"><div class="h12-label">${title}</div>${slots}</div>`;
+  }).join('');
+}
+function hidden12Controls(status,spin){
+  const start=status.active?(status.count?t('h12.resume'):t('h12.start')):status.count?t('h12.replace'):t('h12.start');
+  const main=spin
+    ? `<button class="btn gold sm h12-stop" aria-disabled="${Date.now()<spin.readyAt}" onclick="hidden12CommitSpin(${spin.generation},${status.count})">${t('h12.stop')}</button>`
+    : status.active&&(!status.valid||status.complete)?'':`<button class="btn gold sm" onclick="hidden12Start(this)">${start}</button>`;
+  const reset=status.active?`<button class="btn gray sm" onclick="hidden12Reset(this)">${t('h12.reset')}</button>`:'';
+  return main+reset;
+}
+function hidden12Summary({status,changed}){
+  const statusText=status.active&&!status.valid ? (changed?t('h12.sourceChanged'):t('h12.invalid'))
+    : status.complete?t('status.fixed'):status.active?t('h12.progress',{n:status.count}):'';
+  const tag=statusText?`<span class="tag h12-summary-status${status.complete?'':' tagtie'}">${statusText}</span>`:'';
+  return t('h12.title')+' '+tag;
+}
+function renderHidden12Roulette(g){
+  if(hidden12Game!==g){ hidden12StopSpin(); hidden12Game=g; hidden12Open=false; }
+  if(hidden12Spin&&hidden12Signature(g)!==hidden12Spin.signature) hidden12StopSpin();
+  const view=hidden12View(g), {status,order}=view, spin=hidden12Spin;
+  return `<details id="hidden12Roulette" class="card h12-roulette"${hidden12Open?' open':''} ontoggle="hidden12Toggle(this)">
+    <summary>${hidden12Summary(view)}</summary><div class="in">
+      <div class="muted h12-note">${t('h12.note')}</div>
+      <div class="h12-grid">${hidden12Slots(g,order,spin?.frame)}</div>
+      <div class="cardtools h12-controls">${hidden12Controls(status,spin)}</div>
+      ${status.active?`<div class="muted h12-note">${t('h12.resetConfirm')}</div>`:''}
+    </div></details>`;
+}
 /* コース設定のホール表（§11.12 D）: 狭幅は OUT(1-9)/IN(10-18) の2段、iPad/PC は18列1段。
    合計列は区間で決まる（前半=OUT小計 / 後半=IN小計＋合計、1段時は合計のみ＝従来どおり）。 */
 function courseGrid(g,s,e){

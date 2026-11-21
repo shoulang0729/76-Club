@@ -43,8 +43,10 @@ function togglePzSet(s){ const g=curGame(); if(!g||prizeSetCount(g)<s) return;  
   const F=pzFlags(g,s); if(!F.length) return;
   const toOpen=F.some(([h,ss])=>pzMasked(h,ss));                  // 1本でも伏せ → 全開ける
   F.forEach(([h,ss])=>pzSetMasked(h,ss,!toOpen)); renderResult(); }
-function setResGrp(grp){ if(typeof hjStopSpin==='function')hjStopSpin(); if(!(grp==='team'&&resGame.team==='roulette')) rlStopTimer(); if(!(grp==='team'&&resGame.team==='m1')) m1AutoStop(); resGrp=grp; renderResult(); }
+function setResGrp(grp){ if(typeof hjStopSpin==='function')hjStopSpin(); if(!(grp==='team'&&resGame.team==='roulette')) rlStopTimer(); if(!(grp==='team'&&resGame.team==='m1')) m1AutoStop();
+  if(grp!==resGrp&&typeof hidden12StopSpin==='function')hidden12StopSpin(); resGrp=grp; renderResult(); }
 function setResGame(k){ if(typeof hjStopSpin==='function')hjStopSpin(); if(k!=='roulette') rlStopTimer(); if(k!=='m1') m1AutoStop();
+  if(k!==resGame[resGrp]&&typeof hidden12StopSpin==='function')hidden12StopSpin();
   resGame[resGrp]=k;
   if(resGrp==='ind' && (k==='gross'||k==='net')) scSortInd=k;                       // §3 D8: スコア表の並べ替え自動追従
   if(resGrp==='team'&& (k==='gross'||k==='net'||k==='hbh')) scSortTeam=k;           // §3 D8
@@ -101,11 +103,12 @@ function resetHoles(){ revealHoles=0; renderResult(); }
 
 function renderResult(){
   const el=document.getElementById('view-result'); const g0=curGame();
-  if(!g0){ el.innerHTML=`<div class="empty">${t('result.noGame')}</div>`; return; }
+  if(!g0){ if(typeof hidden12StopSpin==='function')hidden12StopSpin(); el.innerHTML=`<div class="empty">${t('result.noGame')}</div>`; return; }
   const parts=g0.participants.filter(pid=>state.players.find(x=>x.id===pid));
-  if(!parts.length){ el.innerHTML=`<div class="empty">${t('result.noParts')}</div>`; return; }
+  if(!parts.length){ if(typeof hidden12StopSpin==='function')hidden12StopSpin(); el.innerHTML=`<div class="empty">${t('result.noParts')}</div>`; return; }
   const tabs=resGameTabs(resGrp,g0);
   if(tabs.length && !tabs.some(([k])=>k===resGame[resGrp])) resGame[resGrp]=tabs[0][0];   // タブ消失（形式OFF・α切替）→グループ先頭へフォールバック
+  if((resGrp!=='team'||resGame.team!=='univ')&&typeof hidden12StopSpin==='function')hidden12StopSpin();
   const g=viewGame(g0);   // 開封済みホールのみ反映
   let body, stickyHead='';
   if(resGrp==='pts') body=renderStanding(g, parts);
@@ -128,6 +131,12 @@ function renderResult(){
 }
 // 当該ゲーム1件のルール解説（D12: 全ルール一括 details を廃止し、各タブ末尾に1行だけ）
 function ruleBox(key,params){ return `<details class="mt10"><summary>${t('rule.summary')}</summary><div class="in"><div class="rule">${t(key,params)}</div></div></details>`; }
+function hidden12ProvisionalTag(g){
+  const s=hidden12Status(g);
+  if(!s.provisional) return '';
+  const label=s.valid&&s.count===0?t('h12.before')+' · '+t('h12.provisional'):t('h12.provisional');
+  return `<span class="tag tagtie">${label}</span>`;
+}
 
 // 配分タブ
 /* #87 指示⑦→2026-08-30 指示③: チーム設定のあるゲームでは (a)選手名の左に「チーム」列（チームカラーでチーム名・未所属は空。
@@ -149,7 +158,7 @@ function renderStanding(g, parts){
     ${prows.map((r,i)=>{const p=state.players.find(x=>x.id===r.pid);
       return `<tr class="rank ${i===0&&r.pt>0?'rank1':''}"><td>${r.pt>0?(i+1):'-'}</td>${tmCell(r.pid)}<td class="tal">${esc(p.name)}</td><td><b>${r.pt}</b>pt</td>${pool?`<td><b>¥${r.yen.toLocaleString()}</b></td>`:''}</tr>`}).join('')}
     </table>
-    <div class="cardtools mt8">${statusBadge(g)}</div></div>`;
+    <div class="cardtools mt8">${hidden12ProvisionalTag(g)||statusBadge(g)}</div></div>`;
   if(!hasTeams) return main + sheetImgBox(g);   // 結果表画像の details（§8。チーム設定なしでも出す）
   // (b) チーム別合計: 個人行（prows）の合算のみ。未所属はポイント/配分額が付いたときだけ行を出す
   const agg=new Map();
@@ -176,25 +185,33 @@ function sheetImgToggle(open){ sheetImgOpen=open; }
    設計は「連携トグル / ゲーム切替 / スコア保存で破棄」と列挙しているが、同じ結果をこの1本で満たせる
    （各操作は必ず再描画を通るので、キーが変わった瞬間にプレビューが消える）＝他モジュールに手を入れない。 */
 function sheetImgSig(g){ return JSON.stringify([g, state.players.map(p=>[p.id,p.name])]); }
+function sheetImgPublishSig(){
+  const g=curGame(); if(!g) return null;
+  if(!hidden12CanPublish(g)){ toast(t('h12.exportBlocked')); return null; }
+  return sheetImgSig(g);
+}
 /* 画像モデルの合成（js/share.js の sheetImgMake から呼ばれる。ボタンを押した瞬間にだけ計算する）。
    ★生ゲーム（curGame()）を渡す＝viewGame を通さない（開封途中でも18ホール全部を描く・§3） */
 function sheetImgInput(){
-  const g=curGame(); if(!g) return null;
+  const sig=sheetImgPublishSig(); if(!sig) return null;
+  const g=curGame();
   const M=Object.assign({}, sheetModel(g), {tp: g.teams.length? tpShareModel(g): null});
-  return {model:M, sig:sheetImgSig(g)};
+  return {model:M, sig};
 }
 /* 配分タブ最下部の details（既定=閉）。4段構え＝常設注記・未連携警告・作成ボタン・必ずプレビュー（§3/§8） */
 function sheetImgBox(g){
   const S=sheetImgFresh(sheetImgSig(g));                     // 元データが変わっていたらプレビューは捨てる
+  const blocked=!hidden12CanPublish(g);
   const tp=g.teams.length? tpShareModel(g): null;
   const pend=tp? (tp.prog.N-tp.prog.n): 0;
-  const warn=pend? `<div class="mt6" style="color:var(--red)">${t('img.warnPending',{n:pend})}<span class="tag tagtie">${t('team.annProg',{n:tp.prog.n,N:tp.prog.N})}</span></div>`:'';
-  const prev=S? `<img class="sheet-prev mt8" src="${S.url}" alt="">
+  const warn=blocked? `<div class="mt6" style="color:var(--red)">${t('h12.exportBlocked')}</div>`
+    : pend? `<div class="mt6" style="color:var(--red)">${t('img.warnPending',{n:pend})}<span class="tag tagtie">${t('team.annProg',{n:tp.prog.n,N:tp.prog.N})}</span></div>`:'';
+  const prev=S&&!blocked? `<img class="sheet-prev mt8" src="${S.url}" alt="">
     <div class="muted mt6">${t('img.hint',{w:S.w,h:S.h})}${S.k<1?' ・ '+t('img.scaled'):''}</div>
     <div class="cardtools mt8"><button class="btn sec sm" onclick="sheetImgSave()">${t('img.save')}</button></div>`:'';
   return `<details class="mt10"${sheetImgOpen?' open':''} ontoggle="sheetImgToggle(this.open)"><summary>${t('img.title')}</summary><div class="in">
     <div class="muted">${t('img.note')}</div>${warn}
-    <div class="cardtools mt8"><button class="btn gold sm" onclick="sheetImgMake()">${t('img.make')}</button></div>
+    <div class="cardtools mt8"><button class="btn gold sm" onclick="sheetImgMake()"${blocked?' disabled':''}>${t('img.make')}</button></div>
     ${prev}</div></details>`;
 }
 
@@ -227,13 +244,13 @@ function renderIndGame(g, parts, key){
        18H全開かつ全員18H入力済みなら periaProv=false＝タグも注記も出ない（確定表示は従来どおり） */
     /* 開封数の併記は「まだ開けていないから暫定」のときだけ。全開なのに暫定＝未入力の選手が居るケース
        （設計 §3.6 の A案）で「暫定HD 18/18H」と出ると矛盾して読めるので、その場合は数字を出さない */
-    const provTag = periaProv(g,parts)
-      ? `<span class="tag tagtie">${t('hd.prov')}${revealHoles<18?' '+revealHoles+'/18H':''}</span>` : '';
+    const provTag = hidden12ProvisionalTag(g) || (periaProv(g,parts)
+      ? `<span class="tag tagtie">${t('hd.prov')}${revealHoles<18?' '+revealHoles+'/18H':''}</span>` : '');
     card=rankCardNS(provTag, parts, pid=>netScore(g,pid), 'asc', v=>v, 'net', hl); rule='rule.net'; }
   else if(key==='stb'){ card=leaderboard('', parts, pid=>stablefordPts(g,pid), 'desc', v=>v+'pt', 'stb'); rule='rule.stableford'; }
   else if(key==='oly'){ card=leaderboard('', parts, pid=>olympicPts(g,pid), 'desc', v=>v+'pt', 'oly'); rule='rule.olympic'; }
   else if(key==='cal'){ card=leaderboard('', parts, pid=>callawayNet(g,pid),'asc',v=>v,'cal'); rule='rule.callaway'; }
-  else if(key==='nas'){ card=leaderboard('', parts, pid=>nassauTotalNet(g,pid),'asc',v=>v,'nas'); rule='rule.nassau'; }
+  else if(key==='nas'){ card=leaderboard(hidden12ProvisionalTag(g), parts, pid=>nassauTotalNet(g,pid),'asc',v=>v,'nas'); rule='rule.nassau'; }
   return `<div class="rank-wrap">${card}</div>` + renderScorecard(g,parts,null) + ruleBox(rule);
 }
 
@@ -439,7 +456,7 @@ function renderScorecard(g, parts, teams, deco){
       <span class="tgl ${show.totals?'on':'off'}" onclick="toggleShow('totals')">${t('sc.totalsTgl')} ${show.totals?t('btn.show'):t('btn.hide')}</span>
     </div>
     <table class="sc2${uvSel?' uvsc':''}">${SC_COLGROUP}${head}${parRow}${body}</table>
-    <div class="muted">${note} ${t('sc.noteCols')}${n<18?t('sc.noteOpen'):''}${periaProv(g,parts)?' '+t('sc.noteProvHd'):''}</div>
+    <div class="muted">${note} ${t('sc.noteCols')}${n<18?t('sc.noteOpen'):''}${!hidden12CanPublish(g)?' '+t('h12.provisional'):periaProv(g,parts)?' '+t('sc.noteProvHd'):''}</div>
   </div></details>`;
 }
 
@@ -520,17 +537,18 @@ function renderHiddenReveal(g, parts){
   hrSync(g);
   const N=hrState.order.length, k=Math.min(hrState.count,N);
   const R=hrRevealed();
+  const drawTag=hidden12ProvisionalTag(g);
   /* ① ヒーロー: 直近に開示したホール番号（--f-rl-hole）＋ k/N ＋ N マスの進捗ドット。
      ドットは「塗り(--strong)/枠のみ(--line)」の形でも区別＝色だけに頼らない（§11.14 原則2） */
   const last = k>0 ? hrState.order[k-1] : null;
   const hero=`<div class="card hr-hero"><div class="hr-hero-top">
     <div class="hr-hole">${last==null?'—':(last+1)+'<small>H</small>'}</div>
-    <div class="hr-prog">${t('hr.progress',{k,n:N})}${k>=N?`<span class="tag">${t('hr.final')}</span>`:''}</div></div>
+    <div class="hr-prog">${t('hr.progress',{k,n:N})}${drawTag||(k>=N?`<span class="tag">${t('hr.final')}</span>`:'')}</div></div>
     <div class="hr-dots">${hrState.order.map((_,i)=>`<span class="hr-dot${i<k?' on':''}"></span>`).join('')}</div></div>`;
   /* ③ 18ホール帯（§18 A3＝従のまま小さく）: ■＝開示済みの隠しホール／？＝未開示（隠しかどうか"不明"）。
      全開示後は残りが「隠しでない」と確定するので ？ を消して無地にする（§9.2 の★）。
      OUT/IN の小ラベルは §18 B9 で残す（狭幅2段のときどちらの段か判別するため）。OUT/IN はリテラル（既存 sc の表記と同じ＝新規キー0） */
-  const hrCell=i=>`<div class="hr-cell${R.has(i)?' open':''}"><span class="n">${i+1}</span><span class="m">${R.has(i)?'■':(k>=N?'':'？')}</span></div>`;
+  const hrCell=i=>`<div class="hr-cell${R.has(i)?' open':''}"><span class="n">${i+1}</span><span class="m">${R.has(i)?'■':(k>=N&&!drawTag?'':'？')}</span></div>`;
   const hrSet=(lb,a,b)=>`<div class="hr-setwrap"><div class="hr-setlbl">${lb}</div><div class="hr-set">${
     Array.from({length:b-a},(_,j)=>hrCell(a+j)).join('')}</div></div>`;
   const band=`<div class="card hr-holescard"><div class="hr-holes">${hrSet('OUT',0,9)}${hrSet('IN',9,18)}</div>
@@ -582,5 +600,5 @@ function renderHiddenReveal(g, parts){
   const more=rest.length?`<details class="hr-more mt10"><summary>${t('hr.showRest',{n:HR_TOP+1})}</summary>
     <div class="in">${tbl(rest)}</div></details>`:'';
   return warn+hero+`<div class="card hr-rankcard">${tbl(rows.slice(0,HR_TOP))}
-    <div class="muted mt8">${t('hr.note')}</div></div>`+more+band+ctl+rule;
+    ${drawTag?'':`<div class="muted mt8">${t('hr.note')}</div>`}</div>`+more+band+ctl+rule;
 }

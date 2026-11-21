@@ -2,6 +2,51 @@
 function parTotal(g){ return g.par.reduce((a,b)=>a+b,0); }
 function gross(g,pid){ const sc=g.scores[pid]||[]; return sc.reduce((a,v)=>a+(v?Number(v):0),0); }
 function complete(g,pid){ const sc=g.scores[pid]||[]; return sc.filter(v=>v!=null&&v!=='').length===18; }
+
+/* 前後半の Par 帯と採用数。通常抽選・ルーレット・保存済み抽選の検証で同じ割当を使う。 */
+function hidden12Groups(par,start){
+  const groups=[{quota:1,holes:[]},{quota:4,holes:[]},{quota:1,holes:[]},{quota:0,holes:[]}];
+  for(let i=start;i<start+9;i++){
+    const p=par[i];
+    groups[p===3?0:p===4?1:p>=5?2:3].holes.push(i);
+  }
+  groups.forEach(b=>{ b.count=Math.min(b.quota,b.holes.length); });
+  let spare=6-groups.reduce((n,b)=>n+b.count,0);
+  [1,2,0,3].forEach(i=>{
+    const b=groups[i], add=Math.min(spare,b.holes.length-b.count);
+    b.count+=add; spare-=add;
+  });
+  return groups;
+}
+const HIDDEN12_REF_KEYS=['courseId','outId','inId'];
+function hidden12SourceMatches(g,draw){
+  const ref=g.courseRef||null, source=draw.sourceCourseRef;
+  const validRef=source===null || (source && typeof source==='object' && !Array.isArray(source) &&
+    HIDDEN12_REF_KEYS.every(k=>typeof source[k]==='string' && source[k]!==''));
+  if(!validRef || (source===null)!==(ref===null)) return false;
+  if(source && !HIDDEN12_REF_KEYS.every(k=>source[k]===ref[k])) return false;
+  return Array.isArray(g.par) && g.par.length===18 &&
+    Array.isArray(draw.sourcePar) && draw.sourcePar.length===18 &&
+    Array.from(draw.sourcePar).every((p,i)=>Number.isFinite(p) && p===g.par[i]);
+}
+function hidden12Status(g){
+  const active=Object.hasOwn(g,'hidden12Draw'), draw=g.hidden12Draw;
+  const count=Array.isArray(g.hidden)?g.hidden.filter(Boolean).length:0;
+  let valid=!!(active && draw && draw.version===1 && Array.isArray(draw.order) &&
+    draw.order.length===count && count<=12 && Array.isArray(g.hidden) && g.hidden.length===18 &&
+    Array.from(g.hidden).every(v=>typeof v==='boolean') && hidden12SourceMatches(g,draw));
+  if(valid){
+    const picked=new Set(draw.order);
+    valid=picked.size===count && Array.from(picked).every(i=>Number.isInteger(i)&&i>=0&&i<18&&g.hidden[i]) &&
+      [0,9].every(start=>hidden12Groups(g.par,start).every(b=>b.holes.filter(i=>picked.has(i)).length<=b.count));
+  }
+  const complete=valid&&count===12;
+  return {active,valid,count,complete,provisional:active&&!complete};
+}
+function hidden12CanPublish(g){ return !hidden12Status(g).provisional; }
+function hidden12AnnouncementBlocked(g,key){
+  return (key==='teamNet'||key==='univMatch') && !hidden12CanPublish(g);
+}
 /* ダブルペリアHDCP（★§11.12 H・2026-08-19に算定基準を変更＝§3/§11.2 を上書き）:
    隠し12ホールの合計を「エブリ適用後スコア」(adjHole) 基準で取る。
    ＝①エブリを各ホールに先に反映 → ②その合計からHDCPを算定 → ③ネット＝(エブリ後グロス)−(このHDCP)。
@@ -14,16 +59,22 @@ function complete(g,pid){ const sc=g.scores[pid]||[]; return sc.filter(v=>v!=nul
    k=開封(入力)済みの隠しホール数 / K=隠しホール総数 / n=入力済みホール数。
    partial=false（＝18H入力済み、または隠しホールが1つも入っていない）のときは
    下の periaHdcp が 2026-09-19 以前の式と文字どおり同一の経路に落ちる（§3.2 の表）。 */
-function periaParts(g,pid){
+function periaParts(g,pid,revealed){
+  const draw=Object.hasOwn(g,'hidden12Draw') && hidden12Status(g).provisional;
   let h=0,k=0,K=0;
-  g.hidden.forEach((hid,i)=>{ if(hid){ K++; const v=adjHole(g,pid,i);
+  g.hidden.forEach((hid,i)=>{ if(hid){ K++; const v=revealed&&!revealed.has(i)?null:adjHole(g,pid,i);
     if(v!=null){ k++; h += g.periaDblPar? Math.min(v, 2*g.par[i]) : v; } } });
   const n=enteredCount(g,pid);
-  return { h, k, K, n, partial: k>0 && (k<K || n<18) };
+  return { h, k, K, n, partial: draw || (k>0 && (k<K || n<18)), ...(draw?{draw}:{}) };
 }
-function periaHdcp(g,pid){
-  const P=periaParts(g,pid);
-  const hEst = (P.k>0 && P.k<P.K) ? P.h*P.K/P.k : P.h;      // ① 隠しホールの平均を K ホール分に引き伸ばす
+function hidden12Estimate(h,k,K,draw){
+  if(draw) return h*12/k;                                  // 呼出側で k=0 を HDCP 0 にする
+  return (k>0 && k<K) ? h*K/k : h;
+}
+function periaHdcp(g,pid,revealed){
+  const P=periaParts(g,pid,revealed);
+  if(P.draw && P.k===0) return 0;
+  const hEst=hidden12Estimate(P.h,P.k,P.K,P.draw);
   let hd=(hEst*1.5 - parTotal(g))*g.periaCoef;
   const neg = g.periaAllowNeg && (P.k>0 || P.K===0);         // ★経過中も負を許す（§3.4）。18H時点の値は不変
   if(hd<0 && !neg)hd=0;
@@ -32,7 +83,7 @@ function periaHdcp(g,pid){
   return Math.round(hd*10)/10;
 }
 /* 表示用（§7）: 1人でも暫定なら true。計算と同じ periaParts を見る＝二重管理を作らない */
-function periaProv(g,pids){ return (pids||g.participants).some(pid=>periaParts(g,pid).partial); }
+function periaProv(g,pids){ return !hidden12CanPublish(g) || (pids||g.participants).some(pid=>periaParts(g,pid).partial); }
 function enteredCount(g,pid){ return (g.scores[pid]||[]).filter(v=>v!=null&&v!=='').length; }
 /* エブリ控除の実額（§11.2）：入力済み各ホールに−1(E1)/−2(E2)を積み上げる＝表示系(adjArr/adjHole)と同一基準。
    18H入力時は従来どおりE1=−18/E2=−36。ペリアHDCPもこのエブリ後スコアを基準に算定する（§11.12 H）。 */
@@ -233,9 +284,11 @@ function uvHdcpA(g,pid){
   // Wパーカットは隠しホール集計（HDCP算定）にのみ適用。エブリON時は min もエブリ後の値で判定（§4.4・§11.12 H と同順）
   let H=0,k=0,K=0; g.hidden.forEach((hid,i)=>{ if(hid){ K++; const v=uvHole(g,pid,i);
     if(v!=null){ k++; H+=Math.min(v,2*g.par[i]); } } });
+  const draw=Object.hasOwn(g,'hidden12Draw') && hidden12Status(g).provisional;
+  if(draw && k===0) return 0;
   const n=enteredCount(g,pid);
-  const partial = k>0 && (k<K || n<18);                 // ★2026-09-19 暫定HDCP（2026-09-19-provisional-hdcp.md §3.8）
-  const hEst = (k>0 && k<K) ? H*K/k : H;                // ① 隠しホールの平均を K ホール分に引き伸ばす
+  const partial = draw || (k>0 && (k<K || n<18));       // ★2026-09-19 暫定HDCP（2026-09-19-provisional-hdcp.md §3.8）
+  const hEst=hidden12Estimate(H,k,K,draw);
   let hd=(hEst*1.5 - parTotal(g))*0.8;                  // 係数 0.8 固定（§12 既定事項3・g.periaCoef 非連動）
   if(hd<0)hd=0;
   const p=state.players.find(x=>x.id===pid);
@@ -329,7 +382,7 @@ function teamWinPoints(g){
      全8種目とも連携フラグ g.announced のみで確定（ルーレットの cur>=18 自動確定は廃止＝他種目と同じ手動連携・可逆）。
      連携フラグはデータ保存（D1/D2）。viewGame の Object.assign コピーでも announced は素通しで参照できる */
   const A=g.announced||{};
-  const evOn=key=>!!A[key];
+  const evOn=key=>!!A[key]&&!hidden12AnnouncementBlocked(g,key);
   // 種目別勝ち点の重み（winpoints-reveal §13.3・D11/D13）: points.teamEventPts（0以上の整数・既定全1＝現行完全互換）。
   // viewGame の Object.assign コピーは points 参照を共有＝素通しで参照できる。未定義キーは 1（防御的既定）
   const W=(g.points&&g.points.teamEventPts)||{};
@@ -456,6 +509,7 @@ function nextKanji(g){
    k<N は「開示済み k ホールの実測＋未開示 (N−k) ホールをその選手の入力済み全ホール平均で仮置き」した見込み値
    （§3.3 の実測で4変種を比較して採用した B'。素のビューは 12ステップ中7ステップが無反応で演出にならない）。 */
 function hrHdcpAt(g,pid,R){
+  if(!hidden12CanPublish(g)) return enteredCount(g,pid)>0?periaHdcp(g,pid,R):null;
   const cap=(v,i)=> g.periaDblPar? Math.min(v,2*g.par[i]) : v;
   let N=0,k=0,kr=0,sum=0;
   g.hidden.forEach((hid,i)=>{ if(!hid)return; N++;

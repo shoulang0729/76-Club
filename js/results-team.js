@@ -18,7 +18,7 @@ function renderTeamGame(g, g0, parts, key){
      本PRで sc()（開封バー・合計値トグル）を併設したため復旧経路ができ、'net'/'hbh' と同型に戻した。
      結果、ヒーロー・タイブレーク表が開封済みホールまでで再計算される＝段階開封（§14.2）。
      スコア表には足切り情報（uvScSel）を渡す＝対象外はグレーアウト・対象者は「対象」併記（PR#3 指示⑤。他タブは引数なし＝不変）*/
-  if(key==='univ')  return renderTeamUniv(g) + renderScorecard(g, g.participants, teams, uvScSel(g)) + ruleBox('rule.univ',{cap:uvCapLabel(g)});
+  if(key==='univ')  return renderTeamUniv(g) + renderHidden12Roulette(g0) + renderScorecard(g, g.participants, teams, uvScSel(g)) + ruleBox('rule.univ',{cap:uvCapLabel(g)});
   if(key==='nd')    return renderTeamNiadora(g);
   if(key==='gross') return `<div class="rank-wrap">${renderTeams(g,'teamGross')}</div>` + sc();
   if(key==='net')   return `<div class="rank-wrap">${renderTeams(g,'teamNet')}</div>` + sc();
@@ -42,12 +42,16 @@ function renderTeamGame(g, g0, parts, key){
    配置は各カード内の右寄せ（§11.2）＝flex 親の中で margin-left:auto。flush=true は右寄せ済み要素の直後に置く場合（ルーレット head） */
 function tpAnnounce(key,on){ const g=curGame(); if(!g)return;
   if(key==='honestJohn' && on && !hjCanAnnounce(g))return;
+  if(on&&hidden12AnnouncementBlocked(g,key))return;
   (g.announced=g.announced||{})[key]=!!on; save(); renderResult(); }
 function tpAnnounceUI(g,key,flush){ const on=!!(g.announced||{})[key];
-  const inner = on
+  const inner = hidden12AnnouncementBlocked(g,key)
+    ? `<button class="btn gold sm" disabled>${t('team.announce')}</button>`
+    : on
     ? `<span class="tag" style="background:var(--win);color:var(--on-fill)">${t('team.announced')}</span><button class="btn gray sm" onclick="tpAnnounce('${key}',false)">${t('team.unannounce')}</button>`
     : `<button class="btn gold sm" onclick="tpAnnounce('${key}',true)">${t('team.announce')}</button>`;
-  return `<span style="display:inline-flex;gap:6px;align-items:center${flush?'':';margin-left:auto'}">${inner}</span>`; }
+  const provisional=hidden12AnnouncementBlocked(g,key)?hidden12ProvisionalTag(g):'';
+  return `${provisional}<span style="display:inline-flex;gap:6px;align-items:center${flush?'':';margin-left:auto'}">${inner}</span>`; }
 
 /* ---- チーム総合カード＋種目別勝ち点表（team-points.md §6.2①・winpoints-reveal §5.1・投影原則 §11.14）----
    総合順位・勝ち点は calc.js の teamWinPoints(g) だけを正とする（表示側で再計算しない）。
@@ -259,7 +263,7 @@ function renderTeamNiadora(g){
    大学対抗固有の進行状態は持たない（揮発変数も localStorage 保存もなし・§6.2） */
 function renderTeamUniv(g){
   const uv=uvStanding(g);
-  const ann=!!(g.announced||{}).univMatch;
+  const ann=!!(g.announced||{}).univMatch&&!hidden12AnnouncementBlocked(g,'univMatch');
   const evTag=(g.univ&&g.univ.every)?`<span class="tag uv-tagev">${t('univ.everyOn')}</span>`:'';   // ON時のみ（OFF=規定準拠が無印・§7）
   /* 見出し <h2> は廃止＝タイトルはゲームタブ名「大学対抗」が兼ねる（heading-unify §3.2）。
      固有情報（エブリ適用中タグ・連携UI）はカード末尾の共通フッタ行へ: 左＝状態タグ／右端＝幹事操作（§4.1/§5.2）。

@@ -106,12 +106,9 @@ try {
 // 5) 計算回帰
 console.log('■ 計算回帰');
 try {
-  const grab = (n) => { const m = combined.match(new RegExp('function ' + n + '\\b[\\s\\S]*?\\n}', 'm')); if (!m) throw new Error('missing ' + n); return m[0]; };
-  const need = ['parTotal','gross','periaHdcp','enteredCount','everyStrokes','womenEvery','effGross','evPer','adjArr','adjHole','netScore','teamMembers','vegasPair','vAdj','vegasBase','vegasBirdie','vegasHoleNet'];
   const sb = { state: { players: [] }, Math, console };
-  let src = 'function sum(a,s,e){let x=0;for(let i=s;i<e;i++)x+=(a[i]?Number(a[i]):0);return x;}\n';
-  need.forEach(n => src += grab(n) + '\n');
-  src += 'globalThis.F={periaHdcp,netScore,effGross,vegasHoleNet};';
+  const src = ['score','calc'].map(n => fs.readFileSync(`${root}/js/${n}.js`, 'utf8')).join('\n')
+    + '\nglobalThis.F={periaHdcp,netScore,effGross,vegasHoleNet};';
   vm.runInContext(src, vm.createContext(sb));
   const F = sb.F;
   // #3: エブリ2・par72・全ホール6打 → 隠し12合計72 → HDCP 0（エブリ後基準）・net 72
