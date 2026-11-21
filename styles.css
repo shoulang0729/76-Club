@@ -476,11 +476,6 @@
   .rl-info{text-align:center;font-weight:var(--w-bold);font-size:var(--f-name);line-height:1.3;min-height:calc(var(--f-name)*1.3);margin-bottom:4px}
   .rl-main{font-size:var(--f-val);padding:16px}
   .rl-dev{margin-bottom:10px}
-  /* 抽選カード sticky（roulette-standings §5。コンテナは .result-sticky を共用＝top/z-index の新設なし）。
-     max-height=フォールバック: 固定領域が画面高を超える低背環境はカード内スクロール（sticky は解除しない）。
-     18px = top補正1px＋subtab4下罫線1＋subtab-games上下pad(6+2)＋sticky下pad8（sticky上pad8 は #87 指示⑧で撤去）。タブ2段＋主ナビで 3*--h-tabrow */
-  .result-sticky .rl-play{margin-bottom:0;
-    max-height:calc(100dvh - var(--hdr-h,50px) - 3*var(--h-tabrow) - 18px);overflow-y:auto;overscroll-behavior:contain}
   .sc2 .cur{background:var(--acc-bg) !important;color:var(--strong) !important}   /* 現在ホール列：黄地でも文字は最濃色に */
   .sc2 th.cur{background:var(--acc-bg-strong) !important;color:var(--strong) !important}
   /* 1 on 1 自動再生で「次に開く列」（2026-09-12-m1-autoplay.md §7.1）。.cur と同じトークン＝同じ意味「いま注目する列」。

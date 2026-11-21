@@ -117,8 +117,10 @@ function renderResult(){
   else if(resGrp==='ind') body = tabs.length? renderIndGame(g, parts, resGame.ind) : `<div class="empty">${t('result.noIndGame')}</div>`;
   else if(resGame.team==='m1'){ const P=renderMatch1v1Parts(g0);   // 生ゲームを渡す（マスクはモード別に内部で・§14.1）。head=サマリ＋操作バー（sticky 同居・D15）
     stickyHead=P.head; body=P.body; }
-  else if(resGame.team==='roulette'){ const P=renderRouletteParts(g0);   // g0（生・実スコアで動作）。head=抽選カード一式（sticky 同居・roulette-standings §5）
-    stickyHead=P.head; body=P.body; }
+  else if(resGame.team==='roulette'){
+    const {head,body:details}=renderRouletteParts(g0);
+    body=head+details;  // 抽選カードから開発者メニューまでページ全体でスクロールする。
+  }
   else body=renderTeamGame(g, g0, parts, resGame.team);
   const grpBtn=k=>`<button class="${resGrp===k?'on':''}" onclick="setResGrp('${k}')">${t('result.sub.'+k)}</button>`;
   const sticky=`<div class="result-sticky">
