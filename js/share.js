@@ -52,6 +52,7 @@ function sheetHjLines(d){ return d.rows.length+(d.mode==='avg'?(d.teams||[]).len
    drawSheet(M,{probe:true}) → {W,H,k,sections,overflow,fit}  canvas を作らずレイアウト情報だけ返す（§12.3）
    M = {...sheetModel(g), tp: tpShareModel(g)|null} */
 function drawSheet(M, opt){
+  if(M.meta.hidden12Pending) return null;
   const probe = !!(opt && opt.probe);
   const W = SL.W, CW = W - SL.PAD*2;
   const FF = getComputedStyle(document.body).fontFamily;   // 画面と同じフォントスタック（zh の字形指定にも自動追従・§5.3）
@@ -371,7 +372,9 @@ async function sheetImgMake(){
   const IN = sheetImgInput();            // モデルの合成は画面側（js/results.js）。ここは state を読まない
   if(!IN) return;
   await sheetFontsReady();
+  if(sheetImgPublishSig()!==IN.sig) return;
   const r = drawSheet(IN.model, {});
+  if(!r){ toast(t('h12.exportBlocked')); return; }
   if(sheetImg) URL.revokeObjectURL(sheetImg.url);
   sheetImg = { bytes:r.bytes, url:URL.createObjectURL(new Blob([r.bytes],{type:'image/png'})),
     w:r.W, h:r.H, k:r.k, name:sheetImgName(IN.model.meta), title:IN.model.meta.name || '76-Club', sig:IN.sig };
@@ -383,7 +386,8 @@ async function sheetImgMake(){
    （だから「作成」と「共有・保存」の2ボタン構成が必要＝1ボタンにまとめてはいけない）。
    ③ プレビュー長押し（右クリック保存）は常設なので、①②が効かない端末でも必ず持ち出せる。 */
 function sheetImgSave(){
-  if(!sheetImg) return;
+  const sig=sheetImgPublishSig();
+  if(!sig||!sheetImgFresh(sig)) return;
   const file = new File([sheetImg.bytes], sheetImg.name, {type:'image/png'});
   if(navigator.canShare && navigator.canShare({files:[file]})){
     navigator.share({files:[file], title:sheetImg.title}).catch(()=>{});   // 中断（キャンセル）は無視

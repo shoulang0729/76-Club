@@ -125,7 +125,7 @@ function smDetM1(g){
 }
 function smDetUniv(g){
   if(!chFormats(g).univMatch) return null;
-  const on=!!(g.announced||{}).univMatch;
+  const on=!!(g.announced||{}).univMatch&&!hidden12AnnouncementBlocked(g,'univMatch');
   const d={ labelKey:'term.univ', on, pending:!on, every:!!(g.univ&&g.univ.every), rows:[] };
   if(!on) return d;
   d.rows=uvStanding(g).rows.map(r=>({ team:r.t.name||'', rank:r.rank, P:r.P, N:r.N, r4:r.r4.slice(),
@@ -169,7 +169,7 @@ function sheetModel(g){
   }
   return {
     meta:{ name:g.name||'', date:g.date||'', course:g.course||'', n:parts.length,
-      prov:periaProv(g,parts) },                       // prov=暫定HDCP（1人でも18H未入力なら true・§14）
+      prov:periaProv(g,parts), ...(!hidden12CanPublish(g)?{hidden12Pending:true}:{}) },
     sc:{ par:(g.par||[]).slice(), parOut:sum(g.par,0,9), parIn:sum(g.par,9,18),
       hidden:(g.hidden||[]).map(v=>!!v), groups:smScGroups(g,parts) },
     ind:smInd(g,parts),

@@ -804,3 +804,24 @@
   .hj-table.sc2 .hj-total>td,.hj-table.sc2 .hj-average>td{font-size:var(--f-val);color:var(--strong);font-variant-numeric:tabular-nums}
   .hj-draw-label{text-align:center}
   .hj-draw-label span{margin-left:8px}
+
+  /* Shared hidden-12 draw: two nines, six slots each. */
+  .h12-roulette>summary .h12-summary-status{margin-left:8px}
+  .h12-grid{display:grid;gap:10px;margin:12px 0}
+  .h12-line{display:grid;grid-template-columns:72px repeat(6,minmax(0,1fr));gap:8px;align-items:stretch}
+  .h12-label{display:flex;align-items:center;font-weight:var(--w-bold);overflow-wrap:anywhere}
+  .h12-slot{min-width:0;min-height:84px;display:flex;flex-direction:column;justify-content:center;text-align:center;background:var(--surface-1);border:1px solid var(--line);border-radius:var(--r-sm);padding:8px 4px}
+  .h12-slot.fixed{background:var(--acc-bg);border-color:var(--acc)}
+  .h12-slot.spinning{border-color:var(--pri)}
+  .h12-slot.next{box-shadow:0 0 0 1px var(--pri)}
+  .h12-hole{font-size:clamp(16px,2.2vw,24px);font-weight:var(--w-bold);line-height:1.2;overflow-wrap:anywhere;color:var(--strong)}
+  .h12-par,.h12-note{font-size:var(--f-small);color:var(--sub)}
+  .h12-par{margin-top:4px}
+  .h12-note{margin-top:8px;overflow-wrap:anywhere}
+  .h12-controls{justify-content:center;flex-wrap:wrap}
+  .h12-controls .btn{min-width:130px;max-width:100%;min-height:44px;white-space:normal;overflow-wrap:anywhere}
+  .h12-stop[aria-disabled="true"]{opacity:.4}
+  @media(max-width:700px){
+    .h12-line{grid-template-columns:repeat(3,minmax(0,1fr))}
+    .h12-label{grid-column:1/-1}
+  }

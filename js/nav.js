@@ -18,7 +18,8 @@ function m1AutoStop(){ if(m1Auto.timer){ clearTimeout(m1Auto.timer); m1Auto.time
    pause ではなく stop が正しい（開封済みホール m1Opened は残す＝進捗は失わない）。
    regress ハーネスの vm には document が無いので存在確認してから登録する（§11 実装者への注意）。 */
 if(typeof document!=='undefined') document.addEventListener('visibilitychange',()=>{
-  if(document.hidden){ m1AutoStop(); if(typeof hjStopSpin==='function')hjStopSpin(); }
+  if(document.hidden){ m1AutoStop(); if(typeof hjStopSpin==='function')hjStopSpin();
+    if(typeof hidden12StopSpin==='function')hidden12StopSpin(); }
   else if(activeTab==='result'&&resGrp==='team'&&resGame.team==='honestJohn')renderResult();
 });
 // 発表用の表示/非表示スイッチ（true=表示）。totals=スコア表の合計欄（個人/チーム共通・チーム小計の色も含む）。既定=非表示（#97）
@@ -68,7 +69,8 @@ window.addEventListener('load', syncHdrH);
 const tabLabel=k=>t('tab.'+k);
 let lastHome='home';   // ホーム系で最後に居たサブタブ（揮発・非保存）。結果発表からの復帰先（2026-08-20-home-subtabs.md §3.3）
 function goHome(){ go(lastHome); }
-function go(tab){ rlStopTimer(); m1AutoStop(); if(typeof hjStopSpin==='function')hjStopSpin(); activeTab=tab; render(); }
+function go(tab){ rlStopTimer(); m1AutoStop(); if(typeof hjStopSpin==='function')hjStopSpin();
+  if(tab!==activeTab&&typeof hidden12StopSpin==='function')hidden12StopSpin(); activeTab=tab; render(); }
 function render(){
   Object.entries(views).forEach(([k,id])=> document.getElementById(id).style.display = k===activeTab?'':'none');
   const g=curGame();

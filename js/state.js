@@ -87,7 +87,11 @@ function defaultPoints(){ return {
   m1win:2, m1draw:1,   // 1 on 1 マッチプレー（§11.13）：勝者+2pt/引分両者+1pt（個人にのみ加算）
   teamEventPts:{ niadora:1, teamGross:1, teamNet:1, univMatch:1, holeByHole:1,   // 種目別勝ち点の重み（0以上の整数・既定 全1＝現行互換。winpoints-reveal §13.2）
     best2ball:1, vegas:1, match1v1:1, honestJohn:1, roulette:1, customMatch:1 } }; }
-function save(){ if(typeof hjBeforeSave==='function')hjBeforeSave(state); localStorage.setItem(LS_KEY, JSON.stringify(state)); }
+function save(){
+  if(typeof hjBeforeSave==='function')hjBeforeSave(state);
+  if(typeof hidden12BeforeSave==='function')hidden12BeforeSave(state);
+  localStorage.setItem(LS_KEY, JSON.stringify(state));
+}
 function uid(){ return Math.random().toString(36).slice(2,9); }
 function toast(m){ const t=document.getElementById('toast'); t.textContent=m; t.classList.add('show');
   clearTimeout(t._t); t._t=setTimeout(()=>t.classList.remove('show'),1600); }
